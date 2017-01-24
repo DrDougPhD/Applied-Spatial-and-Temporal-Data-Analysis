@@ -116,6 +116,17 @@ def decompress(file, to, dataset_dir):
 
     logger.debug('Moving to {}'.format(to))
     new_files = list(set(os.listdir(os.getcwd())) - current_files)
+    relocate(new_files, to)
+
+    logger.info('Extraction complete. Uncompressed files'
+                ' are within {}'.format(to))
+    for f in os.listdir(to):
+        dirname = os.path.basename(to)
+        path = os.path.join('...', dirname, f)
+        logger.debug('\t{}'.format(path))
+
+
+def relocate(new_files, to):
     logger.debug('New files after extraction: {}'.format(new_files))
     if len(new_files) > 1:
         # move all files
@@ -134,13 +145,6 @@ def decompress(file, to, dataset_dir):
         else:
             logger.debug('Extracted a whole directory.')
             os.rename(new_path, to)
-
-    logger.info('Extraction complete. Uncompressed files'
-                ' are within {}'.format(to))
-    for f in os.listdir(to):
-        dirname = os.path.basename(to)
-        path = os.path.join('...', dirname, f)
-        logger.debug('\t{}'.format(path))
 
 
 import hashlib
