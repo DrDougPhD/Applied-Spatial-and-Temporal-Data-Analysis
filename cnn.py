@@ -40,42 +40,15 @@ from datetime import datetime
 import sys
 import os
 import logging
-import requests
 logger = logging.getLogger(__appname__)
 
-"""
-def directory_in_cwd(directory, create=True):
-    cwd = os.path.dirname(os.path.abspath(__file__))
-    directory_name = os.path.dirname(directory)
-    directory_abs_path = os.path.join(cwd, directory)
-    os.makedirs(directory_abs_path, exist_ok=create)
-    return directory_abs_path
-
-CACHE_DIR = directory_in_cwd('cache', create=False)
-"""
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
-DATASETS_DOWNLOAD = {
-    'CNN.Qian‎.zip':
-        'https://docs.google.com/uc?id=0B6PIPLNXk0o1MFp0RzlwVlE0MnM&export=download',
-    'CNN.DMQA.tgz':
-        'https://drive.google.com/uc?export=download&id=0BwmD_VLjROrfTHk4NFg2SndKcjQ',
-}
-DATASET_DOWNLOADER_SCRIPT = 'gdown.pl'
-DATASET_DOWNLOADER_URL = 'https://raw.githubusercontent.com/circulosmeos/gdown.pl/master/gdown.pl'
-DATASET_DOWNLOADER_COMMAND = 'perl "{script_location}" "{url}" "{download_to}"'
 
 
 def main(args):
     dataset_dir = get_dataset_dir(args.dataset_dir)
-
     archive_files = get_datasets(indir=dataset_dir)
-    if not archive_files:
-        raise ('Error loading datasets. Please download from the following urls:\n'
-               '\thttp://cs.nyu.edu/~kcho/DMQA/\n'
-               '\thttps://sites.google.com/site/qianmingjie/home/datasets/cnn'
-               '-and-fox-news')
-
     for f in archive_files:
         pass
 
@@ -92,16 +65,17 @@ def get_dataset_dir(dataset_dir):
 
 
 def get_datasets(indir):
-    files = [f for f in os.listdir(indir) \
+    files = set([f for f in os.listdir(indir) \
              if os.path.isfile(os.path.join(indir, f)) and \
-             is_archive(f)]
-
+             is_archive(f)])
     if not files:
-        logger.debug('No archive files found within {}'.format(indir))
-        files.extend(download_datasets(to=indir))
+        raise Exception(
+            'Error loading datasets. Please download from the following  urls:\n'
+            '\thttp://cs.nyu.edu/~kcho/DMQA/\n'
+            '\thttps://sites.google.com/site/qianmingjie/home/datasets/cnn-and-fox-news')
 
     logger.debug('Archive files: {}'.format(files))
-    return set(files)
+    return files
 
 
 def is_archive(filename):
@@ -111,63 +85,6 @@ def is_archive(filename):
     else:
         return False
 
-
-def download_datasets(to):
-    import subprocess
-    logger.debug('Downloading datasets from Internet')
-    logger.debug('\n'.join(DATASETS_DOWNLOAD.values()))
-
-    script_location = os.path.join(to, DATASET_DOWNLOADER_SCRIPT)
-    if not os.path.isfile(script_location):
-        logger.debug("Dataset downloader '{}' not found. Retrieving "
-                     "from {}".format(
-            DATASET_DOWNLOADER_SCRIPT,
-            DATASET_DOWNLOADER_URL))
-        import urllib.request
-        downloader_opener = urllib.request.URLopener()
-        downloader_opener.retrieve(DATASET_DOWNLOADER_URL, script_location)
-
-    for filename in DATASETS_DOWNLOAD:
-        url = DATASETS_DOWNLOAD[filename]
-        destination = os.path.join(to, filename)
-        download(url=url, to=destination)
-        """
-        logger.debug('\t{}'.format(url))
-        logger.debug('\t  |')
-        logger.debug('\t  v')
-        logger.debug('\t{}'.format(destination))
-        logger.debug('\t'+'-'*60)
-
-        subprocess.run(
-            DATASET_DOWNLOADER_COMMAND.format(
-                script_location=script_location, url=url,
-                download_to=destination)
-        )
-        """
-        yield destination
-
-def download(url, to):
-    logger.debug('Downloading {0} to {1}'.format(url, to))
-
-    # sourced from: http://stackoverflow.com/a/15645088
-    """
-    with open(to, "wb") as f:
-        response = requests.get(url, stream=True)
-        total_length = response.headers.get('content-length')
-
-        if total_length is None:  # no content length header
-            f.write(response.content)
-
-        else:
-            dl = 0
-            total_length = int(total_length)
-            for data in response.iter_content(chunk_size=4096):
-                dl += len(data)
-                f.write(data)
-                done = int(50 * dl / total_length)
-                sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
-                sys.stdout.flush()
-    """
 
 import hashlib
 def retrieve(articles, cache_in):
