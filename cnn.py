@@ -102,10 +102,26 @@ def decompress(file, to, dataset_dir):
             url=EXTRACTOR_SCRIPT_SOURCE))
 
     # take snapshot of directory so that the extracted directory can be spotted
-    current_files = os.listdir(dataset_dir)
+    current_files = set(os.listdir(os.getcwd()))
 
     logger.info('Extracting dataset. This might take a while.')
     subprocess.run(['bash', extractor, file])
+
+    new_files = list(set(os.listdir(os.getcwd())) - current_files)
+    logger.debug('New files after extraction: {}'.format(new_files))
+    new_filename = new_files[0]
+    new_path = os.path.join(os.getcwd(), new_filename)
+    logger.debug('Extraction complete to {}'.format(new_path))
+
+    logger.debug('Moving to {}'.format(to))
+    if os.path.isfile(new_path):
+        logger.debug('Extracted only one file.')
+        os.makedirs(to, exist_ok=True)
+        to = os.path.join(to, new_filename)
+    else:
+        logger.debug('Extracted a whole directory.')
+    os.rename(new_path, to)
+
     logger.info('Extraction complete. Uncompressed files'
                 ' are within {}'.format(to))
 
