@@ -32,6 +32,7 @@ __appname__ = "cnn"
 __author__ = "Doug McGeehan"
 __version__ = "0.0pre0"
 __license__ = "GNU GPLv3"
+__dev__ = True # used for debug messages in logs
 
 
 import argparse
@@ -39,35 +40,42 @@ from datetime import datetime
 import sys
 import os
 import logging
-import newspaper
 
 logger = logging.getLogger(__appname__)
 
 
+IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
+
+
 def main(args):
-    cnn_paper = newspaper.build('http://cnn.com')
-    """
-    for article in cnn_paper.articles:
-        preprocess(article)
-        articles.download()
-        article.parse()
-        article.nlp()
-        print(article.text)
-    """
-    print(cnn_paper.articles)
-    #unique_words = identify_unique_words(cnn_paper.articles)
-    #preprocess(cnn_paper.articles[0])
-
-
-def preprocess(article):
-    article.download()
-    article.parse()
-    article.nlp()
-    print(article.text)
-    print('-'*80)
-    print(article.url)
-    #for word in article.text.split():
+    archive_files = set()
+    for db in args.datasets:
+        if os.path.isdir(db):
+            archive_files.update(check_for_dataset(indir=db))
+        elif os.path.isfile(db) and is_archive(db):
+            archive_files.add(db)
+        else:
+            raise 'Unable to handle file type: {}'.format(db)
         
+        logger.debug('Dataset file: {}'.format(db))
+
+
+def check_for_dataset(indir):
+    files = [f for f in os.listdir(indir) \
+             if os.path.isfile(os.path.join(indir, f)) and \
+             is_archive(f)]
+    if not files:
+        raise 'No archive files found within {}'.format(indir)
+    logger.debug('Archive files: {}'.format(files))
+    return files
+
+
+def is_archive(filename):
+    extension = filename.split('.')[-1]
+    if extension.lower() in IMPLEMENTED_ARCHIVE_EXTENSIONS:
+        return True
+    else:
+        return False
 
 def setup_logger(args):
     logger.setLevel(logging.DEBUG)
@@ -104,7 +112,25 @@ def get_arguments():
     # during development, I set default to False so I don't have to keep
     # calling this with -v
     parser.add_argument('-v', '--verbose', action='store_true',
-                        default=False, help='verbose output')
+                        default=__dev__, help='verbose output')
+
+    def path(*args):
+        abspath = os.path.dirname(os.path.abspath(__file__))
+        if len(args) == 0: # assume it was called for cwd
+            pass # leave as cwd
+
+        else:
+            initial_path = os.path.join(*args)
+            if not os.path.isabs(initial_path):
+                abspath = os.path.join(abspath, initial_path)
+
+        assert os.path.exists(abspath), "Path doesn't exist: {}".format(
+            abspath
+        )
+        return abspath
+
+    parser.add_argument('datasets', metavar='DATASET', nargs='+', type=path,
+                        help='verbose output')
 
     args = parser.parse_args()
     return args
