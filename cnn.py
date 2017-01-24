@@ -44,13 +44,17 @@ logger = logging.getLogger(__appname__)
 
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
-
+EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
+EXTRACTOR_SCRIPT = 'extract.sh'
 
 def main(args):
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
+    extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
     for f in archive_files:
-        pass
+        filename = '.'.join(os.path.basename(f).split('.')[:-1])
+        extract_to = os.path.join(dataset_dir, filename)
+        decompress(f, to=extract_to, dataset_dir=dataset_dir)
 
 
 def get_dataset_dir(dataset_dir):
@@ -85,6 +89,23 @@ def is_archive(filename):
     else:
         return False
 
+
+def decompress(file, to, dataset_dir):
+    import subprocess
+    extractor = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
+    if not os.path.isfile(extractor):
+        raise Exception('No archive extractor script found at {path}.\n'
+                        'Create it from this post: {url}'.format(
+            path=extractor,
+            url=EXTRACTOR_SCRIPT_SOURCE))
+
+    # take snapshot of directory so that the extracted directory can be spotted
+    current_files = os.listdir(dataset_dir)
+
+    logger.info('Extracting dataset. This might take a while.')
+    #subprocess.run(['bash', extractor, file])
+    logger.info('Extraction complete. Uncompressed files'
+                ' are within {}'.format(to))
 
 import hashlib
 def retrieve(articles, cache_in):
