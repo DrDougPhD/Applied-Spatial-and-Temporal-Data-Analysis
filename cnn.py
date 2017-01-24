@@ -45,29 +45,43 @@ logger = logging.getLogger(__appname__)
 
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
+DATASETS_DOWNLOAD = {
+    'CNN.Qian‎.zip':
+        'https://docs.google.com/uc?id=0B6PIPLNXk0o1MFp0RzlwVlE0MnM&export=download',
+    'CNN.DMQA.tgz':
+        'https://drive.google.com/uc?export=download&id=0BwmD_VLjROrfTHk4NFg2SndKcjQ',
+}
+DATASET_DOWNLOADER_SCRIPT = 'gdown.pl'
+DATASET_DOWNLOADER_URL = 'https://raw.githubusercontent.com/circulosmeos/gdown.pl/master/gdown.pl'
 
 
 def main(args):
-    archive_files = set()
-    for db in args.datasets:
-        if os.path.isdir(db):
-            archive_files.update(check_for_dataset(indir=db))
-        elif os.path.isfile(db) and is_archive(db):
-            archive_files.add(db)
-        else:
-            raise 'Unable to handle file type: {}'.format(db)
-        
-        logger.debug('Dataset file: {}'.format(db))
+    dataset_dir = args.dataset_dir
+    if not os.path.isabs(dataset_dir):
+        dataset_dir = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), dataset_dir)
+
+    archive_files = get_datasets(indir=dataset_dir)
+    if not archive_files:
+        raise ('Error loading datasets. Please download from the following urls:\n'
+               '\thttp://cs.nyu.edu/~kcho/DMQA/\n'
+               '\thttps://sites.google.com/site/qianmingjie/home/datasets/cnn'
+               '-and-fox-news')
 
 
-def check_for_dataset(indir):
+
+
+def get_datasets(indir):
     files = [f for f in os.listdir(indir) \
              if os.path.isfile(os.path.join(indir, f)) and \
              is_archive(f)]
+
     if not files:
-        raise 'No archive files found within {}'.format(indir)
+        logger.debug('No archive files found within {}'.format(indir))
+        files.extend(download_datasets(to=indir))
+
     logger.debug('Archive files: {}'.format(files))
-    return files
+    return set(files)
 
 
 def is_archive(filename):
@@ -76,6 +90,26 @@ def is_archive(filename):
         return True
     else:
         return False
+
+
+def download_datasets(to):
+    logger.debug('Download datasets from Internet')
+    logger.debug('\n'.join(DATASETS_DOWNLOAD.values()))
+
+    if DATASET_DOWNLOADER_SCRIPT not in os.listdir(to):
+        logger.debug("Dataset downloader '{}' not found. Retrieving "
+                     "from {}".format(
+            DATASET_DOWNLOADER_SCRIPT,
+            DATASET_DOWNLOADER_URL))
+        import urllib.request
+        downloader_opener = urllib.request.URLopener()
+        download_to = os.path.join(to, DATASET_DOWNLOADER_SCRIPT)
+        downloader_opener.retrieve(DATASET_DOWNLOADER_URL, download_to)
+
+    for filename in DATASETS_DOWNLOAD:
+        url = DATASETS_DOWNLOAD[filename]
+
+
 
 def setup_logger(args):
     logger.setLevel(logging.DEBUG)
@@ -114,7 +148,9 @@ def get_arguments():
     parser.add_argument('-v', '--verbose', action='store_true',
                         default=__dev__, help='verbose output')
 
+    """
     def path(*args):
+        logger.debug('Path arguments: {}'.format(args))
         abspath = os.path.dirname(os.path.abspath(__file__))
         if len(args) == 0: # assume it was called for cwd
             pass # leave as cwd
@@ -124,13 +160,18 @@ def get_arguments():
             if not os.path.isabs(initial_path):
                 abspath = os.path.join(abspath, initial_path)
 
+        if not os.path.isdir(abspath):
+            os.makedirs(abspath)
+
         assert os.path.exists(abspath), "Path doesn't exist: {}".format(
             abspath
         )
         return abspath
+    """
 
-    parser.add_argument('datasets', metavar='DATASET', nargs='+', type=path,
-                        help='verbose output')
+    parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
+                        help='directory to download / to load datasets',
+                        default=os.path.join('data', 'downloads'))
 
     args = parser.parse_args()
     return args
