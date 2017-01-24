@@ -91,6 +91,7 @@ def is_archive(filename):
     else:
         return False
 
+import shutil
 
 def decompress(file, to, dataset_dir):
     import subprocess
@@ -106,24 +107,36 @@ def decompress(file, to, dataset_dir):
 
     logger.info('Extracting dataset. This might take a while.')
     subprocess.run(['bash', extractor, file])
-
-    new_files = list(set(os.listdir(os.getcwd())) - current_files)
-    logger.debug('New files after extraction: {}'.format(new_files))
-    new_filename = new_files[0]
-    new_path = os.path.join(os.getcwd(), new_filename)
-    logger.debug('Extraction complete to {}'.format(new_path))
+    logger.debug('Extraction complete.')
 
     logger.debug('Moving to {}'.format(to))
-    if os.path.isfile(new_path):
-        logger.debug('Extracted only one file.')
+    new_files = list(set(os.listdir(os.getcwd())) - current_files)
+    logger.debug('New files after extraction: {}'.format(new_files))
+    if len(new_files) > 1:
+        # move all files
         os.makedirs(to, exist_ok=True)
-        to = os.path.join(to, new_filename)
-    else:
-        logger.debug('Extracted a whole directory.')
-    os.rename(new_path, to)
+        for f in new_files:
+            shutil.move(os.path.join(os.getcwd(), f), to)
+        logger.debug('{} files moved.'.format(len(new_files)))
+
+    elif len(new_files) == 1:
+        new_path = os.path.join(os.getcwd(), new_files[0])
+        if os.path.isfile(new_path):
+            logger.debug('Extracted only one file.')
+            os.makedirs(to, exist_ok=True)
+            shutil.move(new_path, to)
+
+        else:
+            logger.debug('Extracted a whole directory.')
+            os.rename(new_path, to)
 
     logger.info('Extraction complete. Uncompressed files'
                 ' are within {}'.format(to))
+    for f in os.listdir(to):
+        dirname = os.path.basename(to)
+        path = os.path.join('...', dirname, f)
+        logger.debug('\t{}'.format(path))
+
 
 import hashlib
 def retrieve(articles, cache_in):
