@@ -92,9 +92,14 @@ def is_archive(filename):
         return False
 
 import shutil
-
+import subprocess
 def decompress(file, to, dataset_dir):
-    import subprocess
+    if os.path.exists(to):
+        logger.debug('Already existing file/dir at {}.'.format(to))
+        logger.debug('No extraction will be done for {}.'.format(
+            os.path.basename(file)))
+        return
+
     extractor = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
     if not os.path.isfile(extractor):
         raise Exception('No archive extractor script found at {path}.\n'
