@@ -43,6 +43,16 @@ import logging
 import requests
 logger = logging.getLogger(__appname__)
 
+"""
+def directory_in_cwd(directory, create=True):
+    cwd = os.path.dirname(os.path.abspath(__file__))
+    directory_name = os.path.dirname(directory)
+    directory_abs_path = os.path.join(cwd, directory)
+    os.makedirs(directory_abs_path, exist_ok=create)
+    return directory_abs_path
+
+CACHE_DIR = directory_in_cwd('cache', create=False)
+"""
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 DATASETS_DOWNLOAD = {
@@ -159,6 +169,54 @@ def download(url, to):
                 sys.stdout.flush()
     """
 
+import hashlib
+def retrieve(articles, cache_in):
+    """
+    for article in articles:
+        yield retrieve_article(article, cache)
+    """
+    logger.debug('Retrieving articles, either from website or cache')
+    text = ''
+    url = ''
+    retrieved_article_count = 0
+    for article in articles:
+        text = retrieve_article(article, cache_in)
+        url = article.url
+        retrieved_article_count += 1
+        break
+    logger.debug('Retrieved {count} article{plural}'.format(
+            count=retrieved_article_count,
+            plural='s' if retrieved_article_count > 1 else ''))
+    return text, url
+
+
+def retrieve_article(article, cached_in=None):
+    logger.debug('Accessing {}'.format(article.url))
+    md5 = hashlib.md5()
+    md5.update(article.url.encode('utf-8'))
+    filename = '{hash}.txt'.format(h.hexdigest())
+    filepath = os.path.join(filename)
+
+    txt = ''
+    if os.path.isfile(filepath):
+        with open(filepath) as f:
+            txt = f.read()
+        logger.debug('Cached at {}'.format(filepath))
+        
+
+    else:
+        logger.debug('Cache not found. Downloading article')
+        article.download()
+        article.parse()
+        article.nlp()
+
+        with open(filepath, 'w') as f:
+            txt = article.text
+            f.write(txt)
+        logger.debug('Caching to {}'.format(filepath))
+
+    return txt
+
 
 
 def setup_logger(args):
@@ -223,8 +281,22 @@ def get_arguments():
                         help='directory to download / to load datasets',
                         default=os.path.join('data', 'downloads'))
 
+    parser.add_argument('-n', '--newspaper', dest='newspaper_url',
+                        default='http://www.cnn.com/',
+                        help='URL for target newspaper')
+    def directory_in_cwd(directory, create=True):
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        directory_name = os.path.dirname(directory)
+        directory_abs_path = os.path.join(cwd, directory)
+        os.makedirs(directory_abs_path, exist_ok=create)
+        return directory_abs_path
+
+    parser.add_argument('-a', '--archive-to', dest='cache_to',
+                        default=directory_in_cwd('cache'), type=directory_in_cwd,
+                        help='cache newspaper articles to directory')
     args = parser.parse_args()
     return args
+
 
 if __name__ == '__main__':
     try:
