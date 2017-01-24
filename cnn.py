@@ -53,13 +53,11 @@ DATASETS_DOWNLOAD = {
 }
 DATASET_DOWNLOADER_SCRIPT = 'gdown.pl'
 DATASET_DOWNLOADER_URL = 'https://raw.githubusercontent.com/circulosmeos/gdown.pl/master/gdown.pl'
+DATASET_DOWNLOADER_COMMAND = 'perl "{script_location}" "{url}" "{download_to}"'
 
 
 def main(args):
-    dataset_dir = args.dataset_dir
-    if not os.path.isabs(dataset_dir):
-        dataset_dir = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), dataset_dir)
+    dataset_dir = get_dataset_dir(args.dataset_dir)
 
     archive_files = get_datasets(indir=dataset_dir)
     if not archive_files:
@@ -68,7 +66,19 @@ def main(args):
                '\thttps://sites.google.com/site/qianmingjie/home/datasets/cnn'
                '-and-fox-news')
 
+    for f in archive_files:
+        pass
 
+
+def get_dataset_dir(dataset_dir):
+    if not os.path.isabs(dataset_dir):
+        dataset_dir = os.path.join(os.path.dirname(os.path.abspath(
+            __file__)), dataset_dir)
+
+    if not os.path.exists(dataset_dir):
+        os.makedirs(dataset_dir)
+
+    return dataset_dir
 
 
 def get_datasets(indir):
@@ -93,21 +103,39 @@ def is_archive(filename):
 
 
 def download_datasets(to):
-    logger.debug('Download datasets from Internet')
+    import subprocess
+    logger.debug('Downloading datasets from Internet')
     logger.debug('\n'.join(DATASETS_DOWNLOAD.values()))
 
-    if DATASET_DOWNLOADER_SCRIPT not in os.listdir(to):
+    script_location = os.path.join(to, DATASET_DOWNLOADER_SCRIPT)
+    if not os.path.isfile(script_location):
         logger.debug("Dataset downloader '{}' not found. Retrieving "
                      "from {}".format(
             DATASET_DOWNLOADER_SCRIPT,
             DATASET_DOWNLOADER_URL))
         import urllib.request
         downloader_opener = urllib.request.URLopener()
-        download_to = os.path.join(to, DATASET_DOWNLOADER_SCRIPT)
-        downloader_opener.retrieve(DATASET_DOWNLOADER_URL, download_to)
+        downloader_opener.retrieve(DATASET_DOWNLOADER_URL, script_location)
 
+    logger.debug('Downloading:')
     for filename in DATASETS_DOWNLOAD:
         url = DATASETS_DOWNLOAD[filename]
+        destination = os.path.join(to, filename)
+        logger.debug('\t{}'.format(url))
+        logger.debug('\t  |')
+        logger.debug('\t  v')
+        logger.debug('\t{}'.format(destination))
+        logger.debug('\t'+'-'*60)
+        """
+        subprocess.run(
+            DATASET_DOWNLOADER_COMMAND.format(
+                script_location=script_location, url=url,
+                download_to=destination)
+        )
+        """
+        yield destination
+
+
 
 
 
