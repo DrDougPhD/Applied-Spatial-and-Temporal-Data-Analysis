@@ -40,7 +40,7 @@ from datetime import datetime
 import sys
 import os
 import logging
-
+import requests
 logger = logging.getLogger(__appname__)
 
 
@@ -117,16 +117,17 @@ def download_datasets(to):
         downloader_opener = urllib.request.URLopener()
         downloader_opener.retrieve(DATASET_DOWNLOADER_URL, script_location)
 
-    logger.debug('Downloading:')
     for filename in DATASETS_DOWNLOAD:
         url = DATASETS_DOWNLOAD[filename]
         destination = os.path.join(to, filename)
+        download(url=url, to=destination)
+        """
         logger.debug('\t{}'.format(url))
         logger.debug('\t  |')
         logger.debug('\t  v')
         logger.debug('\t{}'.format(destination))
         logger.debug('\t'+'-'*60)
-        """
+
         subprocess.run(
             DATASET_DOWNLOADER_COMMAND.format(
                 script_location=script_location, url=url,
@@ -135,7 +136,28 @@ def download_datasets(to):
         """
         yield destination
 
+def download(url, to):
+    logger.debug('Downloading {0} to {1}'.format(url, to))
 
+    # sourced from: http://stackoverflow.com/a/15645088
+    """
+    with open(to, "wb") as f:
+        response = requests.get(url, stream=True)
+        total_length = response.headers.get('content-length')
+
+        if total_length is None:  # no content length header
+            f.write(response.content)
+
+        else:
+            dl = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                dl += len(data)
+                f.write(data)
+                done = int(50 * dl / total_length)
+                sys.stdout.write("\r[%s%s]" % ('=' * done, ' ' * (50 - done)))
+                sys.stdout.flush()
+    """
 
 
 
