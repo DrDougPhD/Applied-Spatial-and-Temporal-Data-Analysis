@@ -53,7 +53,7 @@ DATASETS_DOWNLOAD = {
 }
 DATASET_DOWNLOADER_SCRIPT = 'gdown.pl'
 DATASET_DOWNLOADER_URL = 'https://raw.githubusercontent.com/circulosmeos/gdown.pl/master/gdown.pl'
-DATASET_DOWNLOADER_COMMAND = 'perl "{script_location}" "{url}" "{download_to}"'
+DATASET_DOWNLOADER_COMMAND = 'perl {script_location} {url}'
 
 
 def main(args):
@@ -127,7 +127,24 @@ def download_datasets(to):
         logger.debug('\t  v')
         logger.debug('\t{}'.format(destination))
         logger.debug('\t'+'-'*60)
+        """
 
+        # converting this script to python is a low priority
+        logger.debug('-'*80)
+        gdrive_url_converter = subprocess.Popen(
+            DATASET_DOWNLOADER_COMMAND.format(
+                script_location=script_location, url=url).split(' '),
+            stdout=subprocess.PIPE)
+
+        """
+        while gdrive_url_converter.poll() is None:
+            l = gdrive_url_converter.stdout.readline() # This blocks until it receives a newline.
+            logger.debug(l)
+
+        logger.debug(gdrive_url_converter.stdout.read())
+        logger.debug('-' * 80)
+        """
+        """
         subprocess.run(
             DATASET_DOWNLOADER_COMMAND.format(
                 script_location=script_location, url=url,
