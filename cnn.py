@@ -45,19 +45,27 @@ logger = logging.getLogger(__appname__)
 
 
 def main(args):
-    cnn_paper = newspaper.build('http://cnn.com')
     """
+    cnn_paper = newspaper.build('http://cnn.com')
+    archive(cnn_paper)
     for article in cnn_paper.articles:
         preprocess(article)
         articles.download()
         article.parse()
         article.nlp()
         print(article.text)
-    """
     print(cnn_paper.articles)
+    """
     #unique_words = identify_unique_words(cnn_paper.articles)
     #preprocess(cnn_paper.articles[0])
 
+import hashlib
+def archive(newspaper):
+    for article in newspaper.articles:
+        md5 = hashlib.md5()
+        md5.update(article.url)
+        filename = h.hexdigest()
+        filepath = 'blah'
 
 def preprocess(article):
     article.download()
@@ -105,7 +113,16 @@ def get_arguments():
     # calling this with -v
     parser.add_argument('-v', '--verbose', action='store_true',
                         default=False, help='verbose output')
+    def directory_in_cwd(directory):
+        cwd = os.path.dirname(os.path.abspath(__file__))
+        directory_name = os.path.dirname(directory)
+        directory_abs_path = os.path.join(cwd, directory)
+        os.makedirs(directory_abs_path, exist_ok=True)
+        return directory_abs_path
 
+    parser.add_argument('-a', '--archive-to', dest='cache_to',
+                        default=directory_in_cwd('cache'), type=directory_in_cwd,
+                        help='cache newspaper articles to directory')
     args = parser.parse_args()
     return args
 
