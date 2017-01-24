@@ -69,9 +69,11 @@ def get_dataset_dir(dataset_dir):
 
 
 def get_datasets(indir):
-    files = set([f for f in os.listdir(indir) \
-             if os.path.isfile(os.path.join(indir, f)) and \
-             is_archive(f)])
+    files = set([
+                os.path.join(indir, f)\
+                for f in os.listdir(indir) \
+                    if os.path.isfile(os.path.join(indir, f))\
+                    and is_archive(f)])
     if not files:
         raise Exception(
             'Error loading datasets. Please download from the following  urls:\n'
@@ -103,7 +105,7 @@ def decompress(file, to, dataset_dir):
     current_files = os.listdir(dataset_dir)
 
     logger.info('Extracting dataset. This might take a while.')
-    #subprocess.run(['bash', extractor, file])
+    subprocess.run(['bash', extractor, file])
     logger.info('Extraction complete. Uncompressed files'
                 ' are within {}'.format(to))
 
