@@ -47,14 +47,144 @@ IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
 
+
+def dmqa_preprocess(stored_within):
+    logger.debug('Preprocessing DMQA CNN articles')
+    text_files_within = os.path.join(stored_within, 'stories')
+    logger.debug('Plaintext articles are stored in {}'.format(text_files_within))
+    for f in os.listdir(text_files_within):
+        yield os.path.join(text_files_within, f)
+
+
+def qian_preprocess(stored_within):
+    for i in range(3):
+        yield ''
+
+
+preprocessor = {
+    'CNN.DMQA.tgz': dmqa_preprocess,
+    'CNN.Qian.zip': qian_preprocess
+}
+
+
+class NewspaperArticle(object):
+    def __init__(self, path):
+        assert os.path.isfile(path), 'File not found: {}'.format(path)
+        self.path = path
+
+
+class ArticleSelector(object):
+    """
+    Given a dataset of articles, select a subset for further processing.
+    Obtain the article's title, category, and plain text.
+    """
+
+    class BaseArticleAccessor(object):
+        """
+        Base class for accessing articles within a given directory.
+        """
+        pass
+
+    class DmqaArticles(BaseArticleAccessor):
+        """
+        Retrieve article files from the DMQA CNN dataset located in a specified
+        directory.
+        """
+        pass
+
+    class QianArticles(BaseArticleAccessor):
+        """
+        Retrieve article files from the Qian CNN dataset located in a specified
+        directory.
+        """
+        pass
+    article_accessor = {
+        'CNN.DMQA.tgz': DmqaArticles,
+        'CNN.Qian.zip': QianArticles,
+    }
+
+    def __init__(self, datasets):
+        self.accessors = [ ArticleSelector.article_accessor[k]
+                           for k in datasets ]
+
+
+    def get(self, count, random=True):
+        pass
+
+
+class NewspaperBagOfWords(object):
+    def __init__(self, articles):
+        pass
+
+
+    def baggify(self):
+        pass
+
+
+    def matrix(self, save_to=None):
+        pass
+
+
+class IterableDistancePermutation(object):
+    def __init__(self, matrix):
+        pass
+
+    def pairwise_combine_and_measure(self, by):
+        pass
+
+
+    def write_to(self, file, sort_by):
+        pass
+
+
+def euclidean_distance(u, v):
+    return 0
+
+
+def cosine_similarity(u, v):
+    return 0
+
+
+def jaccard_similarity(u, v):
+    return 0
+
+
 def main(args):
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
+    decompressed_dataset_directories = {}
     for f in archive_files:
-        filename = '.'.join(os.path.basename(f).split('.')[:-1])
-        extract_to = os.path.join(dataset_dir, filename)
+        filename = os.path.basename(f)
+        filename_prefix = '.'.join(filename.split('.')[:-1])
+        extract_to = os.path.join(dataset_dir, filename_prefix)
         decompress(f, to=extract_to, dataset_dir=dataset_dir)
+        decompressed_dataset_directories[filename] = extract_to
+
+    logger.info('-'*80)
+    logger.info('Datasets to preprocess:')
+    for dbname in decompressed_dataset_directories:
+        dir = decompressed_dataset_directories[dbname]
+        logger.info(dir)
+
+    # randomly select articles
+    selector = ArticleSelector(decompressed_dataset_directories)
+    selected_articles = selector.get(100, random=not __dev__)
+
+    # break down articles into a bag of words
+    bag_of_words = NewspaperBagOfWords(selected_articles)
+    words = bag_of_words.baggify()
+    matrix = bag_of_words.matrix(save_to='m.csv')
+
+    distance_fns = [euclidean_distance, cosine_similarity, jaccard_similarity]
+    similarity_calculater = IterableDistancePermutation(matrix)
+    for fn in distance_fns:
+        similarity_calculater.pairwise_combine_and_measure(by=fn)
+        similarity_calculater.write_to(file='f', sort_by=fn.__name__)
+
+
+
+
 
 
 def get_dataset_dir(dataset_dir):
