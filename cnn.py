@@ -83,7 +83,10 @@ class ArticleSelector(object):
         """
         Base class for accessing articles within a given directory.
         """
-        pass
+        def __init__(self, dir):
+            assert os.path.isdir(dir), "ArticleAccessor: Directory doesn't " \
+                                       "exist: {}".format(dir)
+            self.stored_in = dir
 
     class DmqaArticles(BaseArticleAccessor):
         """
@@ -99,12 +102,12 @@ class ArticleSelector(object):
         """
         pass
     article_accessor = {
-        'CNN.DMQA.tgz': DmqaArticles,
-        'CNN.Qian.zip': QianArticles,
+        'CNN.DMQA.tgz': lambda dir: ArticleSelector.DmqaArticles(dir),
+        'CNN.Qian.zip': lambda dir: ArticleSelector.QianArticles(dir),
     }
 
     def __init__(self, datasets):
-        self.accessors = [ ArticleSelector.article_accessor[k]
+        self.accessors = [ ArticleSelector.article_accessor[k](datasets[k])
                            for k in datasets ]
 
 
