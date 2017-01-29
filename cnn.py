@@ -57,6 +57,8 @@ IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
 
+from scipy.spatial import distance
+DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 def dmqa_preprocess(stored_within):
     logger.debug('Preprocessing DMQA CNN articles')
@@ -238,13 +240,18 @@ class BagOfWords(object):
 
         return self._matrix
 
-
+import itertools
 class PairwiseSimilarity(object):
     def __init__(self, matrix):
         self.corpus = matrix
+        self.matrix = matrix.toarray()
 
 
-    def run(self, by=None):
+    def pairwise_compare(self, by):
+        enumerated = enumerate(self.matrix)
+        for u,v in itertools.combinations(enumerated, 2):
+            sim = by(u[1], v[1])
+            logger.debug((sim, u[0], v[0]))
         """
         overall_scores = []
         query_index = 0
@@ -257,22 +264,10 @@ class PairwiseSimilarity(object):
             overall_scores.extend(sim_scores)
         self.similarities = overall_scores
         """
-        pass
 
     def write_to(self, file, sort_by):
         pass
 
-
-def euclidean_distance(u, v):
-    return 0
-
-
-def cosine_similarity(u, v):
-    return 0
-
-
-def jaccard_similarity(u, v):
-    return 0
 
 def main(args):
     dataset_dir = get_dataset_dir(args.dataset_dir)
@@ -309,11 +304,20 @@ def main(args):
     # break down articles into a bag of words
     logger.debug(hr('Bag of Words'))
     bag_of_words = BagOfWords(corpus=selected_articles)
-    words = bag_of_words.baggify()
+    bag_of_words.baggify()
     matrix = bag_of_words.matrix(save_to='bag.mm')
 
-    logger.debug(matrix[0])
-    logger.debug(type(matrix[0]))
+    logger.debug(matrix.toarray()[0])
+    logger.debug(type(matrix.toarray()[0]))
+    logger.debug(len(matrix.toarray()))
+    #logger.debug(matrix[0])
+    #logger.debug(type(matrix[0]))
+
+
+    similarity_calculater = PairwiseSimilarity(matrix)
+    for fn in DISTANCE_FUNCTIONS:
+        similarities = similarity_calculater.pairwise_compare(by=fn)
+        #similarities.write_to(file='f', sort_by=fn.__name__)
     """
     similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
     #    euclidean_distance, cosine_similarity, jaccard_similarity
