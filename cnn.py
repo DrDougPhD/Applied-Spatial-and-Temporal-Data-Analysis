@@ -88,7 +88,9 @@ class NewspaperArticle(object):
         Return the plaintext of the article as a string.
         :return: string The plaintext of the article.
         """
-        return ''
+        # simply iterate over every word in the document, removing newlines
+        # and bad characters, and return as one long string
+        return ' '.join(self)
 
 
     def __iter__(self):
@@ -209,7 +211,10 @@ class ArticleSelector(object):
             return articles[:count]
 
 
+from sklearn.feature_extraction.text import CountVectorizer
 class BagOfWords(object):
+    vectorizer = CountVectorizer(min_df=1)
+
     def __init__(self, corpus):
         self.corpus = corpus
         logger.debug('{} items in the supplied corpus'.format(len(corpus)))
@@ -219,6 +224,7 @@ class BagOfWords(object):
         """
         Find all unique words throughout every document supplied to this object.
         """
+        self.matrix = self.vectorizer.fit_transform(self.corpus)
         self.lists_of_words = self._breakup_into_2D_list_of_words()
         self.dictionary = corpora.Dictionary(self.lists_of_words)
 
@@ -227,7 +233,8 @@ class BagOfWords(object):
         self.bag_of_words = [ self.dictionary.doc2bow(words)
                               for words in self.lists_of_words ]
         if save_to:
-            corpora.MmCorpus.serialize('bagofwords.mm', self.bag_of_words)
+            pass
+
         return self.bag_of_words
 
 
@@ -243,15 +250,13 @@ class BagOfWords(object):
         return words_matrix
 
 
-from gensim import similarities
 class PairwiseSimilarity(object):
     def __init__(self, matrix):
         self.corpus = matrix
-        self.index = similarities.MatrixSimilarity(matrix)
-        self.index.save('corpus.index')
 
 
     def run(self, by=None):
+        """
         overall_scores = []
         query_index = 0
         for query in self.corpus:
@@ -262,6 +267,8 @@ class PairwiseSimilarity(object):
             query_index += 1
             overall_scores.extend(sim_scores)
         self.similarities = overall_scores
+        """
+        pass
 
     def write_to(self, file, sort_by):
         pass
@@ -299,7 +306,8 @@ def main(args):
     # randomly select articles
     logger.debug(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(100, randomize=not __dev__, archive_to='blah')
+    selected_articles = selector.get(args.num_to_select, randomize=not __dev__,
+                                     archive_to='blah')
     assert len(selected_articles) == args.num_to_select,\
         'Expected {0} articles, but received {1} articles'.format(
             args.num_to_select, len(selected_articles))
@@ -308,20 +316,25 @@ def main(args):
     #import pprint
     #logger.debug(pprint.pformat(selected_articles))
     # corpus = selector.get(100, random=not __dev__, archive_to='blah')
+    logger.debug(hr('Sample Article'))
+    logger.debug(selected_articles[0])
 
 
     # break down articles into a bag of words
+    """
     logger.debug(hr('Bag of Words'))
     bag_of_words = BagOfWords(corpus=selected_articles)
     words = bag_of_words.baggify()
     matrix = bag_of_words.matrix(save_to='bag.mm')
 
+    logger.debug(matrix[0])
+    logger.debug(type(matrix[0]))
     similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
     #    euclidean_distance, cosine_similarity, jaccard_similarity
     #]
     similarity_calculater.run()
     similarity_calculater.write_to(file='similarities.tsv')
-    """
+
         similarity_calculater.pairwise_combine_and_measure(by=fn)
         similarity_calculater.write_to(file='f', sort_by=fn.__name__)
     """
