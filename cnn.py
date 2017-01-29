@@ -218,14 +218,17 @@ class BagOfWords(object):
     def baggify(self):
         """
         Find all unique words throughout every document supplied to this object.
-        :return: set A set of words existing in at least one document.
         """
-        corpus_as_2D_list_of_words = self._breakup_into_2D_list_of_words()
-        self.dictionary = corpora.Dictionary(corpus_as_2D_list_of_words)
-        pass
+        self.lists_of_words = self._breakup_into_2D_list_of_words()
+        self.dictionary = corpora.Dictionary(self.lists_of_words)
+
 
     def matrix(self, save_to=None):
-        pass
+        self.bag_of_words = [ self.dictionary.doc2bow(words)
+                              for words in self.lists_of_words ]
+        if save_to:
+            corpora.MmCorpus.serialize('bagofwords.mm', self.bag_of_words)
+        return self.bag_of_words
 
 
     def _breakup_into_2D_list_of_words(self):
@@ -240,13 +243,25 @@ class BagOfWords(object):
         return words_matrix
 
 
+from gensim import similarities
 class PairwiseSimilarity(object):
     def __init__(self, matrix):
-        pass
+        self.corpus = matrix
+        self.index = similarities.MatrixSimilarity(matrix)
+        self.index.save('corpus.index')
 
-    def pairwise_combine_and_measure(self, by):
-        pass
 
+    def run(self, by=None):
+        overall_scores = []
+        query_index = 0
+        for query in self.corpus:
+            similarities_to_corpus = self.index[query]
+            with_corpus_indices = enumerate(similarities_to_corpus)
+            sim_scores = [ (query_index, j, score)
+                            for j, score in with_corpus_indices ]
+            query_index += 1
+            overall_scores.extend(sim_scores)
+        self.similarities = overall_scores
 
     def write_to(self, file, sort_by):
         pass
@@ -299,18 +314,17 @@ def main(args):
     logger.debug(hr('Bag of Words'))
     bag_of_words = BagOfWords(corpus=selected_articles)
     words = bag_of_words.baggify()
-    """
     matrix = bag_of_words.matrix(save_to='bag.mm')
 
-    distance_fns = [euclidean_distance, cosine_similarity, jaccard_similarity]
-    similarity_calculater = PairwiseSimilarity(matrix)
-    for fn in distance_fns:
+    similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
+    #    euclidean_distance, cosine_similarity, jaccard_similarity
+    #]
+    similarity_calculater.run()
+    similarity_calculater.write_to(file='similarities.tsv')
+    """
         similarity_calculater.pairwise_combine_and_measure(by=fn)
         similarity_calculater.write_to(file='f', sort_by=fn.__name__)
     """
-
-
-
 
 
 def get_dataset_dir(dataset_dir):
@@ -346,6 +360,7 @@ def is_archive(filename):
         return True
     else:
         return False
+
 
 import shutil
 import subprocess
