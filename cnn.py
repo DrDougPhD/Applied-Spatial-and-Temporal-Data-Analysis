@@ -106,6 +106,7 @@ class NewspaperArticle(object):
         for w in self._next_word():
             yield w
 
+
 import string
 class QianArticle(NewspaperArticle):
     punctuation_remover = str.maketrans('', '', string.punctuation)
@@ -127,7 +128,8 @@ class QianArticle(NewspaperArticle):
                 line = prefix_removed
 
             for word in line.split():
-                word = word.lower()
+                # word lowering is done internally by scikit-learn
+                # word = word.lower()
                 word = word.translate(QianArticle.punctuation_remover)
                 if not word or word.isspace():
                     continue
@@ -213,10 +215,9 @@ class ArticleSelector(object):
 
 from sklearn.feature_extraction.text import CountVectorizer
 class BagOfWords(object):
-    vectorizer = CountVectorizer(min_df=1)
-
     def __init__(self, corpus):
         self.corpus = corpus
+        self.vectorizer = CountVectorizer(min_df=1)
         logger.debug('{} items in the supplied corpus'.format(len(corpus)))
 
 
@@ -224,30 +225,18 @@ class BagOfWords(object):
         """
         Find all unique words throughout every document supplied to this object.
         """
-        self.matrix = self.vectorizer.fit_transform(self.corpus)
-        self.lists_of_words = self._breakup_into_2D_list_of_words()
-        self.dictionary = corpora.Dictionary(self.lists_of_words)
+        # convert corpus, which hasn't been loaded from file, to strings
+        corpus = [ str(document) for document in self.corpus ]
+        self._matrix = self.vectorizer.fit_transform(corpus)
+        self.features = self.vectorizer.get_feature_names()
+        logger.debug('Unique tokens: {}'.format(self.features))
 
 
     def matrix(self, save_to=None):
-        self.bag_of_words = [ self.dictionary.doc2bow(words)
-                              for words in self.lists_of_words ]
-        if save_to:
+        if save_to is not None:
             pass
 
-        return self.bag_of_words
-
-
-    def _breakup_into_2D_list_of_words(self):
-        """
-        Iterate over every article supplied to this object and break it up
-        into a 2D list of words.
-        :return: a 2D list of words, e.g. [ ['hello', 'rick'], ['hi'], ... ]
-        """
-        words_matrix = []
-        for doc in self.corpus:
-            words_matrix.append(doc)
-        return words_matrix
+        return self._matrix
 
 
 class PairwiseSimilarity(object):
@@ -316,12 +305,8 @@ def main(args):
     #import pprint
     #logger.debug(pprint.pformat(selected_articles))
     # corpus = selector.get(100, random=not __dev__, archive_to='blah')
-    logger.debug(hr('Sample Article'))
-    logger.debug(selected_articles[0])
-
 
     # break down articles into a bag of words
-    """
     logger.debug(hr('Bag of Words'))
     bag_of_words = BagOfWords(corpus=selected_articles)
     words = bag_of_words.baggify()
@@ -329,6 +314,7 @@ def main(args):
 
     logger.debug(matrix[0])
     logger.debug(type(matrix[0]))
+    """
     similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
     #    euclidean_distance, cosine_similarity, jaccard_similarity
     #]
