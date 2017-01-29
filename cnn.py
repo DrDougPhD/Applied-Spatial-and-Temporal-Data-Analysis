@@ -40,8 +40,7 @@ from datetime import datetime
 import sys
 import os
 import logging
-from lxml import objectify
-from lxml import etree
+from bs4 import BeautifulSoup
 import glob
 import random
 from gensim import corpora
@@ -105,26 +104,41 @@ class NewspaperArticle(object):
         for w in self._next_word():
             yield w
 
-
+import string
 class QianArticle(NewspaperArticle):
-    ignore_ampersands = etree.XMLParser(recover=True)
+    punctuation_remover = str.maketrans('', '', string.punctuation)
 
     def _setup_reader(self):
-        article_xml = objectify.parse(self.path)
-        #                              parser=QianArticle.ignore_ampersands)
-        root = article_xml.getroot()
-        self.title = root.TITLE.text
-        self.abstract = root.ABSTRACT.text
-        self.text = root.TEXT.text
-        #self.text_lines = root.TEXT.split('\n')
-        #self.line = next(self.text_lines)
+        soup = BeautifulSoup(open(self.path), 'html.parser')
+        self.title = soup.doc.title.text
+        self.abstract = soup.doc.abstract.text
+        self.text = soup.doc.find('text').text
 
     def _next_word(self):
         for line in self.text.split('\n'):
-            for word in line.split():
-                logger.debug('\t{}'.format(repr(word)))
-                yield word
+            if self._matches_useless_line(line):
+                continue
 
+            if '(CNN)' in line:
+                # first line of the article
+                prefix_removed = line.split('(CNN)')[-1]
+                line = prefix_removed
+
+            for word in line.split():
+                word = word.lower()
+                word = word.translate(QianArticle.punctuation_remover)
+                if not word or word.isspace():
+                    continue
+
+                yield word.lower()
+
+    def _matches_useless_line(self, line):
+        if line.startswith('Watch Anderson Cooper'):
+            # it's not a diss, Mr. Cooper. But the line containing that
+            # text does not pertain to the article's contents
+            return True
+
+        return False
 
 
 class ArticleSelector(object):
