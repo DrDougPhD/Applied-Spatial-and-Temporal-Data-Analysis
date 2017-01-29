@@ -73,6 +73,25 @@ class NewspaperArticle(object):
         self.path = path
 
 
+    def __str__(self):
+        """
+        Return the plaintext of the article as a string.
+        :return: string The plaintext of the article.
+        """
+        return ''
+
+
+    def __iter__(self):
+        """
+        Iterate through each word in this article.
+        :return: string Next word in the article.
+        """
+
+class QianArticle(NewspaperArticle):
+    pass
+
+
+import glob
 class ArticleSelector(object):
     """
     Given a dataset of articles, select a subset for further processing.
@@ -88,21 +107,33 @@ class ArticleSelector(object):
                                        "exist: {}".format(dir)
             self.stored_in = dir
 
-    class DmqaArticles(BaseArticleAccessor):
-        """
-        Retrieve article files from the DMQA CNN dataset located in a specified
-        directory.
-        """
-        pass
+        def retrieve(self):
+            raise NotImplemented('.retrieve() method has not been implemented')
+
 
     class QianArticles(BaseArticleAccessor):
         """
         Retrieve article files from the Qian CNN dataset located in a specified
         directory.
         """
-        pass
+        def retrieve(self):
+            logger.debug('Retrieving articles from within {}'.format(
+                self.stored_in))
+            article_categories_in = os.path.join(self.stored_in, 'Raw')
+            categories = os.listdir(article_categories_in)
+            logger.debug('Category directories: {}'.format(categories))
+            for category in categories:
+                abspath = os.path.join(article_categories_in, category)
+                for article_path in self._retrieve_from_category(abspath):
+                    yield None
+
+        def _retrieve_from_category(self, category_directory):
+            glob_path = os.path.join(category_directory, 'cnn_*.txt')
+            for filename in glob.glob(glob_path):
+                logger.debug('\t -->  {}'.format(filename))
+                yield os.path.join(category_directory, filename)
+
     article_accessor = {
-        'CNN.DMQA.tgz': lambda dir: ArticleSelector.DmqaArticles(dir),
         'CNN.Qian.zip': lambda dir: ArticleSelector.QianArticles(dir),
     }
 
@@ -111,24 +142,49 @@ class ArticleSelector(object):
                            for k in datasets ]
 
 
-    def get(self, count, random=True):
-        pass
+    def get(self, count, random=True, archive_to=None):
+        # evenly distribute articles selected from each located dataset
+        articles = []
+        for selector in self.accessors:
+            subset = selector.retrieve()
+            articles.extend(subset)
+            assert len(articles) > 0, 'No articles found for {}'.format(
+                selector.__class__.__name__)
+        return articles
 
 
-class NewspaperBagOfWords(object):
-    def __init__(self, articles):
+class BagOfWords(object):
+    def __init__(self, corpus):
+        self.corpus = corpus
         pass
 
 
     def baggify(self):
+        """
+        Find all unique words throughout every document supplied to this object.
+        :return: set A set of words existing in at least one document.
+        """
+        corpus_as_2D_list_of_words = self._breakup_into_2D_list_of_words()
+        self.dictionary = corpora.Dictionary(corpus_as_2D_list_of_words)
         pass
-
 
     def matrix(self, save_to=None):
         pass
 
 
-class IterableDistancePermutation(object):
+    def _breakup_into_2D_list_of_words(self):
+        """
+        Iterate over every article supplied to this object and break it up
+        into a 2D list of words.
+        :return: a 2D list of words, e.g. [ ['hello', 'rick'], ['hi'], ... ]
+        """
+        words_matrix = []
+        for doc in self.corpus:
+            words_matrix.append(doc.split())
+        return words_matrix
+
+
+class PairwiseSimilarity(object):
     def __init__(self, matrix):
         pass
 
@@ -172,19 +228,25 @@ def main(args):
 
     # randomly select articles
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(100, random=not __dev__)
+    selected_articles = selector.get(100, random=not __dev__, archive_to='blah')
+    logger.debug('Selected articles ({} articles):'.format(len(
+        selected_articles)))
+    import pprint
+    logger.debug(pprint.pformat(selected_articles))
+    # corpus = selector.get(100, random=not __dev__, archive_to='blah')
 
+    """
     # break down articles into a bag of words
-    bag_of_words = NewspaperBagOfWords(selected_articles)
+    bag_of_words = BagOfWords(corpus=selected_articles)
     words = bag_of_words.baggify()
-    matrix = bag_of_words.matrix(save_to='m.csv')
+    matrix = bag_of_words.matrix(save_to='bag.mm')
 
     distance_fns = [euclidean_distance, cosine_similarity, jaccard_similarity]
-    similarity_calculater = IterableDistancePermutation(matrix)
+    similarity_calculater = PairwiseSimilarity(matrix)
     for fn in distance_fns:
         similarity_calculater.pairwise_combine_and_measure(by=fn)
         similarity_calculater.write_to(file='f', sort_by=fn.__name__)
-
+    """
 
 
 
