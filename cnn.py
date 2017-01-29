@@ -86,12 +86,31 @@ class NewspaperArticle(object):
         Iterate through each word in this article.
         :return: string Next word in the article.
         """
+        self._setup_reader()
+        for w in self._next_word():
+            yield w
 
+
+from lxml import objectify
 class QianArticle(NewspaperArticle):
-    pass
+    def _setup_reader(self):
+        article_xml = objectify.parse(self.path)
+        root = article_xml.getroot()
+        self.title = root.TITLE
+        self.abstract = root.ABSTRACT
+        self.text = root.TEXT
+        #self.text_lines = root.TEXT.split('\n')
+        #self.line = next(self.text_lines)
+
+    def next_word(self):
+        for line in self.text.split('\n'):
+            for word in self.line.split():
+                logger.debug('\t{}'.format(repr(word)))
+                yield word
 
 
 import glob
+import random
 class ArticleSelector(object):
     """
     Given a dataset of articles, select a subset for further processing.
@@ -125,7 +144,7 @@ class ArticleSelector(object):
             for category in categories:
                 abspath = os.path.join(article_categories_in, category)
                 for article_path in self._retrieve_from_category(abspath):
-                    yield None
+                    yield QianArticle(path=article_path)
 
         def _retrieve_from_category(self, category_directory):
             glob_path = os.path.join(category_directory, 'cnn_*.txt')
@@ -150,13 +169,18 @@ class ArticleSelector(object):
             articles.extend(subset)
             assert len(articles) > 0, 'No articles found for {}'.format(
                 selector.__class__.__name__)
-        return articles
+
+        # shuffle and truncate set to the specified size
+        if random:
+            return random.choices(articles, k=count)
+        else:
+            return articles[:count]
 
 
 class BagOfWords(object):
     def __init__(self, corpus):
         self.corpus = corpus
-        pass
+        logger.debug('{} items in the supplied corpus'.format(len(corpus)))
 
 
     def baggify(self):
@@ -180,7 +204,7 @@ class BagOfWords(object):
         """
         words_matrix = []
         for doc in self.corpus:
-            words_matrix.append(doc.split())
+            words_matrix.append(doc)
         return words_matrix
 
 
@@ -229,15 +253,19 @@ def main(args):
     # randomly select articles
     selector = ArticleSelector(decompressed_dataset_directories)
     selected_articles = selector.get(100, random=not __dev__, archive_to='blah')
-    logger.debug('Selected articles ({} articles):'.format(len(
-        selected_articles)))
-    import pprint
-    logger.debug(pprint.pformat(selected_articles))
+    assert len(selected_articles) == args.num_to_select,\
+        'Expected {0} articles, but received {1} articles'.format(
+            args.num_to_select, len(selected_articles))
+    #logger.debug('Selected articles ({} articles):'.format(len(
+    #    selected_articles)))
+    #import pprint
+    #logger.debug(pprint.pformat(selected_articles))
     # corpus = selector.get(100, random=not __dev__, archive_to='blah')
 
-    """
+
     # break down articles into a bag of words
     bag_of_words = BagOfWords(corpus=selected_articles)
+    """
     words = bag_of_words.baggify()
     matrix = bag_of_words.matrix(save_to='bag.mm')
 
@@ -453,10 +481,12 @@ def get_arguments():
     parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
                         help='directory to download / to load datasets',
                         default=os.path.join('data', 'downloads'))
-
     parser.add_argument('-n', '--newspaper', dest='newspaper_url',
                         default='http://www.cnn.com/',
                         help='URL for target newspaper')
+    parser.add_argument('-N', '--num-articles', dest='num_to_select',
+                        type=int, default=100,
+                        help='number of articles to select for analysis')
     def directory_in_cwd(directory, create=True):
         cwd = os.path.dirname(os.path.abspath(__file__))
         directory_name = os.path.dirname(directory)
