@@ -40,6 +40,17 @@ from datetime import datetime
 import sys
 import os
 import logging
+from lxml import objectify
+from lxml import etree
+import glob
+import random
+from gensim import corpora
+
+try:    # this is my own package, but it might not be present
+    from lineheaderpadded import hr
+except:
+    hr = lambda x: '='*30 + x + '='*30
+
 logger = logging.getLogger(__appname__)
 
 
@@ -86,31 +97,36 @@ class NewspaperArticle(object):
         Iterate through each word in this article.
         :return: string Next word in the article.
         """
+        logger.debug(hr(
+            title='Parsing through {}'.format(os.path.basename(self.path)),
+            line_char='-'
+        ))
         self._setup_reader()
         for w in self._next_word():
             yield w
 
 
-from lxml import objectify
 class QianArticle(NewspaperArticle):
+    ignore_ampersands = etree.XMLParser(recover=True)
+
     def _setup_reader(self):
         article_xml = objectify.parse(self.path)
+        #                              parser=QianArticle.ignore_ampersands)
         root = article_xml.getroot()
-        self.title = root.TITLE
-        self.abstract = root.ABSTRACT
-        self.text = root.TEXT
+        self.title = root.TITLE.text
+        self.abstract = root.ABSTRACT.text
+        self.text = root.TEXT.text
         #self.text_lines = root.TEXT.split('\n')
         #self.line = next(self.text_lines)
 
-    def next_word(self):
+    def _next_word(self):
         for line in self.text.split('\n'):
-            for word in self.line.split():
+            for word in line.split():
                 logger.debug('\t{}'.format(repr(word)))
                 yield word
 
 
-import glob
-import random
+
 class ArticleSelector(object):
     """
     Given a dataset of articles, select a subset for further processing.
@@ -149,7 +165,7 @@ class ArticleSelector(object):
         def _retrieve_from_category(self, category_directory):
             glob_path = os.path.join(category_directory, 'cnn_*.txt')
             for filename in glob.glob(glob_path):
-                logger.debug('\t -->  {}'.format(filename))
+                #logger.debug('\t -->  {}'.format(filename))
                 yield os.path.join(category_directory, filename)
 
     article_accessor = {
@@ -161,7 +177,7 @@ class ArticleSelector(object):
                            for k in datasets ]
 
 
-    def get(self, count, random=True, archive_to=None):
+    def get(self, count, randomize=True, archive_to=None):
         # evenly distribute articles selected from each located dataset
         articles = []
         for selector in self.accessors:
@@ -171,9 +187,11 @@ class ArticleSelector(object):
                 selector.__class__.__name__)
 
         # shuffle and truncate set to the specified size
-        if random:
+        if randomize:
+            logger.debug('Random selection of {} articles'.format(count))
             return random.choices(articles, k=count)
         else:
+            logger.debug('Non-random selection of {} articles'.format(count))
             return articles[:count]
 
 
@@ -231,7 +249,6 @@ def cosine_similarity(u, v):
 def jaccard_similarity(u, v):
     return 0
 
-
 def main(args):
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
@@ -251,8 +268,9 @@ def main(args):
         logger.info(dir)
 
     # randomly select articles
+    logger.debug(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(100, random=not __dev__, archive_to='blah')
+    selected_articles = selector.get(100, randomize=not __dev__, archive_to='blah')
     assert len(selected_articles) == args.num_to_select,\
         'Expected {0} articles, but received {1} articles'.format(
             args.num_to_select, len(selected_articles))
@@ -264,9 +282,10 @@ def main(args):
 
 
     # break down articles into a bag of words
+    logger.debug(hr('Bag of Words'))
     bag_of_words = BagOfWords(corpus=selected_articles)
-    """
     words = bag_of_words.baggify()
+    """
     matrix = bag_of_words.matrix(save_to='bag.mm')
 
     distance_fns = [euclidean_distance, cosine_similarity, jaccard_similarity]
@@ -456,28 +475,6 @@ def get_arguments():
     # calling this with -v
     parser.add_argument('-v', '--verbose', action='store_true',
                         default=__dev__, help='verbose output')
-
-    """
-    def path(*args):
-        logger.debug('Path arguments: {}'.format(args))
-        abspath = os.path.dirname(os.path.abspath(__file__))
-        if len(args) == 0: # assume it was called for cwd
-            pass # leave as cwd
-
-        else:
-            initial_path = os.path.join(*args)
-            if not os.path.isabs(initial_path):
-                abspath = os.path.join(abspath, initial_path)
-
-        if not os.path.isdir(abspath):
-            os.makedirs(abspath)
-
-        assert os.path.exists(abspath), "Path doesn't exist: {}".format(
-            abspath
-        )
-        return abspath
-    """
-
     parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
                         help='directory to download / to load datasets',
                         default=os.path.join('data', 'downloads'))
@@ -487,6 +484,7 @@ def get_arguments():
     parser.add_argument('-N', '--num-articles', dest='num_to_select',
                         type=int, default=100,
                         help='number of articles to select for analysis')
+
     def directory_in_cwd(directory, create=True):
         cwd = os.path.dirname(os.path.abspath(__file__))
         directory_name = os.path.dirname(directory)
