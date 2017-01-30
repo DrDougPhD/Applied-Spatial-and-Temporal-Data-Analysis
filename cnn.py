@@ -43,12 +43,11 @@ import logging
 from bs4 import BeautifulSoup
 import glob
 import random
-from gensim import corpora
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
 except:
-    hr = lambda x: '='*30 + x + '='*30
+    hr = lambda title, line_char='-': line_char*30 + title + line_char*30
 
 logger = logging.getLogger(__appname__)
 
@@ -59,24 +58,6 @@ EXTRACTOR_SCRIPT = 'extract.sh'
 
 from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
-
-def dmqa_preprocess(stored_within):
-    logger.debug('Preprocessing DMQA CNN articles')
-    text_files_within = os.path.join(stored_within, 'stories')
-    logger.debug('Plaintext articles are stored in {}'.format(text_files_within))
-    for f in os.listdir(text_files_within):
-        yield os.path.join(text_files_within, f)
-
-
-def qian_preprocess(stored_within):
-    for i in range(3):
-        yield ''
-
-
-preprocessor = {
-    'CNN.DMQA.tgz': dmqa_preprocess,
-    'CNN.Qian.zip': qian_preprocess
-}
 
 
 class NewspaperArticle(object):
@@ -189,12 +170,15 @@ class ArticleSelector(object):
                 yield os.path.join(category_directory, filename)
 
     article_accessor = {
-        'CNN.Qian.zip': lambda dir: ArticleSelector.QianArticles(dir),
+        # access articles by the file's bytesize
+        136208660: lambda dir: ArticleSelector.QianArticles(dir),
     }
 
     def __init__(self, datasets):
-        self.accessors = [ ArticleSelector.article_accessor[k](datasets[k])
-                           for k in datasets ]
+        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
+                       for file in datasets ]
+        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
+                           for k, size in file_sizes ]
 
 
     def get(self, count, randomize=True, archive_to=None):
@@ -346,16 +330,16 @@ def get_dataset_dir(dataset_dir):
 
 
 def get_datasets(indir):
-    files = set([
-                os.path.join(indir, f)\
-                for f in os.listdir(indir) \
-                    if os.path.isfile(os.path.join(indir, f))\
-                    and is_archive(f)])
+    files = set()
+    for dirpath, _, filenames in os.walk(indir):
+        files.update([ os.path.join(dirpath, f)
+                       for f in filenames
+                       if is_archive(f) ])
     if not files:
         raise Exception(
-            'Error loading datasets. Please download from the following  urls:\n'
-            '\thttp://cs.nyu.edu/~kcho/DMQA/\n'
-            '\thttps://sites.google.com/site/qianmingjie/home/datasets/cnn-and-fox-news')
+            'Error loading datasets. Please download from this url:\n'
+            'https://sites.google.com'
+            '/site/qianmingjie/home/datasets/cnn-and-fox-news')
 
     logger.debug('Archive files: {}'.format(files))
     return files
