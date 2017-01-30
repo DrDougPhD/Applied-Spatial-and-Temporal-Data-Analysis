@@ -248,10 +248,13 @@ class PairwiseSimilarity(object):
 
 
     def pairwise_compare(self, by):
+        similarity_calculations = []
         enumerated = enumerate(self.matrix)
         for u,v in itertools.combinations(enumerated, 2):
             sim = by(u[1], v[1])
-            logger.debug((sim, u[0], v[0]))
+            result = (sim, u[0], v[0])
+            logger.debug(result)
+            similarity_calculations.append(result)
         """
         overall_scores = []
         query_index = 0
@@ -264,6 +267,7 @@ class PairwiseSimilarity(object):
             overall_scores.extend(sim_scores)
         self.similarities = overall_scores
         """
+        return similarity_calculations
 
     def write_to(self, file, sort_by):
         pass
