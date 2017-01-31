@@ -10,33 +10,52 @@
 		<title>Starter Template for Bootstrap</title>
 
 		<!-- Latest compiled and minified CSS -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+		<link rel="stylesheet"
+		      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"
+		      integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" 
+		      crossorigin="anonymous">
 
 		<!-- Optional theme -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+		<link rel="stylesheet"
+		      href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+		      integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp"
+		      crossorigin="anonymous">
 
 		<!-- Latest compiled and minified JavaScript -->
-		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+		        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+		        crossorigin="anonymous"></script>
 	</head>
 
 	<body>
 		<div class="container-fluid">
+			{% for sim in similarities %}
+    <li><a href="{{ user.url }}">{{ user.username }}</a></li>
 			<div class="row">
 				<div class="col-md-6">
-					<h3>Title</h3>
-					<div class="well well-sm">...</div>
+					<h3>{{ sim.article[0].title }}</h3>
+					<div class="well well-sm">
+						{{ sim.article[0].abstract }}
+					</div>
 				</div>
 				<div class="col-md-6">
-					<h3>Title</h3>
-					<div class="well well-sm">...</div>
+					<h3>{{ sim.article[1].title }}</h3>
+					<div class="well well-sm">
+						{{ sim.article[0].abstract }}
+					</div>
 				</div>
 			</div>
 			
 			<div class="row">
 				<div class="col-md-12">
 					<div class="progress">
-						<div class="progress-bar progress-bar-success" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="width: 40%">
-							40% Complete (success)
+						<div class="progress-bar progress-bar-{{ sim.alert_type }}"
+						     role="progressbar"
+						     aria-valuenow="{{ sim.percentage }}"
+						     aria-valuemin="0"
+						     aria-valuemax="100"
+						     style="width: {{ sim.percentage }}%">
+							{{ sim.score }}
 						</div>
 					</div>
 
@@ -57,6 +76,7 @@
 					</div>
 				</div>
 			</div>
+			{% endfor %}
 		</div>
 	</body>
 </html>
