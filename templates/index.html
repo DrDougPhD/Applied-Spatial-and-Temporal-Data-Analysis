@@ -29,54 +29,43 @@
 
 	<body>
 		<div class="container-fluid">
-			{% for sim in similarities %}
-    <li><a href="{{ user.url }}">{{ user.username }}</a></li>
 			<div class="row">
-				<div class="col-md-6">
-					<h3>{{ sim.article[0].title }}</h3>
-					<div class="well well-sm">
-						{{ sim.article[0].abstract }}
+				{% for fn in similarities %}
+				<div class="col-md-4">
+					{% for sim in similarities[fn] %}
+					<div class="row">
+						<div class="col-md-6">
+							<h3>{{ sim.article[0].title }}</h3>
+							<div class="well well-sm">
+								{{ sim.article[0].abstract }}
+							</div>
+						</div>
+						<div class="col-md-6">
+							<h3>{{ sim.article[1].title }}</h3>
+							<div class="well well-sm">
+								{{ sim.article[0].abstract }}
+							</div>
+						</div>
 					</div>
-				</div>
-				<div class="col-md-6">
-					<h3>{{ sim.article[1].title }}</h3>
-					<div class="well well-sm">
-						{{ sim.article[0].abstract }}
-					</div>
-				</div>
-			</div>
 			
-			<div class="row">
-				<div class="col-md-12">
-					<div class="progress">
-						<div class="progress-bar progress-bar-{{ sim.alert_type }}"
-						     role="progressbar"
-						     aria-valuenow="{{ sim.percentage }}"
-						     aria-valuemin="0"
-						     aria-valuemax="100"
-						     style="width: {{ sim.percentage }}%">
-							{{ sim.score }}
+					<div class="row">
+						<div class="col-md-12">
+							<div class="progress">
+								<div class="progress-bar progress-bar-{{ sim.alert_type }}"
+									 role="progressbar"
+									 aria-valuenow="{{ sim.percentage }}"
+									 aria-valuemin="0"
+									 aria-valuemax="100"
+									 style="width: {{ sim.percentage }}%">
+									{{ sim.score }}
+								</div>
+							</div>
 						</div>
 					</div>
-
-					<div class="progress">
-						<div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100" style="width: 20%">
-							20% Complete
-						</div>
-					</div>
-					<div class="progress">
-						<div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" style="width: 60%">
-							60% Complete (warning)
-						</div>
-					</div>
-					<div class="progress">
-						<div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" style="width: 80%">
-							80% Complete (danger)
-						</div>
-					</div>
+					{% endfor %}					
 				</div>
+				{% endfor %}
 			</div>
-			{% endfor %}
 		</div>
 	</body>
 </html>
