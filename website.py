@@ -3,6 +3,7 @@ app = Flask(__name__)
 
 from flask import render_template
 from lib.interval import Interval
+import cnn
 
 ALERT_TYPE = {
         Interval(0, 33): 'danger',
@@ -12,7 +13,9 @@ ALERT_TYPE = {
 
 @app.route('/')
 def index():
-    return render_template('index.html', similarities=[])
+    n = 5
+    data = cnn.process(n)
+    return render_template('index.html', similarities=data)
 
 if __name__ == '__main__':
     app.run()

@@ -51,12 +51,26 @@
 					<div class="row">
 						<div class="col-md-12">
 							<div class="progress">
-								<div class="progress-bar progress-bar-{{ sim.alert_type }}"
+								{% if sim.distance_fn == "cosine" %}
+                	{% set percentage = (sim.score + 1)*(100/2) %}
+								{% else %}
+                	{% set percentage = 100*sim.score %}
+								{% endif %}
+
+								{% if percentage <= 33 %}
+									{% set alert_type = "danger" %}
+								{% elif percentage <= 66 %}
+									{% set alert_type = "warning" %}
+								{% else %}
+									{% set alert_type = "success" %}
+								{% endif %}
+
+								<div class="progress-bar progress-bar-{{ alert_type }}"
 									 role="progressbar"
-									 aria-valuenow="{{ sim.percentage }}"
+									 aria-valuenow="{{ percentage|int }}"
 									 aria-valuemin="0"
 									 aria-valuemax="100"
-									 style="width: {{ sim.percentage }}%">
+									 style="width: {{ percentage|int }}%">
 									{{ sim.score }}
 								</div>
 							</div>
