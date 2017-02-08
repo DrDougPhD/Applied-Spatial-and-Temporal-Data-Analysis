@@ -175,8 +175,14 @@ class PairwiseSimilarity(object):
         self.vectorizer = CountVectorizer(min_df=1)
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
-        for v, doc in zip(self._matrix, corpus):
-            doc.vector = v
+        logger.debug('Transformed corpus:')
+        logger.debug(type(self._matrix))
+        logger.debug(self._matrix)
+
+        for i in range(len(corpus)):
+            vector = self._matrix.getrow(i)
+            doc = corpus[i]
+            doc.vector = vector.toarray()
 
         self.features = self.vectorizer.get_feature_names()
         logger.debug('Unique tokens: {}'.format(self.features))
