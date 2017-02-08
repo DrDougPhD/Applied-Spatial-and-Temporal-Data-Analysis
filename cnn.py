@@ -213,6 +213,8 @@ class PairwiseSimilarity(object):
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
             csvfile.writerows(self._matrix.toarray())
+            logger.debug(hr('matrix[0]'))
+            logger.debug(self._matrix[0].shape)
             """
             for sparse_row in self._matrix:
                 vector = sparse_row.toarray()[0]
@@ -223,6 +225,23 @@ class PairwiseSimilarity(object):
             logger.debug(self._matrix.toarray())
             """
             logger.info('Number of features: {}'.format(len(self.features)))
+
+        with open('data/feature_counts.csv', 'w') as counts_file:
+            csvfile = csv.writer(counts_file)
+            csvfile.writerow(['token', 'count'])
+
+            import numpy
+            logger.debug(hr('sum across all rows'))
+            summed_vector = sum(self._matrix).toarray()[0]
+            csvfile.writerows(zip(self.features, summed_vector))
+
+            """
+            summed_vector = numpy.zeros(self._matrix.shape[1])
+            for r in self._matrix:
+                summed_vector += r.toarray()[0]
+
+            logger.debug(summed_vector)
+            """
 
 
 class ComparedArticles(object):
