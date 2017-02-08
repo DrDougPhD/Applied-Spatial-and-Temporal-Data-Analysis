@@ -55,16 +55,14 @@ logger = logging.getLogger(__appname__)
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
+DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 
 from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
-def process(args, n=None):
-    if n is None:
-        n = args.num_to_select
-
-    dataset_dir = get_dataset_dir(args.dataset_dir)
+def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
+    dataset_dir = get_dataset_dir(dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
     decompressed_dataset_directories = {}
@@ -92,9 +90,7 @@ def process(args, n=None):
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
 
-    """
     return data
-    """
 
 
 class ArticleSelector(object):
@@ -308,7 +304,7 @@ class BagOfWords(object):
 
 
 def main(args):
-    process(args=args, n=10)
+    process(n=10)
     """
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
@@ -549,7 +545,7 @@ def get_arguments():
                         default=__dev__, help='verbose output')
     parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
                         help='directory to download / to load datasets',
-                        default=os.path.join('data', 'downloads'))
+                        default=DEFAULT_DATASET_DIR)
     parser.add_argument('-n', '--newspaper', dest='newspaper_url',
                         default='http://www.cnn.com/',
                         help='URL for target newspaper')
