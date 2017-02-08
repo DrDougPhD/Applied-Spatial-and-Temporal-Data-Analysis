@@ -59,6 +59,7 @@ DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 
 from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
+#DISTANCE_FUNCTIONS = [distance.jaccard]
 
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
@@ -195,15 +196,21 @@ class PairwiseSimilarity(object):
 
 class ComparedArticles(object):
     def __init__(self, art1, art2, fn):
-        self.article = [art1, art2]
+        # sort articles by title
+        if art1.title < art2.title:
+            self.article = [art1, art2]
+        else:
+            self.article = [art2, art1]
+
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
 
     def __str__(self):
         return '"{0.title}"\t:{0.vector}\n'\
                '\t vs. "{1.title}"\t:{1.vector}\n'\
-               '\t Score: {2}'.format(
-                    self.article[0], self.article[1], self.score)
+               '\t Score ({2}): {3}'.format(
+                    self.article[0], self.article[1], self.distance_fn,
+                    self.score)
 
 
 class NewspaperArticle(object):
