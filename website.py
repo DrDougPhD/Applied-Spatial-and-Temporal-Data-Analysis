@@ -15,6 +15,9 @@ ALERT_TYPE = {
 def index():
     n = 5
     data = cnn.process(n)
+    # sort the data from greatest scores to least
+    for k in data:
+        data[k].sort(key=lambda c: c.score, reverse=True)
     return render_template('index.html', similarities=data)
 
 if __name__ == '__main__':
