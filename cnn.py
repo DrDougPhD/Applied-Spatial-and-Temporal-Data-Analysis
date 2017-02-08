@@ -49,6 +49,7 @@ import shutil
 import subprocess
 import hashlib
 import itertools
+from scipy.spatial import distance
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
@@ -63,7 +64,6 @@ EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
 DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 
-from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
@@ -176,18 +176,19 @@ class PairwiseSimilarity(object):
     def __init__(self, corpus):
         self.corpus = corpus
 
-        self.vectorizer = CountVectorizer(min_df=1)
+        self.vectorizer = CountVectorizer(min_df=1, stop_words='english')
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
-
         for i in range(len(corpus)):
             vector = self._matrix.getrow(i)
             doc = corpus[i]
             doc.vector = vector.toarray()
 
         self.features = self.vectorizer.get_feature_names()
-        logger.debug('Unique tokens: {}'.format(self.features))
-
+        logger.debug(hr('Unique tokens:'))
+        for t in self.features:
+            logger.debug('\t{}'.format(t))
+        logger.debug(hr(''))
 
     def pairwise_compare(self, by):
         similarity_calculations = []
