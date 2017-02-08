@@ -85,11 +85,11 @@ def process(n=100):
 
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles)
-    """
     for fn in DISTANCE_FUNCTIONS:
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
 
+    """
     return data
     """
 
@@ -100,20 +100,20 @@ class ArticleSelector(object):
     Obtain the article's title, category, and plain text.
     """
 
-    class BaseArticleAccessor(object):
+    class BaseDatasetAccessor(object):
         """
         Base class for accessing articles within a given directory.
         """
         def __init__(self, dir):
-            assert os.path.isdir(dir), "ArticleAccessor: Directory doesn't " \
-                                       "exist: {}".format(dir)
+            assert os.path.isdir(dir), \
+                   "Directory doesn't exist: {}".format(dir)
             self.stored_in = dir
 
         def retrieve(self):
             raise NotImplemented('.retrieve() method has not been implemented')
 
 
-    class QianArticles(BaseArticleAccessor):
+    class QianDataset(BaseDatasetAccessor):
         """
         Retrieve article files from the Qian CNN dataset located in a specified
         directory.
@@ -137,7 +137,7 @@ class ArticleSelector(object):
 
     article_accessor = {
         # access articles by the file's bytesize
-        136208660: lambda dir: ArticleSelector.QianArticles(dir),
+        136208660: lambda dir: ArticleSelector.QianDataset(dir),
     }
 
     def __init__(self, datasets):
