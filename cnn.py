@@ -203,14 +203,27 @@ class PairwiseSimilarity(object):
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
             comparison = ComparedArticles(u, v, by)
-            logger.debug(comparison)
+            #logger.debug(comparison)
             similarity_calculations.append(comparison)
         return similarity_calculations
 
     def save_matrix_to(self, file):
+        logger.debug(hr('Saving TF matrix to file'))
         with open(file, 'w') as f:
-            csvfile = csv.DictWriter(f, fieldnames=self.features,
-                                     delimiter='|')
+            csvfile = csv.writer(f, delimiter='|')
+            csvfile.writerow(self.features)
+            csvfile.writerows(self._matrix.toarray())
+            """
+            for sparse_row in self._matrix:
+                vector = sparse_row.toarray()[0]
+                logger.debug('|'.join([ str(e) for e in vector ]))
+            logger.debug(hr('matrix'))
+            logger.debug(self._matrix)
+            logger.debug(hr('matrix.toarray()'))
+            logger.debug(self._matrix.toarray())
+            """
+            logger.info('Number of features: {}'.format(len(self.features)))
+
 
 class ComparedArticles(object):
     def __init__(self, art1, art2, fn):
