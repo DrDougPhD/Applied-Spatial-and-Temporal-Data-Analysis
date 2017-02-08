@@ -60,10 +60,163 @@ from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
+def process(n=100):
+    dataset_dir = get_dataset_dir(args.dataset_dir)
+    archive_files = get_datasets(indir=dataset_dir)
+    extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
+    decompressed_dataset_directories = {}
+    for f in archive_files:
+        filename = os.path.basename(f)
+        filename_prefix = '.'.join(filename.split('.')[:-1])
+        extract_to = os.path.join(dataset_dir, filename_prefix)
+        decompress(f, to=extract_to, dataset_dir=dataset_dir)
+        decompressed_dataset_directories[filename] = extract_to
+
+    logger.info('-'*80)
+    logger.info('Datasets to preprocess:')
+    for dbname in decompressed_dataset_directories:
+        dir = decompressed_dataset_directories[dbname]
+        logger.info(dir)
+
+    # randomly select articles
+    logger.debug(hr('Article Selection'))
+    selector = ArticleSelector(decompressed_dataset_directories)
+    selected_articles = selector.get(args.num_to_select, randomize=not __dev__)
+
+    data = {}
+    similarity_calculater = PairwiseSimilarity(selected_articles)
+    """
+    for fn in DISTANCE_FUNCTIONS:
+        similarities = similarity_calculater.pairwise_compare(by=fn)
+        data[fn.__name__] = similarities
+
+    return data
+    """
+
+
+class ArticleSelector(object):
+    """
+    Given a dataset of articles, select a subset for further processing.
+    Obtain the article's title, category, and plain text.
+    """
+
+    class BaseArticleAccessor(object):
+        """
+        Base class for accessing articles within a given directory.
+        """
+        def __init__(self, dir):
+            assert os.path.isdir(dir), "ArticleAccessor: Directory doesn't " \
+                                       "exist: {}".format(dir)
+            self.stored_in = dir
+
+        def retrieve(self):
+            raise NotImplemented('.retrieve() method has not been implemented')
+
+
+    class QianArticles(BaseArticleAccessor):
+        """
+        Retrieve article files from the Qian CNN dataset located in a specified
+        directory.
+        """
+        def retrieve(self):
+            logger.debug('Retrieving articles from within {}'.format(
+                self.stored_in))
+            article_categories_in = os.path.join(self.stored_in, 'Raw')
+            categories = os.listdir(article_categories_in)
+            logger.debug('Category directories: {}'.format(categories))
+            for category in categories:
+                abspath = os.path.join(article_categories_in, category)
+                for article_path in self._retrieve_from_category(abspath):
+                    yield QianArticle(path=article_path)
+
+        def _retrieve_from_category(self, category_directory):
+            glob_path = os.path.join(category_directory, 'cnn_*.txt')
+            for filename in glob.glob(glob_path):
+                #logger.debug('\t -->  {}'.format(filename))
+                yield os.path.join(category_directory, filename)
+
+    article_accessor = {
+        # access articles by the file's bytesize
+        136208660: lambda dir: ArticleSelector.QianArticles(dir),
+    }
+
+    def __init__(self, datasets):
+        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
+                       for file in datasets ]
+        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
+                           for k, size in file_sizes ]
+
+
+    def get(self, count, randomize=True):
+        # evenly distribute articles selected from each located dataset
+        articles = []
+        for selector in self.accessors:
+            subset = selector.retrieve()
+            articles.extend(subset)
+            assert len(articles) > 0, 'No articles found for {}'.format(
+                selector.__class__.__name__)
+
+        # shuffle and truncate set to the specified size
+        if randomize:
+            logger.debug('Random selection of {} articles'.format(count))
+            selected_articles = random.choices(articles, k=count)
+        else:
+            logger.debug('Non-random selection of {} articles'.format(count))
+            selected_articles = articles[:count]
+
+        return selected_articles
+
+
+import itertools
+class PairwiseSimilarity(object):
+    def __init__(self, corpus):
+        self.corpus = corpus
+
+        self.vectorizer = CountVectorizer(min_df=1)
+        plain_text = [ str(document) for document in self.corpus ]
+        self._matrix = self.vectorizer.fit_transform(plain_text)
+        for v, doc in zip(self._matrix, corpus):
+            doc.vector = v
+
+        self.features = self.vectorizer.get_feature_names()
+        logger.debug('Unique tokens: {}'.format(self.features))
+
+
+    def pairwise_compare(self, by):
+        similarity_calculations = []
+        for u,v in itertools.combinations(self.corpus, 2):
+            comparison = ComparedArticles(u, v, by)
+            logger.debug(comparison)
+            similarity_calculations.append(comparison)
+        return similarity_calculations
+
+
+class ComparedArticles(object):
+    def __init__(self, art1, art2, fn):
+        self.article = [art1, art2]
+        logger.debug('Article 1: {}'.format(art1.vector))
+        logger.debug('Article 2: {}'.format(art2.vector))
+        self.score = fn(art1.vector, art2.vector)
+        logger.debug('Score: {}'.format(self.score))
+        self.distance_fn = fn.__name__
+
+
+
+
+
+
+
+
+
+
+
 class NewspaperArticle(object):
     def __init__(self, path):
         assert os.path.isfile(path), 'File not found: {}'.format(path)
         self.path = path
+        self.title = None
+        self.abstract = None
+        self.vector = None
 
 
     def __str__(self):
@@ -128,77 +281,6 @@ class QianArticle(NewspaperArticle):
         return False
 
 
-class ArticleSelector(object):
-    """
-    Given a dataset of articles, select a subset for further processing.
-    Obtain the article's title, category, and plain text.
-    """
-
-    class BaseArticleAccessor(object):
-        """
-        Base class for accessing articles within a given directory.
-        """
-        def __init__(self, dir):
-            assert os.path.isdir(dir), "ArticleAccessor: Directory doesn't " \
-                                       "exist: {}".format(dir)
-            self.stored_in = dir
-
-        def retrieve(self):
-            raise NotImplemented('.retrieve() method has not been implemented')
-
-
-    class QianArticles(BaseArticleAccessor):
-        """
-        Retrieve article files from the Qian CNN dataset located in a specified
-        directory.
-        """
-        def retrieve(self):
-            logger.debug('Retrieving articles from within {}'.format(
-                self.stored_in))
-            article_categories_in = os.path.join(self.stored_in, 'Raw')
-            categories = os.listdir(article_categories_in)
-            logger.debug('Category directories: {}'.format(categories))
-            for category in categories:
-                abspath = os.path.join(article_categories_in, category)
-                for article_path in self._retrieve_from_category(abspath):
-                    yield QianArticle(path=article_path)
-
-        def _retrieve_from_category(self, category_directory):
-            glob_path = os.path.join(category_directory, 'cnn_*.txt')
-            for filename in glob.glob(glob_path):
-                #logger.debug('\t -->  {}'.format(filename))
-                yield os.path.join(category_directory, filename)
-
-    article_accessor = {
-        # access articles by the file's bytesize
-        136208660: lambda dir: ArticleSelector.QianArticles(dir),
-    }
-
-    def __init__(self, datasets):
-        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
-                       for file in datasets ]
-        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
-                           for k, size in file_sizes ]
-
-
-    def get(self, count, randomize=True, archive_to=None):
-        # evenly distribute articles selected from each located dataset
-        articles = []
-        for selector in self.accessors:
-            subset = selector.retrieve()
-            articles.extend(subset)
-            assert len(articles) > 0, 'No articles found for {}'.format(
-                selector.__class__.__name__)
-
-        # shuffle and truncate set to the specified size
-        if randomize:
-            logger.debug('Random selection of {} articles'.format(count))
-            return random.choices(articles, k=count)
-        else:
-            logger.debug('Non-random selection of {} articles'.format(count))
-            return articles[:count]
-
-
 from sklearn.feature_extraction.text import CountVectorizer
 class BagOfWords(object):
     def __init__(self, corpus):
@@ -224,40 +306,10 @@ class BagOfWords(object):
 
         return self._matrix
 
-import itertools
-class PairwiseSimilarity(object):
-    def __init__(self, matrix):
-        self.corpus = matrix
-        self.matrix = matrix.toarray()
-
-
-    def pairwise_compare(self, by):
-        similarity_calculations = []
-        enumerated = enumerate(self.matrix)
-        for u,v in itertools.combinations(enumerated, 2):
-            sim = by(u[1], v[1])
-            result = (sim, u[0], v[0])
-            logger.debug(result)
-            similarity_calculations.append(result)
-        """
-        overall_scores = []
-        query_index = 0
-        for query in self.corpus:
-            similarities_to_corpus = self.index[query]
-            with_corpus_indices = enumerate(similarities_to_corpus)
-            sim_scores = [ (query_index, j, score)
-                            for j, score in with_corpus_indices ]
-            query_index += 1
-            overall_scores.extend(sim_scores)
-        self.similarities = overall_scores
-        """
-        return similarity_calculations
-
-    def write_to(self, file, sort_by):
-        pass
-
 
 def main(args):
+    process(10)
+    """
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
@@ -306,7 +358,7 @@ def main(args):
     for fn in DISTANCE_FUNCTIONS:
         similarities = similarity_calculater.pairwise_compare(by=fn)
         #similarities.write_to(file='f', sort_by=fn.__name__)
-    """
+    
     similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
     #    euclidean_distance, cosine_similarity, jaccard_similarity
     #]
