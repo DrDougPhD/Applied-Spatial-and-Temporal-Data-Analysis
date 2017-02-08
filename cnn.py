@@ -50,6 +50,7 @@ import subprocess
 import hashlib
 import itertools
 from scipy.spatial import distance
+import csv
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
@@ -88,10 +89,12 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
     # randomly select articles
     logger.debug(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(n, randomize=not __dev__)
+    selected_articles = selector.get(n, randomize=not __dev__,
+                                     archive_to='data/articles')
 
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles)
+    similarity_calculater.save_matrix_to('data/matrix.csv')
     for fn in DISTANCE_FUNCTIONS:
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
@@ -152,7 +155,7 @@ class ArticleSelector(object):
                            for k, size in file_sizes ]
 
 
-    def get(self, count, randomize=True):
+    def get(self, count, randomize=True, archive_to=None):
         # evenly distribute articles selected from each located dataset
         articles = []
         for selector in self.accessors:
@@ -168,6 +171,12 @@ class ArticleSelector(object):
         else:
             logger.debug('Non-random selection of {} articles'.format(count))
             selected_articles = articles[:count]
+
+        if archive_to:
+            logger.debug('Copying files to {}'.format(archive_to))
+            os.makedirs(archive_to, exist_ok=True)
+            [ shutil.copy(f.path, archive_to) for f in selected_articles ]
+            logger.debug('{} files copied'.format(len(selected_articles)))
 
         return selected_articles
 
@@ -198,6 +207,10 @@ class PairwiseSimilarity(object):
             similarity_calculations.append(comparison)
         return similarity_calculations
 
+    def save_matrix_to(self, file):
+        with open(file, 'w') as f:
+            csvfile = csv.DictWriter(f, fieldnames=self.features,
+                                     delimiter='|')
 
 class ComparedArticles(object):
     def __init__(self, art1, art2, fn):
