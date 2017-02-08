@@ -43,6 +43,12 @@ import logging
 from bs4 import BeautifulSoup
 import glob
 import random
+import string
+from sklearn.feature_extraction.text import CountVectorizer
+import shutil
+import subprocess
+import hashlib
+import itertools
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
@@ -59,7 +65,6 @@ DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 
 from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
-#DISTANCE_FUNCTIONS = [distance.jaccard]
 
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
@@ -167,7 +172,6 @@ class ArticleSelector(object):
         return selected_articles
 
 
-import itertools
 class PairwiseSimilarity(object):
     def __init__(self, corpus):
         self.corpus = corpus
@@ -247,7 +251,6 @@ class NewspaperArticle(object):
             yield w
 
 
-import string
 class QianArticle(NewspaperArticle):
     punctuation_remover = str.maketrans('', '', string.punctuation)
 
@@ -287,95 +290,6 @@ class QianArticle(NewspaperArticle):
         return False
 
 
-from sklearn.feature_extraction.text import CountVectorizer
-class BagOfWords(object):
-    def __init__(self, corpus):
-        self.corpus = corpus
-        self.vectorizer = CountVectorizer(min_df=1)
-        logger.debug('{} items in the supplied corpus'.format(len(corpus)))
-
-
-    def baggify(self):
-        """
-        Find all unique words throughout every document supplied to this object.
-        """
-        # convert corpus, which hasn't been loaded from file, to strings
-        corpus = [ str(document) for document in self.corpus ]
-        self._matrix = self.vectorizer.fit_transform(corpus)
-        self.features = self.vectorizer.get_feature_names()
-        logger.debug('Unique tokens: {}'.format(self.features))
-
-
-    def matrix(self, save_to=None):
-        if save_to is not None:
-            pass
-
-        return self._matrix
-
-
-def main(args):
-    process(n=10)
-    """
-    dataset_dir = get_dataset_dir(args.dataset_dir)
-    archive_files = get_datasets(indir=dataset_dir)
-    extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
-    decompressed_dataset_directories = {}
-    for f in archive_files:
-        filename = os.path.basename(f)
-        filename_prefix = '.'.join(filename.split('.')[:-1])
-        extract_to = os.path.join(dataset_dir, filename_prefix)
-        decompress(f, to=extract_to, dataset_dir=dataset_dir)
-        decompressed_dataset_directories[filename] = extract_to
-
-    logger.info('-'*80)
-    logger.info('Datasets to preprocess:')
-    for dbname in decompressed_dataset_directories:
-        dir = decompressed_dataset_directories[dbname]
-        logger.info(dir)
-
-    # randomly select articles
-    logger.debug(hr('Article Selection'))
-    selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(args.num_to_select, randomize=not __dev__,
-                                     archive_to='blah')
-    assert len(selected_articles) == args.num_to_select,\
-        'Expected {0} articles, but received {1} articles'.format(
-            args.num_to_select, len(selected_articles))
-    #logger.debug('Selected articles ({} articles):'.format(len(
-    #    selected_articles)))
-    #import pprint
-    #logger.debug(pprint.pformat(selected_articles))
-    # corpus = selector.get(100, random=not __dev__, archive_to='blah')
-
-    # break down articles into a bag of words
-    logger.debug(hr('Bag of Words'))
-    bag_of_words = BagOfWords(corpus=selected_articles)
-    bag_of_words.baggify()
-    matrix = bag_of_words.matrix(save_to='bag.mm')
-
-    logger.debug(matrix.toarray()[0])
-    logger.debug(type(matrix.toarray()[0]))
-    logger.debug(len(matrix.toarray()))
-    #logger.debug(matrix[0])
-    #logger.debug(type(matrix[0]))
-
-
-    similarity_calculater = PairwiseSimilarity(matrix)
-    for fn in DISTANCE_FUNCTIONS:
-        similarities = similarity_calculater.pairwise_compare(by=fn)
-        #similarities.write_to(file='f', sort_by=fn.__name__)
-    
-    similarity_calculater = PairwiseSimilarity(matrix)# , distance_fns=[
-    #    euclidean_distance, cosine_similarity, jaccard_similarity
-    #]
-    similarity_calculater.run()
-    similarity_calculater.write_to(file='similarities.tsv')
-
-        similarity_calculater.pairwise_combine_and_measure(by=fn)
-        similarity_calculater.write_to(file='f', sort_by=fn.__name__)
-    """
-
-
 def get_dataset_dir(dataset_dir):
     if not os.path.isabs(dataset_dir):
         dataset_dir = os.path.join(os.path.dirname(os.path.abspath(
@@ -411,8 +325,6 @@ def is_archive(filename):
         return False
 
 
-import shutil
-import subprocess
 def decompress(file, to, dataset_dir):
     if os.path.exists(to):
         logger.debug('Already existing file/dir at {}.'.format(to))
@@ -467,7 +379,6 @@ def relocate(new_files, to):
             os.rename(new_path, to)
 
 
-import hashlib
 def retrieve(articles, cache_in):
     """
     for article in articles:
@@ -575,6 +486,10 @@ def get_arguments():
                         help='cache newspaper articles to directory')
     args = parser.parse_args()
     return args
+
+
+def main(args):
+    process(n=10)
 
 
 if __name__ == '__main__':
