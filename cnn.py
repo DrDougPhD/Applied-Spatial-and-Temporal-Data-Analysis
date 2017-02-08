@@ -60,7 +60,10 @@ from scipy.spatial import distance
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
-def process(n=100):
+def process(args, n=None):
+    if n is None:
+        n = args.num_to_select
+
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
@@ -81,7 +84,7 @@ def process(n=100):
     # randomly select articles
     logger.debug(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(args.num_to_select, randomize=not __dev__)
+    selected_articles = selector.get(n, randomize=not __dev__)
 
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles)
@@ -175,9 +178,6 @@ class PairwiseSimilarity(object):
         self.vectorizer = CountVectorizer(min_df=1)
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
-        logger.debug('Transformed corpus:')
-        logger.debug(type(self._matrix))
-        logger.debug(self._matrix)
 
         for i in range(len(corpus)):
             vector = self._matrix.getrow(i)
@@ -200,20 +200,14 @@ class PairwiseSimilarity(object):
 class ComparedArticles(object):
     def __init__(self, art1, art2, fn):
         self.article = [art1, art2]
-        logger.debug('Article 1: {}'.format(art1.vector))
-        logger.debug('Article 2: {}'.format(art2.vector))
         self.score = fn(art1.vector, art2.vector)
-        logger.debug('Score: {}'.format(self.score))
         self.distance_fn = fn.__name__
 
-
-
-
-
-
-
-
-
+    def __str__(self):
+        return '"{0.title}"\t:{0.vector}\n'\
+               '\t vs. "{1.title}"\t:{1.vector}\n'\
+               '\t Score: {2}'.format(
+                    self.article[0], self.article[1], self.score)
 
 
 class NewspaperArticle(object):
@@ -314,7 +308,7 @@ class BagOfWords(object):
 
 
 def main(args):
-    process(10)
+    process(args=args, n=10)
     """
     dataset_dir = get_dataset_dir(args.dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
