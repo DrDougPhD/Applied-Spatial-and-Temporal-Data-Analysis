@@ -18,7 +18,18 @@ def index():
     # sort the data from greatest scores to least
     for k in data:
         data[k].sort(key=lambda c: c.score, reverse=True)
-    return render_template('index.html', similarities=data)
+
+    if 'euclidean' in data:
+        max_euclidean_distance = float('-inf')
+        for comparison in data['euclidean']:
+            max_euclidean_distance = max(max_euclidean_distance, 
+                                         comparison.score)
+    else:
+        max_euclidean_distance = None
+
+    return render_template('index.html', similarities=data,
+                           euclidean_max=max_euclidean_distance)
+
 
 if __name__ == '__main__':
     app.run()
