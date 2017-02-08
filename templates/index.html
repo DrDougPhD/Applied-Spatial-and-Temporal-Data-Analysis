@@ -35,18 +35,15 @@
           <h2>{{ fn|title }}</h2>
 					{% for sim in similarities[fn] %}
 					<div class="row">
+            {% for article in sim.article %}
 						<div class="col-md-6">
-							<h3>{{ sim.article[0].title }}</h3>
+							<h3>{{ article.title }}</h3>
+							<h5>{{ article.category|title }}</h5>
 							<div class="well well-sm">
-								{{ sim.article[0].abstract }}
+								{{ article.abstract }}
 							</div>
 						</div>
-						<div class="col-md-6">
-							<h3>{{ sim.article[1].title }}</h3>
-							<div class="well well-sm">
-								{{ sim.article[1].abstract }}
-							</div>
-						</div>
+            {% endfor %}
 					</div>
 			
 					<div class="row">

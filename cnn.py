@@ -219,6 +219,7 @@ class NewspaperArticle(object):
         self.path = path
         self.title = None
         self.abstract = None
+        self.category = None
         self.vector = None
 
 
@@ -255,6 +256,8 @@ class QianArticle(NewspaperArticle):
         self.title = soup.doc.title.text
         self.abstract = soup.doc.abstract.text
         self.text = soup.doc.find('text').text
+        category_dir = os.path.basename(os.path.dirname(self.path))
+        self.category = category_dir.split('_')[-1]
 
     def _next_word(self):
         for line in self.text.split('\n'):
