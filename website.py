@@ -17,7 +17,10 @@ def index():
     data = cnn.process(n)
     # sort the data from greatest scores to least
     for k in data:
-        data[k].sort(key=lambda c: c.score, reverse=True)
+        if k == 'euclidean':
+            data[k].sort(key=lambda c: c.score)
+        else:
+            data[k].sort(key=lambda c: c.score, reverse=True)
 
     if 'euclidean' in data:
         max_euclidean_distance = float('-inf')

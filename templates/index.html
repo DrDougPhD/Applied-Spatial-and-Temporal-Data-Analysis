@@ -55,7 +55,7 @@
 								{% if sim.distance_fn == "cosine" %}
                 	{% set percentage = (sim.score + 1)*(100/2) %}
 								{% elif sim.distance_fn == "euclidean" %}
-                  {% set percentage = 100*sim.score / euclidean_max %}
+                  {% set percentage = 100* (1 - (sim.score / euclidean_max)) %}
                 {% else %}
                 	{% set percentage = 100*sim.score %}
 								{% endif %}
