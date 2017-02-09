@@ -70,7 +70,15 @@ DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
-def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf'):
+def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=None):
+    # select the distance functions that will be used in this script
+    if distance_fns is None:
+        distance_fns = DISTANCE_FUNCTIONS
+    else:
+        distance_fns = [ fn for fn in DISTANCE_FUNCTIONS
+                            if fn.__name__ in distance_fns ]
+
+    # TODO: refactor this into a class perhaps?
     dataset_dir = get_dataset_dir(dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
@@ -82,23 +90,25 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf'):
         decompress(f, to=extract_to, dataset_dir=dataset_dir)
         decompressed_dataset_directories[filename] = extract_to
 
-    logger.info('-'*80)
-    logger.info('Datasets to preprocess:')
+    logger.info(hr('Datasets to preprocess'))
     for dbname in decompressed_dataset_directories:
         dir = decompressed_dataset_directories[dbname]
         logger.info(dir)
 
     # randomly select articles
-    logger.debug(hr('Article Selection'))
+    logger.info(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
     selected_articles = selector.get(n, randomize=not __dev__,
                                      archive_to='data/articles')
 
+    # compute pairwise similarities between selected articles
+    logger.info(hr('Pairwise Similarities'))
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles,
                                                method=method)
     similarity_calculater.save_matrix_to('data/matrix.csv')
     for fn in DISTANCE_FUNCTIONS:
+        logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
 
@@ -188,9 +198,14 @@ class PairwiseSimilarity(object):
     def __init__(self, corpus, method):
         self.corpus = corpus
 
+        # specify method in which corpus is repr'd as matrix:
+        #  1. an existence matrix (0 if token is abscent, 1 if present)
+        #  2. a term freq matrix (element equals token count in doc)
+        #  3. Tf-Idf matrix
         if method == 'tfidf':
             self.vectorizer = TfidfVectorizer(min_df=1, stop_words='english')
         else:
+            # matrix will be converted to binary matrix further down
             self.vectorizer = CountVectorizer(min_df=1, stop_words='english')
 
         plain_text = [ str(document) for document in self.corpus ]
@@ -204,7 +219,7 @@ class PairwiseSimilarity(object):
             doc.vector = vector
 
         self.features = self.vectorizer.get_feature_names()
-        logger.debug('{} unique tokens'.format(len(self.features)))
+        logger.info('{} unique tokens'.format(len(self.features)))
 
     def pairwise_compare(self, by):
         similarity_calculations = []
@@ -216,7 +231,7 @@ class PairwiseSimilarity(object):
         return similarity_calculations
 
     def save_matrix_to(self, file):
-        logger.debug(hr('Saving TF matrix to file'))
+        logger.info('Saving TF matrix to file')
         with open(file, 'w') as f:
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
@@ -501,19 +516,21 @@ def get_arguments():
     # during development, I set default to False so I don't have to keep
     # calling this with -v
     parser.add_argument('-v', '--verbose', action='store_true',
-                        default=__dev__, help='verbose output')
+                        default=False, #default=__dev__,
+                        help='verbose output')
     parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
                         help='directory to download / to load datasets',
                         default=DEFAULT_DATASET_DIR)
-    parser.add_argument('-n', '--newspaper', dest='newspaper_url',
-                        default='http://www.cnn.com/',
-                        help='URL for target newspaper')
     parser.add_argument('-N', '--num-articles', dest='num_to_select',
-                        type=int, default=100,
+                        type=int, default=5,
                         help='number of articles to select for analysis')
     parser.add_argument('-m', '--method', dest='method',
-                        default='tf',
-                        help='method for corpus representation in matrix - i.e. tf, existence, tfidf')
+                        default='tf', choices=['tf', 'existence', 'tfidf'],
+                        help='matrix representation of matrix'\
+                             ' - i.e. tf, existence, tfidf')
+    parser.add_argument('-D', '--distances', dest='distance_fns', nargs='+',
+                        choices=[fn.__name__ for fn in DISTANCE_FUNCTIONS],
+                        help='distance functions to use (select 1 or more)')
 
     def directory_in_cwd(directory, create=True):
         cwd = os.path.dirname(os.path.abspath(__file__))
@@ -530,7 +547,8 @@ def get_arguments():
 
 
 def main(args):
-    process(n=10, method=args.method)
+    process(n=args.num_to_select, method=args.method,
+            dataset_dir=args.dataset_dir, distance_fns=args.distance_fns)
 
 
 if __name__ == '__main__':
@@ -539,11 +557,11 @@ if __name__ == '__main__':
 
         args = get_arguments()
         setup_logger(args)
-        logger.debug('Command-line arguments:')
+        logger.info('Command-line arguments:')
         for arg in vars(args):
             value = getattr(args, arg)
-            logger.debug('\t{argument_key}:\t{value}'.format(argument_key=arg,
-                                                           value=value))
+            logger.info('\t{argument_key}:\t{value}'.format(argument_key=arg,
+                                                            value=value))
 
         logger.debug(start_time)
 
