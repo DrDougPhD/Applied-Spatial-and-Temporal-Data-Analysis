@@ -211,6 +211,7 @@ class PairwiseSimilarity(object):
         for u,v in itertools.combinations(self.corpus, 2):
             comparison = ComparedArticles(u, v, by)
             logger.debug(comparison)
+            logger.debug('-'*80)
             similarity_calculations.append(comparison)
         return similarity_calculations
 
@@ -240,10 +241,12 @@ class ComparedArticles(object):
         self.distance_fn = fn.__name__
 
     def __str__(self):
-        return '"{0.title}"\t:{0.vector}\n'\
-               '\t vs. "{1.title}"\t:{1.vector}\n'\
-               '\t Score ({2}): {3}'.format(
-                    self.article[0], self.article[1], self.distance_fn,
+        return '{0}\n'\
+               'vs.\n'\
+               '{1}\n'\
+               '== SCORE ({2}): {3}'.format(
+                    repr(self.article[0]), repr(self.article[1]),
+                    self.distance_fn,
                     self.score)
 
 
@@ -266,6 +269,11 @@ class NewspaperArticle(object):
         # and bad characters, and return as one long string
         return ' '.join(self)
 
+    def __repr__(self):
+        return '"{0.title}"\n'\
+               '\tcategory: {0.category}\n'\
+               '\tvector:   {1}'.format(self,
+                                        [ e for e in self.vector ])
 
     def __iter__(self):
         """
