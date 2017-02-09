@@ -2,14 +2,8 @@ from flask import Flask
 app = Flask(__name__)
 
 from flask import render_template
-from lib.interval import Interval
 import cnn
 
-ALERT_TYPE = {
-        Interval(0, 33): 'danger',
-        Interval(33, 66): 'warning',
-        Interval(66, 100): 'success',
-}
 
 @app.route('/')
 def matrix_choices():
@@ -19,7 +13,7 @@ def matrix_choices():
 @app.route('/<matrix_type>')
 def similarities(matrix_type):
     n = 5
-    data = cnn.process(n)
+    data = cnn.process(n, method=matrix_type)
     # sort the data from greatest scores to least
     for k in data:
         if k == 'euclidean':
