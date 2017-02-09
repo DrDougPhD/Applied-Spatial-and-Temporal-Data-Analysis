@@ -45,12 +45,14 @@ import glob
 import random
 import string
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import shutil
 import subprocess
 import hashlib
 import itertools
 from scipy.spatial import distance
 import csv
+import numpy
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
@@ -68,7 +70,7 @@ DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
-def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
+def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf'):
     dataset_dir = get_dataset_dir(dataset_dir)
     archive_files = get_datasets(indir=dataset_dir)
     extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
@@ -93,7 +95,8 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR):
                                      archive_to='data/articles')
 
     data = {}
-    similarity_calculater = PairwiseSimilarity(selected_articles)
+    similarity_calculater = PairwiseSimilarity(selected_articles,
+                                               method=method)
     similarity_calculater.save_matrix_to('data/matrix.csv')
     for fn in DISTANCE_FUNCTIONS:
         similarities = similarity_calculater.pairwise_compare(by=fn)
@@ -182,16 +185,28 @@ class ArticleSelector(object):
 
 
 class PairwiseSimilarity(object):
-    def __init__(self, corpus):
+    def __init__(self, corpus, method):
         self.corpus = corpus
 
-        self.vectorizer = CountVectorizer(min_df=1, stop_words='english')
+        if method == 'tfidf':
+            self.vectorizer = TfidfVectorizer(min_df=1, stop_words='english')
+        else:
+            self.vectorizer = CountVectorizer(min_df=1, stop_words='english')
+
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
+        logger.debug('#'*100)
         for i in range(len(corpus)):
-            vector = self._matrix.getrow(i)
+            vector = self._matrix.getrow(i).toarray()[0]
             doc = corpus[i]
-            doc.vector = vector.toarray()
+            if method == 'existence':
+                # convert vector into a binary vector (only 0s and 1s)
+                print('Convert vector to existence vector')
+                logger.debug(list(vector))
+                vector = [ int(bool(e)) for e in vector ]
+                logger.debug(vector)
+            doc.vector = vector
+        logger.debug('#'*100)
 
         self.features = self.vectorizer.get_feature_names()
         logger.debug(hr('Unique tokens:'))
@@ -230,7 +245,6 @@ class PairwiseSimilarity(object):
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
 
-            import numpy
             logger.debug(hr('sum across all rows'))
             summed_vector = sum(self._matrix).toarray()[0]
             csvfile.writerows(zip(self.features, summed_vector))
@@ -252,6 +266,9 @@ class ComparedArticles(object):
         else:
             self.article = [art2, art1]
 
+        print('-'*100)
+        print(art1.vector)
+        print(art2.vector)
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
 
@@ -519,6 +536,9 @@ def get_arguments():
     parser.add_argument('-N', '--num-articles', dest='num_to_select',
                         type=int, default=100,
                         help='number of articles to select for analysis')
+    parser.add_argument('-m', '--method', dest='method',
+                        default='tf',
+                        help='method for corpus representation in matrix - i.e. tf, existence, tfidf')
 
     def directory_in_cwd(directory, create=True):
         cwd = os.path.dirname(os.path.abspath(__file__))
@@ -535,7 +555,7 @@ def get_arguments():
 
 
 def main(args):
-    process(n=10)
+    process(n=10, method=args.method)
 
 
 if __name__ == '__main__':
