@@ -12,7 +12,12 @@ ALERT_TYPE = {
 }
 
 @app.route('/')
-def index():
+def matrix_choices():
+	return render_template('choices.html')
+
+
+@app.route('/<matrix_type>')
+def similarities(matrix_type):
     n = 5
     data = cnn.process(n)
     # sort the data from greatest scores to least
@@ -30,7 +35,7 @@ def index():
     else:
         max_euclidean_distance = None
 
-    return render_template('index.html', similarities=data,
+    return render_template('similarities.html', similarities=data,
                            euclidean_max=max_euclidean_distance)
 
 

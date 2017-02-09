@@ -22,28 +22,48 @@
 		      crossorigin="anonymous">
 
 		<style>
-			.scrollable {
-				height: 100vh;
-				overflow: scroll;
+			.button-block {
+				max-width: 75vw;
+			}
+
+			.center-buttons {
+				position: relative;
+			}
+
+			div.buttons {
+				position: absolute;
+	      top: 50vh;
+    	  left: 50%;
+				width: 50vw;
+				transform: translate(-50%, -50%);
 			}
 		</style>
-
-		<script>
-			window.onload = function() {
-				var max_height = 0;
-				var article_cells = $('.articles');
-				article_cells.each(function(i) {
-					max_height = Math.max($(this).height(), max_height);
-				});
-
-				article_cells.height(max_height);
-			};
-		</script>
-
 	</head>
 
 	<body>
-		<div class="container-fluid">
+
+<!--
+		<div class="center-buttons">
+			<div class="btn-group-vertical buttons"
+					 role="group"
+    	     aria-label="corpus-matrix-choices">
+				<button type="button" class="btn btn-default btn-lg">Existence</button>
+				<button type="button" class="btn btn-default btn-lg">Term Frequency</button>
+				<button type="button" class="btn btn-default btn-lg">TF-IDF</button>
+			</div>
+		</div>-->
+		<div class="center-buttons">
+			<div class="buttons">
+				<a class="btn btn-primary btn-lg btn-block"
+				   href="/existence">Existence</a>
+				<a class="btn btn-success btn-lg btn-block"
+				   href="/tf">Term Frequency</a>
+				<a class="btn btn-info btn-lg btn-block"
+				   href="/tfidf">TF-IDF</a>
+			</div>
+		</div>
+
+		<!--<div class="container-fluid">
 			<div class="row">
 				{% for fn in similarities %}
 				<div class="col-md-4 scrollable">
@@ -91,11 +111,12 @@
 							</div>
 						</div>
 					</div>
+					<hr>
 					{% endfor %}					
 				</div>
 				{% endfor %}
 			</div>
-		</div>
+		</div>-->
 
 
 	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
