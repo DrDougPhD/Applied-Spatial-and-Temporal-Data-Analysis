@@ -67,15 +67,15 @@ EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
 DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 
-DISTANCE_FUNCTIONS = [ distance.euclidean, distance.jaccard, distance.cosine ]
+ACTIVATED_DISTANCE_FNS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=None):
     # select the distance functions that will be used in this script
     if distance_fns is None:
-        distance_fns = DISTANCE_FUNCTIONS
+        distance_fns = ACTIVATED_DISTANCE_FNS
     else:
-        distance_fns = [ fn for fn in DISTANCE_FUNCTIONS
+        distance_fns = [ fn for fn in ACTIVATED_DISTANCE_FNS
                             if fn.__name__ in distance_fns ]
 
     # TODO: refactor this into a class perhaps?
@@ -107,7 +107,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=Non
     similarity_calculater = PairwiseSimilarity(selected_articles,
                                                method=method)
     similarity_calculater.save_matrix_to('data/matrix.csv')
-    for fn in DISTANCE_FUNCTIONS:
+    for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
@@ -529,7 +529,7 @@ def get_arguments():
                         help='matrix representation of matrix'\
                              ' - i.e. tf, existence, tfidf')
     parser.add_argument('-D', '--distances', dest='distance_fns', nargs='+',
-                        choices=[fn.__name__ for fn in DISTANCE_FUNCTIONS],
+                        choices=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
                         help='distance functions to use (select 1 or more)')
 
     def directory_in_cwd(directory, create=True):
