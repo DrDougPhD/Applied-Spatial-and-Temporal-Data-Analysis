@@ -195,30 +195,22 @@ class PairwiseSimilarity(object):
 
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
-        logger.debug('#'*100)
         for i in range(len(corpus)):
             vector = self._matrix.getrow(i).toarray()[0]
             doc = corpus[i]
             if method == 'existence':
                 # convert vector into a binary vector (only 0s and 1s)
-                print('Convert vector to existence vector')
-                logger.debug(list(vector))
                 vector = [ int(bool(e)) for e in vector ]
-                logger.debug(vector)
             doc.vector = vector
-        logger.debug('#'*100)
 
         self.features = self.vectorizer.get_feature_names()
-        logger.debug(hr('Unique tokens:'))
-        for t in self.features:
-            logger.debug('\t{}'.format(t))
-        logger.debug(hr(''))
+        logger.debug('{} unique tokens'.format(len(self.features)))
 
     def pairwise_compare(self, by):
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
             comparison = ComparedArticles(u, v, by)
-            #logger.debug(comparison)
+            logger.debug(comparison)
             similarity_calculations.append(comparison)
         return similarity_calculations
 
@@ -228,34 +220,13 @@ class PairwiseSimilarity(object):
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
             csvfile.writerows(self._matrix.toarray())
-            logger.debug(hr('matrix[0]'))
-            logger.debug(self._matrix[0].shape)
-            """
-            for sparse_row in self._matrix:
-                vector = sparse_row.toarray()[0]
-                logger.debug('|'.join([ str(e) for e in vector ]))
-            logger.debug(hr('matrix'))
-            logger.debug(self._matrix)
-            logger.debug(hr('matrix.toarray()'))
-            logger.debug(self._matrix.toarray())
-            """
-            logger.info('Number of features: {}'.format(len(self.features)))
 
         with open('data/feature_counts.csv', 'w') as counts_file:
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
 
-            logger.debug(hr('sum across all rows'))
             summed_vector = sum(self._matrix).toarray()[0]
             csvfile.writerows(zip(self.features, summed_vector))
-
-            """
-            summed_vector = numpy.zeros(self._matrix.shape[1])
-            for r in self._matrix:
-                summed_vector += r.toarray()[0]
-
-            logger.debug(summed_vector)
-            """
 
 
 class ComparedArticles(object):
@@ -265,10 +236,6 @@ class ComparedArticles(object):
             self.article = [art1, art2]
         else:
             self.article = [art2, art1]
-
-        print('-'*100)
-        print(art1.vector)
-        print(art2.vector)
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
 
