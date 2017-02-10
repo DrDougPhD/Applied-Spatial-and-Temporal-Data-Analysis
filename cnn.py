@@ -385,7 +385,7 @@ class ComparedArticles(object):
 
     def __init__(self, art1, art2, fn, features):
         # sort articles by title
-        if art1.title < art2.title:
+        if len(art1.title) < len(art2.title):
             self.article = [art1, art2]
         else:
             self.article = [art2, art1]
