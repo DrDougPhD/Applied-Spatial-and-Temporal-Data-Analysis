@@ -293,20 +293,45 @@ class PairwiseSimilarity(object):
                   distance=by.__name__))
             with open(similarities_file, 'w') as f:
                 CREATED_FILES.append(similarities_file)
+
+                # find the length of the feature which occurs most commonly in
+                # both articles. for pretty printing
                 highest_feat_max_len_obj = max(
                       similarity_calculations,
                       key=lambda x: len(x.highest_common_feat.name))
                 highest_feat_max_length = len(
                       highest_feat_max_len_obj.highest_common_feat.name)
+
+                # find the article title that is the shortest. make pretty
+                art_w_short_title = max([ c.article[0]
+                                          for c in similarity_calculations ],
+                                        key=lambda r: len(r.title))
+                short_title_len = len(art_w_short_title.title) + 4
+
+                f.write('{score:^10}\t'\
+                        '{normalized:^10}\t'\
+                        '{highest_common_feature}\t'\
+                        '{highest_common_feature_score:^10}\t'\
+                        '{title}\t'\
+                        'Article #2\n'.format(
+                    title='Article #1'.ljust(short_title_len),
+                    score='score',
+                    normalized='similarity',
+                    highest_common_feature='mcf'.center(highest_feat_max_length),
+                    highest_common_feature_score='# occurs',
+                ))
+
+
                 for calc in similarity_calculations:
                     f.write('{score:10.5f}\t'\
                             '{normalized:10.5f}\t'\
                             '{highest_common_feature}\t'\
                             '{highest_common_feature_score:10.5f}\t'\
-                            '"{art1.title}"\t'\
-                            '"{art2.title}"\n'.format(
-                        art1=calc.article[0],
-                        art2=calc.article[1],
+                            '{art1}\t'\
+                            '"{art2}"\n'.format(
+                        art1='"{}"'.format(calc.article[0].title)
+                                   .ljust(short_title_len),
+                        art2=calc.article[1].title,
                         score=calc.score,
                         normalized=calc.normalized,
                         highest_common_feature=calc.highest_common_feat\
