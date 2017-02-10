@@ -57,7 +57,7 @@ import numpy
 from progressbar import ProgressBar
 
 try:    # this is my own package, but it might not be present
-    from lineheaderpadded import hr
+    from lib.lineheaderpadded import hr
 except:
     hr = lambda title, line_char='-': line_char*30 + title + line_char*30
 
@@ -72,12 +72,14 @@ DATA_DIR = 'data'
 DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
 MATRIX_FILE_PATH = os.path.join(DATA_DIR, 'matrix.csv')
 FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
+SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
 
 ACTIVATED_DISTANCE_FNS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
+CREATED_FILES = []
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
-            distance_fns=None, randomize=False):
+            distance_fns=None, randomize=False, args=None):
     # select the distance functions that will be used in this script
     if distance_fns is None:
         distance_fns = ACTIVATED_DISTANCE_FNS
@@ -106,7 +108,9 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     logger.info(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
     selected_articles = selector.get(n, randomize=randomize,
-                                     archive_to='data/articles')
+                                     archive_to=SELECTED_ARTICLE_ARCHIVE)
+    CREATED_FILES.append(SELECTED_ARTICLE_ARCHIVE)
+    
 
     # compute pairwise similarities between selected articles
     logger.info(hr('Pairwise Similarities'))
@@ -115,10 +119,33 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
                                               method=method)
     similarity_calculater.save_matrix_to(matrix_file=MATRIX_FILE_PATH,
                                          features_file=FEATURES_FILE_PATH)
+    CREATED_FILES.append(MATRIX_FILE_PATH)
+    CREATED_FILES.append(FEATURES_FILE_PATH)
+
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
+
+    if args.relocate_files_to:
+        logger.debug(hr('Relocating Created Files'))
+        logger.debug('Storing files in {}'.format(args.relocate_files_to))
+        for f in CREATED_FILES:
+          logger.debug(f)
+          """
+          if os.path.isdir(f):
+            if os.path.isdir(os.path.join(
+                    args.relocate_files_to, os.path.basename(f))):
+                logger.debug('{}/ already exists, deleting'.format(
+                    os.path.basename(f)))
+          """
+          filename = os.path.basename(f)
+          dst = os.path.join(args.relocate_files_to, filename)
+          if os.path.isdir(dst):
+              shutil.rmtree(dst)
+          #shutil.copy(f, args.relocate_files_to)
+          os.rename(f, os.path.join(args.relocate_files_to, filename))
+
     return data
 
 
@@ -513,6 +540,7 @@ def setup_logger(args):
     # todo: place them in a log directory, or add the time to the log's
     # filename, or append to pre-existing log
     log_file = os.path.join('/tmp', __appname__ + '.log')
+    CREATED_FILES.append(log_file)
     fh = logging.FileHandler(log_file)
     fh.setLevel(logging.DEBUG)
     # create console handler with a higher log level
@@ -568,8 +596,9 @@ def get_arguments():
     parser.add_argument('-a', '--archive-to', dest='cache_to',
                         default=directory_in_cwd('cache'), type=directory_in_cwd,
                         help='cache newspaper articles to directory')
-    parser.add_argument('-z', '--clean-up', action='store_true', 
-                        dest='delete', default=False,
+    parser.add_argument('-z', '--clean-up', dest='relocate_files_to',
+                        type=directory_in_cwd, 
+                        default=directory_in_cwd('results'),
                         help='delete files after execution (default: False)')
 
     args = parser.parse_args()
@@ -578,7 +607,8 @@ def get_arguments():
 
 def main(args):
     process(n=args.num_to_select, method=args.method,
-            dataset_dir=args.dataset_dir, distance_fns=args.distance_fns)
+            dataset_dir=args.dataset_dir, distance_fns=args.distance_fns,
+            args=args)
 
 
 if __name__ == '__main__':
