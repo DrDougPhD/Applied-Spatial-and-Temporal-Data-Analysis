@@ -12,8 +12,8 @@ def matrix_choices():
 
 @app.route('/<matrix_type>')
 def similarities(matrix_type):
-    n = 5
-    data = cnn.process(n, method=matrix_type)
+    n = 100
+    data = cnn.process(n, method=matrix_type, randomize=True)
     # sort the data from greatest scores to least
     for k in data:
         if k == 'euclidean':

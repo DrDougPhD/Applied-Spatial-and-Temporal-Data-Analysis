@@ -43,6 +43,7 @@ import logging
 from bs4 import BeautifulSoup
 import glob
 import random
+random.seed(0)
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -53,6 +54,7 @@ import itertools
 from scipy.spatial import distance
 import csv
 import numpy
+from progressbar import ProgressBar
 
 try:    # this is my own package, but it might not be present
     from lineheaderpadded import hr
@@ -70,7 +72,8 @@ DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
 ACTIVATED_DISTANCE_FNS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
 
-def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=None):
+def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
+            distance_fns=None, randomize=False):
     # select the distance functions that will be used in this script
     if distance_fns is None:
         distance_fns = ACTIVATED_DISTANCE_FNS
@@ -98,7 +101,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=Non
     # randomly select articles
     logger.info(hr('Article Selection'))
     selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(n, randomize=not __dev__,
+    selected_articles = selector.get(n, randomize=randomize,
                                      archive_to='data/articles')
 
     # compute pairwise similarities between selected articles
@@ -106,11 +109,11 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf', distance_fns=Non
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles,
                                                method=method)
-    similarity_calculater.save_matrix_to('data/matrix.csv')
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
+    similarity_calculater.save_matrix_to('data/matrix.csv')
 
     return data
 
@@ -180,7 +183,11 @@ class ArticleSelector(object):
         # shuffle and truncate set to the specified size
         if randomize:
             logger.debug('Random selection of {} articles'.format(count))
-            selected_articles = random.choices(articles, k=count)
+            try:
+              selected_articles = random.choices(articles, k=count)
+            except AttributeError:  # Python 3.6 is not installed
+              random.shuffle(articles)
+              selected_articles = articles[:count]
         else:
             logger.debug('Non-random selection of {} articles'.format(count))
             selected_articles = articles[:count]
@@ -195,7 +202,7 @@ class ArticleSelector(object):
 
 
 class PairwiseSimilarity(object):
-    def __init__(self, corpus, method):
+    def __init__(self, corpus, method, num_variations=3):
         self.corpus = corpus
 
         # specify method in which corpus is repr'd as matrix:
@@ -222,12 +229,27 @@ class PairwiseSimilarity(object):
         logger.info('{} unique tokens'.format(len(self.features)))
 
     def pairwise_compare(self, by):
+        progress = None
+        i = 0
+        if __name__ == '__main__':
+            progress = ProgressBar(
+                max_value=len(self.corpus)**2)
+
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
+
+            if progress:
+                progress.update(i)
+                i += 1
+
             comparison = ComparedArticles(u, v, by)
             logger.debug(comparison)
             logger.debug('-'*80)
             similarity_calculations.append(comparison)
+
+        if progress:
+            progress.finish()
+
         return similarity_calculations
 
     def save_matrix_to(self, file):
