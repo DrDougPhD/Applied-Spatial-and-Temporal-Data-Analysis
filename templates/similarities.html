@@ -63,18 +63,11 @@
 			
 					<div class="row">
 						<div class="col-md-12">
+              <p class="text-center">Similarity: {{ sim.score }}</p>
 							<div class="progress">
-								{% if sim.distance_fn == "cosine" %}
-                	{% set percentage = (sim.score + 1)*(100/2) %}
-								{% elif sim.distance_fn == "euclidean" %}
-                  {% set percentage = 100* (1 - (sim.score / euclidean_max)) %}
-                {% else %}
-                	{% set percentage = 100*sim.score %}
-								{% endif %}
-
-								{% if percentage <= 33 %}
+								{% if sim.normalized <= 0.33 %}
 									{% set alert_type = "danger" %}
-								{% elif percentage <= 66 %}
+								{% elif sim.normalized <= 0.66 %}
 									{% set alert_type = "warning" %}
 								{% else %}
 									{% set alert_type = "success" %}
@@ -82,11 +75,9 @@
 
 								<div class="progress-bar progress-bar-{{ alert_type }}"
 									 role="progressbar"
-									 aria-valuenow="{{ percentage|int }}"
 									 aria-valuemin="0"
 									 aria-valuemax="100"
-									 style="width: {{ percentage|int }}%">
-									{{ sim.score }}
+									 style="width: {{ '{:.0%}'.format(sim.normalized) }}">
 								</div>
 							</div>
 						</div>

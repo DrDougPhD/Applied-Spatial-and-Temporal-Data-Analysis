@@ -48,7 +48,7 @@ import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-ENGLISH_STOP_WORDS = list(ENGLISH_STOP_WORDS).extend({
+ENGLISH_STOP_WORDS = list(ENGLISH_STOP_WORDS).extend([
   'said',
 ])
 import shutil
