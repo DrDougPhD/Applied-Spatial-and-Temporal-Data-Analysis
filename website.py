@@ -10,9 +10,8 @@ def matrix_choices():
 	return render_template('choices.html')
 
 
-@app.route('/<matrix_type>')
-def similarities(matrix_type):
-    n = 100
+@app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
+def similarities(matrix_type, n):
     data = cnn.process(n, method=matrix_type, randomize=True)
     # sort the data from greatest scores to least
     for k in data:
