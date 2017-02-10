@@ -128,7 +128,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
               by=fn, save_to=DATA_DIR)
         data[fn.__name__] = similarities
 
-    if args.relocate_files_to:
+    if args and args.relocate_files_to:
         logger.debug(hr('Relocating Created Files'))
         logger.debug('Storing files in {}'.format(args.relocate_files_to))
         for f in CREATED_FILES:
