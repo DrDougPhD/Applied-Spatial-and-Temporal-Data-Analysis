@@ -67,7 +67,11 @@ logger = logging.getLogger(__appname__)
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
-DEFAULT_DATASET_DIR = os.path.join('data', 'downloads')
+
+DATA_DIR = 'data'
+DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
+MATRIX_FILE_PATH = os.path.join(DATA_DIR, 'matrix.csv')
+FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
 
 ACTIVATED_DISTANCE_FNS = [ distance.euclidean, distance.jaccard, distance.cosine ]
 
@@ -108,13 +112,13 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     logger.info(hr('Pairwise Similarities'))
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles,
-                                               method=method)
+                                              method=method)
+    similarity_calculater.save_matrix_to(matrix_file=MATRIX_FILE_PATH,
+                                         features_file=FEATURES_FILE_PATH)
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(by=fn)
         data[fn.__name__] = similarities
-    similarity_calculater.save_matrix_to('data/matrix.csv')
-
     return data
 
 
@@ -252,14 +256,14 @@ class PairwiseSimilarity(object):
 
         return similarity_calculations
 
-    def save_matrix_to(self, file):
+    def save_matrix_to(self, matrix_file, features_file):
         logger.info('Saving TF matrix to file')
-        with open(file, 'w') as f:
+        with open(matrix_file, 'w') as f:
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
             csvfile.writerows(self._matrix.toarray())
 
-        with open('data/feature_counts.csv', 'w') as counts_file:
+        with open(features_file, 'w') as counts_file:
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
 
@@ -564,6 +568,10 @@ def get_arguments():
     parser.add_argument('-a', '--archive-to', dest='cache_to',
                         default=directory_in_cwd('cache'), type=directory_in_cwd,
                         help='cache newspaper articles to directory')
+    parser.add_argument('-z', '--clean-up', action='store_true', 
+                        dest='delete', default=False,
+                        help='delete files after execution (default: False)')
+
     args = parser.parse_args()
     return args
 
