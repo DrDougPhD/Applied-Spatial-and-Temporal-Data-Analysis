@@ -12,7 +12,12 @@ def matrix_choices():
 
 @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
 def similarities(matrix_type, n):
-    data = cnn.process(n, method=matrix_type, randomize=True)
+    data = cnn.from_pickle(n)
+    if data is None:
+      data = cnn.process(n, method=matrix_type, randomize=True)
+    else:
+      print('Pickle loaded')
+
     return render_template('similarities.html', similarities=data)
 
 

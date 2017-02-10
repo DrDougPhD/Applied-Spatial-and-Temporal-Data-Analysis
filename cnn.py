@@ -43,7 +43,6 @@ import logging
 from bs4 import BeautifulSoup
 import glob
 import random
-random.seed(0)
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -60,17 +59,25 @@ import csv
 import numpy
 from progressbar import ProgressBar
 import math
+import pickle
+
 
 def nCr(n,r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
+
 
 try:    # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
 except:
     hr = lambda title, line_char='-': line_char*30 + title + line_char*30
 
+
 logger = logging.getLogger(__appname__)
+
+
+RANDOM_SEED = 0
+random.seed(RANDOM_SEED)
 
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
@@ -82,6 +89,9 @@ DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
 MATRIX_FILE_PATH = os.path.join(DATA_DIR, 'matrix.csv')
 FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
 SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
+PICKLED_RESULTS = os.path.join(DATA_DIR, 'pickled_seed{0}_{1}.p'.format(
+    RANDOM_SEED, '{num_items}'))
+
 
 # note: jaccard from scipy is not jaccard similarity, but rather computing
 #  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
@@ -138,7 +148,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     logger.info(hr('Pairwise Similarities'))
     data = {}
     similarity_calculater = PairwiseSimilarity(selected_articles,
-                                              method=method)
+                                               method=method)
     similarity_calculater.save_matrix_to(matrix_file=MATRIX_FILE_PATH,
                                          features_file=FEATURES_FILE_PATH)
     CREATED_FILES.append(MATRIX_FILE_PATH)
@@ -162,7 +172,19 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
           #shutil.copy(f, args.relocate_files_to)
           os.rename(f, os.path.join(args.relocate_files_to, filename))
 
+
+    # pickle the data
+    pickle.dump(data, open(PICKLED_RESULTS.format(num_items=n), 'wb'))
     return data
+
+
+def from_pickle(n):
+    pfile = PICKLED_RESULTS.format(num_items=n)
+    if not os.path.isfile(pfile):
+        return None
+
+    return pickle.load(open(pfile, 'rb'))
+
 
 
 class ArticleSelector(object):
