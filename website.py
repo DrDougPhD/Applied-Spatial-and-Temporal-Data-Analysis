@@ -1,9 +1,10 @@
 from flask import Flask
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='')
 
 from flask import render_template
-import cnn
+from flask import send_from_directory
 
+data = None
 
 @app.route('/')
 def matrix_choices():
@@ -12,14 +13,22 @@ def matrix_choices():
 
 @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
 def similarities(matrix_type, n):
-    data = cnn.from_pickle(n)
-    if data is None:
-      data = cnn.process(n, method=matrix_type, randomize=True)
-    else:
-      print('Pickle loaded')
-
+    global data
     return render_template('similarities.html', similarities=data)
 
 
-if __name__ == '__main__':
+@app.route('/get/<filename>')
+def load_article(filename):
+    return send_from_directory('results/articles', filename)
+
+
+def run(data):
+    global data = data
     app.run()
+
+
+if __name__ == '__main__':
+    print('='*80)
+    print('You should use $ python3 cnn.py to run the website')
+    print('='*80)
+    run()

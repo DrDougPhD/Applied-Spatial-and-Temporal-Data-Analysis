@@ -61,7 +61,6 @@ from progressbar import ProgressBar
 import math
 import pickle
 
-
 def nCr(n,r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
@@ -176,14 +175,6 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     # pickle the data
     pickle.dump(data, open(PICKLED_RESULTS.format(num_items=n), 'wb'))
     return data
-
-
-def from_pickle(n):
-    pfile = PICKLED_RESULTS.format(num_items=n)
-    if not os.path.isfile(pfile):
-        return None
-
-    return pickle.load(open(pfile, 'rb'))
 
 
 
@@ -456,6 +447,7 @@ class NewspaperArticle(object):
     def __init__(self, path):
         assert os.path.isfile(path), 'File not found: {}'.format(path)
         self.path = path
+        self.filename = os.path.basename(path)
         self.title = None
         self.abstract = None
         self.category = None
@@ -737,15 +729,62 @@ def get_arguments():
                         type=directory_in_cwd, 
                         default=directory_in_cwd('results'),
                         help='delete files after execution (default: False)')
+    parser.add_argument('-c', '--no-website', dest='website',
+                        action='store_false', default=True,
+                        help='specify if the website should not be run')
 
     args = parser.parse_args()
     return args
 
 
+def website(data):
+    from flask import Flask
+    app = Flask(__name__, static_url_path='')
+
+    from flask import render_template
+    from flask import send_from_directory
+
+    @app.route('/')
+    def matrix_choices():
+        return render_template('choices.html')
+
+
+    @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
+    def similarities(matrix_type, n):
+        return render_template('similarities.html', similarities=data)
+
+
+    @app.route('/get/<filename>')
+    def load_article(filename):
+        return send_from_directory('results/articles', filename)
+
+    app.run()
+
+
+def load(n):
+    data = from_pickle(n)
+    if data is None:
+        data = process(n=args.num_to_select, method=args.method,
+                       dataset_dir=args.dataset_dir,
+                       distance_fns=args.distance_fns,
+                       args=args)
+    else:
+        logger.info('Data loaded from pickle')
+    return data
+
+
+def from_pickle(n):
+    pfile = PICKLED_RESULTS.format(num_items=n)
+    if not os.path.isfile(pfile):
+        return None
+    pkl = pickle.load(open(pfile, 'rb'))
+    return pkl
+
+
 def main(args):
-    process(n=args.num_to_select, method=args.method,
-            dataset_dir=args.dataset_dir, distance_fns=args.distance_fns,
-            args=args)
+    data = load(args.num_to_select)
+    if args.website:
+        website(data)
 
 
 if __name__ == '__main__':
