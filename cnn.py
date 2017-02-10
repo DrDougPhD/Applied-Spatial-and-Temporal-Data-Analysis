@@ -74,7 +74,20 @@ MATRIX_FILE_PATH = os.path.join(DATA_DIR, 'matrix.csv')
 FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
 SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
 
-ACTIVATED_DISTANCE_FNS = [ distance.euclidean, distance.jaccard, distance.cosine ]
+# note: jaccard from scipy is not jaccard similarity, but rather computing
+#  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
+def jaccard(u, v):
+    def equal_nonzero(tup):
+        s = sorted(tup)
+        return s[0] != 0 and s[0] == s[1]
+
+    z = list(zip(u, v))
+    positive_results = map(equal_nonzero, z)
+    non_zero_results = map(all, z)
+    return sum(positive_results)/sum(non_zero_results)
+
+
+ACTIVATED_DISTANCE_FNS = [ distance.euclidean, jaccard, distance.cosine ]
 
 CREATED_FILES = []
 
@@ -133,13 +146,6 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
         logger.debug('Storing files in {}'.format(args.relocate_files_to))
         for f in CREATED_FILES:
           logger.debug(f)
-          """
-          if os.path.isdir(f):
-            if os.path.isdir(os.path.join(
-                    args.relocate_files_to, os.path.basename(f))):
-                logger.debug('{}/ already exists, deleting'.format(
-                    os.path.basename(f)))
-          """
           filename = os.path.basename(f)
           dst = os.path.join(args.relocate_files_to, filename)
           if os.path.isdir(dst):
@@ -327,6 +333,20 @@ class PairwiseSimilarity(object):
             csvfile.writerows(zip(self.features, summed_vector))
 
 
+# TODO: make class for distance functions and normalizing them
+"""
+class BaseDistanceFunctor(object):
+    def __init__(self):
+        pass
+
+    def __call__(self):
+        # call distance function
+
+    def normalize(self):
+        score = self()
+        ...
+"""
+
 class ComparedArticles(object):
 
     class HighestCommonFeature(object):
@@ -346,10 +366,21 @@ class ComparedArticles(object):
             self.article = [art2, art1]
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
-        self.normalized = 0
+
+        # normalize the score based on the distance function used
+        if self.distance_fn == 'euclidean':
+            # [ 0, +inf ) --(flipped)-> ( 0, +inf ) -> ( 0, 1 ] --(flip)-> [ 0, 1 )
+            self.normalized = 1 - (1 / (self.score + 1))
+        elif self.distance_fn == 'cosine':
+            # [ -1, 1 ] -> [ 0, 2 ] -> [ 0, 1 ]
+            self.normalized = 1 - self.score
+        elif self.distance_fn == 'jaccard':
+            self.normalized = self.score # no need to normalize
+
         self.highest_common_feat = ComparedArticles.HighestCommonFeature(
               articles=self.article,
               features=features)
+
 
     def __str__(self):
         return '{0}\n'\
