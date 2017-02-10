@@ -240,7 +240,7 @@ class ArticleSelector(object):
 
 
 class PairwiseSimilarity(object):
-    def __init__(self, corpus, method, num_variations=3):
+    def __init__(self, corpus, method):
         self.corpus = corpus
 
         # specify method in which corpus is repr'd as matrix:
@@ -341,6 +341,8 @@ class PairwiseSimilarity(object):
                                                          .score
                     ))
 
+        # sort similarities by their normalized scores
+        similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
         return similarity_calculations
 
     def save_matrix_to(self, matrix_file, features_file):
