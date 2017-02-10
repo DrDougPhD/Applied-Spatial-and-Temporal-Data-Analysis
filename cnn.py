@@ -47,6 +47,10 @@ random.seed(0)
 import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
+ENGLISH_STOP_WORDS = list(ENGLISH_STOP_WORDS).extend({
+  'said',
+])
 import shutil
 import subprocess
 import hashlib
@@ -55,6 +59,11 @@ from scipy.spatial import distance
 import csv
 import numpy
 from progressbar import ProgressBar
+import math
+
+def nCr(n,r):
+    f = math.factorial
+    return f(n) / f(r) / f(n-r)
 
 try:    # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -248,10 +257,12 @@ class PairwiseSimilarity(object):
         #  2. a term freq matrix (element equals token count in doc)
         #  3. Tf-Idf matrix
         if method == 'tfidf':
-            self.vectorizer = TfidfVectorizer(min_df=1, stop_words='english')
+            self.vectorizer = TfidfVectorizer(min_df=1,
+                                              stop_words=ENGLISH_STOP_WORDS)
         else:
             # matrix will be converted to binary matrix further down
-            self.vectorizer = CountVectorizer(min_df=1, stop_words='english')
+            self.vectorizer = CountVectorizer(min_df=1,
+                                              stop_words=ENGLISH_STOP_WORDS)
 
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
@@ -271,7 +282,7 @@ class PairwiseSimilarity(object):
         i = 0
         if __name__ == '__main__':
             progress = ProgressBar(
-                max_value=len(self.corpus)**2)
+                max_value=nCr(len(self.corpus), 2))
 
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
@@ -445,8 +456,7 @@ class NewspaperArticle(object):
     def __repr__(self):
         return '"{0.title}"\n'\
                '\tcategory: {0.category}\n'\
-               '\tvector:   {1}'.format(self,
-                                        [ e for e in self.vector ])
+               '\tvector:   {1}'.format(self, self.vector)
 
     def __iter__(self):
         """
