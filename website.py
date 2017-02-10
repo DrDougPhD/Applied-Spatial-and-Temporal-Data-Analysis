@@ -3,6 +3,7 @@ app = Flask(__name__)
 
 from flask import render_template
 import cnn
+import utils
 
 
 @app.route('/')
@@ -22,4 +23,11 @@ def similarities(matrix_type, n):
 
 
 if __name__ == '__main__':
+    utils.setup_logger(debug=False, appname='cnn')
+    # check if pickle is available. if not, we need to create it from here.
+    n = 100
+    matrix_type = 'tf'
+    data = cnn.from_pickle(n)
+    if data is None:
+      cnn.process(n=n, method=matrix_type, randomize=True)
     app.run()
