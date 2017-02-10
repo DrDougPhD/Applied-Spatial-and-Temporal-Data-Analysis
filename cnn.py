@@ -274,7 +274,7 @@ class PairwiseSimilarity(object):
                 progress.update(i)
                 i += 1
 
-            comparison = ComparedArticles(u, v, by)
+            comparison = ComparedArticles(u, v, by, self.features)
             logger.debug(comparison)
             logger.debug('-'*80)
             similarity_calculations.append(comparison)
@@ -287,19 +287,27 @@ class PairwiseSimilarity(object):
                   distance=by.__name__))
             with open(similarities_file, 'w') as f:
                 CREATED_FILES.append(similarities_file)
+                highest_feat_max_len_obj = max(
+                      similarity_calculations,
+                      key=lambda x: len(x.highest_common_feat.name))
+                highest_feat_max_length = len(
+                      highest_feat_max_len_obj.highest_common_feat.name)
                 for calc in similarity_calculations:
-                    f.write('{score}\t'\
-                            '{normalized}\t'\
-                            '{highest_common_feature.name}\t'\
-                            '{highest_common_feature.score}\t'\
-                            '{art1.title}\t'\
-                            '{art2.title}\t'\
-                            '{highest_common_feature}\n'.format(
+                    f.write('{score:10.5f}\t'\
+                            '{normalized:10.5f}\t'\
+                            '{highest_common_feature}\t'\
+                            '{highest_common_feature_score:10.5f}\t'\
+                            '"{art1.title}"\t'\
+                            '"{art2.title}"\n'.format(
                         art1=calc.article[0],
                         art2=calc.article[1],
                         score=calc.score,
                         normalized=calc.normalized,
-                        highest_common_feature=calc.highest_common_feature,
+                        highest_common_feature=calc.highest_common_feat\
+                                                   .name.ljust(
+                                                      highest_feat_max_length),
+                        highest_common_feature_score=calc.highest_common_feat\
+                                                         .score
                     ))
 
         return similarity_calculations
@@ -322,12 +330,15 @@ class PairwiseSimilarity(object):
 class ComparedArticles(object):
 
     class HighestCommonFeature(object):
-        def __init__(self, articles):
-            self.name = 'name'
-            self.score = 12
+        def __init__(self, articles, features, max_or_min=max):
+            summed_vector = sum([a.vector for a in articles])
+            i, score = max_or_min(enumerate(summed_vector),
+                                  key=lambda e: e[1])
+            self.name = features[i]
+            self.score = score
 
 
-    def __init__(self, art1, art2, fn):
+    def __init__(self, art1, art2, fn, features):
         # sort articles by title
         if art1.title < art2.title:
             self.article = [art1, art2]
@@ -336,7 +347,9 @@ class ComparedArticles(object):
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
         self.normalized = 0
-        self.highest_common_feature = ComparedArticles.HighestCommonFeature(self.article)
+        self.highest_common_feat = ComparedArticles.HighestCommonFeature(
+              articles=self.article,
+              features=features)
 
     def __str__(self):
         return '{0}\n'\
@@ -356,6 +369,10 @@ class NewspaperArticle(object):
         self.abstract = None
         self.category = None
         self.vector = None
+
+
+    def __radd__(self, other):
+        return other + self.vector
 
 
     def __str__(self):
