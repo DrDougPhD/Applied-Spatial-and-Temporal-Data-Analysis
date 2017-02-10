@@ -124,7 +124,8 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
 
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
-        similarities = similarity_calculater.pairwise_compare(by=fn)
+        similarities = similarity_calculater.pairwise_compare(
+              by=fn, save_to=DATA_DIR)
         data[fn.__name__] = similarities
 
     if args.relocate_files_to:
@@ -259,7 +260,7 @@ class PairwiseSimilarity(object):
         self.features = self.vectorizer.get_feature_names()
         logger.info('{} unique tokens'.format(len(self.features)))
 
-    def pairwise_compare(self, by):
+    def pairwise_compare(self, by, save_to=None):
         progress = None
         i = 0
         if __name__ == '__main__':
@@ -281,6 +282,26 @@ class PairwiseSimilarity(object):
         if progress:
             progress.finish()
 
+        if save_to:
+            similarities_file = os.path.join(save_to, '{distance}.tsv'.format(
+                  distance=by.__name__))
+            with open(similarities_file, 'w') as f:
+                CREATED_FILES.append(similarities_file)
+                for calc in similarity_calculations:
+                    f.write('{score}\t'\
+                            '{normalized}\t'\
+                            '{highest_common_feature.name}\t'\
+                            '{highest_common_feature.score}\t'\
+                            '{art1.title}\t'\
+                            '{art2.title}\t'\
+                            '{highest_common_feature}\n'.format(
+                        art1=calc.article[0],
+                        art2=calc.article[1],
+                        score=calc.score,
+                        normalized=calc.normalized,
+                        highest_common_feature=calc.highest_common_feature,
+                    ))
+
         return similarity_calculations
 
     def save_matrix_to(self, matrix_file, features_file):
@@ -299,6 +320,13 @@ class PairwiseSimilarity(object):
 
 
 class ComparedArticles(object):
+
+    class HighestCommonFeature(object):
+        def __init__(self, articles):
+            self.name = 'name'
+            self.score = 12
+
+
     def __init__(self, art1, art2, fn):
         # sort articles by title
         if art1.title < art2.title:
@@ -307,6 +335,8 @@ class ComparedArticles(object):
             self.article = [art2, art1]
         self.score = fn(art1.vector, art2.vector)
         self.distance_fn = fn.__name__
+        self.normalized = 0
+        self.highest_common_feature = ComparedArticles.HighestCommonFeature(self.article)
 
     def __str__(self):
         return '{0}\n'\
