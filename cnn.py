@@ -47,7 +47,7 @@ import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-STOP_WORDS = list(ENGLISH_STOP_WORDS).extend([
+STOP_WORDS = ENGLISH_STOP_WORDS.union([
   'said',
 ])
 import shutil
@@ -751,6 +751,9 @@ def get_arguments():
     parser.add_argument('-c', '--no-website', dest='website',
                         action='store_false', default=True,
                         help='specify if the website should not be run')
+    parser.add_argument('-f', '--force-recompute', dest='no_pickle',
+                        action='store_true', default=False,
+                        help='force recomputing corpus w/o using pickle')
 
     args = parser.parse_args()
     return args
@@ -780,8 +783,12 @@ def website(data, args):
     app.run()
 
 
-def load(n):
-    data = from_pickle(n)
+def load(n, no_pickle):
+    if no_pickle:
+      data = None
+    else:
+      data = from_pickle(n)
+
     if data is None:
         data = process(n=args.num_to_select, method=args.method,
                        dataset_dir=args.dataset_dir,
@@ -801,7 +808,7 @@ def from_pickle(n):
 
 
 def main(args):
-    data = load(args.num_to_select)
+    data = load(args.num_to_select, args.no_pickle)
     if args.website:
         website(data, args)
 
