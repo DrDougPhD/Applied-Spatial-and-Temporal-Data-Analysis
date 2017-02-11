@@ -47,7 +47,7 @@ import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-ENGLISH_STOP_WORDS = list(ENGLISH_STOP_WORDS).extend([
+STOP_WORDS = list(ENGLISH_STOP_WORDS).extend([
   'said',
 ])
 import shutil
@@ -110,7 +110,7 @@ ACTIVATED_DISTANCE_FNS = [ distance.euclidean, jaccard, distance.cosine ]
 CREATED_FILES = []
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
-            distance_fns=None, randomize=False, args=None):
+            distance_fns=None, randomize=True, args=None):
     # select the distance functions that will be used in this script
     if distance_fns is None:
         distance_fns = ACTIVATED_DISTANCE_FNS
@@ -203,21 +203,28 @@ class ArticleSelector(object):
         directory.
         """
         def retrieve(self):
-            logger.debug('Retrieving articles from within {}'.format(
+            logger.info('Retrieving articles from within {}'.format(
                 self.stored_in))
             article_categories_in = os.path.join(self.stored_in, 'Raw')
             categories = os.listdir(article_categories_in)
-            logger.debug('Category directories: {}'.format(categories))
+            logger.info('Category directories: {}'.format(categories))
+            articles = []
             for category in categories:
+                subcat_files = []
                 abspath = os.path.join(article_categories_in, category)
                 for article_path in self._retrieve_from_category(abspath):
-                    yield QianArticle(path=article_path)
+                    subcat_files.append( QianArticle(path=article_path) )
+                logger.info('Files within {0}: {1}'.format(category, len(subcat_files)))
+                articles.extend(subcat_files)
+            return articles
 
         def _retrieve_from_category(self, category_directory):
             glob_path = os.path.join(category_directory, 'cnn_*.txt')
+            files = []
             for filename in glob.glob(glob_path):
                 #logger.debug('\t -->  {}'.format(filename))
-                yield os.path.join(category_directory, filename)
+                files.append(os.path.join(category_directory, filename))
+            return files
 
     article_accessor = {
         # access articles by the file's bytesize
@@ -258,7 +265,15 @@ class ArticleSelector(object):
             [ shutil.copy(f.path, archive_to) for f in selected_articles ]
             logger.debug('{} files copied'.format(len(selected_articles)))
 
+        self._check_category_diversity(selected_articles)
+
         return selected_articles
+
+    def _check_category_diversity(self, selected_articles):
+        categories = set()
+        for a in selected_articles:
+            categories.add(a.category)
+        logger.info('Categories chosen: {}'.format(categories))
 
 
 class PairwiseSimilarity(object):
@@ -271,11 +286,11 @@ class PairwiseSimilarity(object):
         #  3. Tf-Idf matrix
         if method == 'tfidf':
             self.vectorizer = TfidfVectorizer(min_df=1,
-                                              stop_words=ENGLISH_STOP_WORDS)
+                                              stop_words=STOP_WORDS)
         else:
             # matrix will be converted to binary matrix further down
             self.vectorizer = CountVectorizer(min_df=1,
-                                              stop_words=ENGLISH_STOP_WORDS)
+                                              stop_words=STOP_WORDS)
 
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
@@ -421,7 +436,7 @@ class ComparedArticles(object):
         # normalize the score based on the distance function used
         if self.distance_fn == 'euclidean':
             # [ 0, +inf ) --(flipped)-> ( 0, +inf ) -> ( 0, 1 ] --(flip)-> [ 0, 1 )
-            self.normalized = 1 - (1 / (self.score + 1))
+            self.normalized = 1 / (self.score + 1)
         elif self.distance_fn == 'cosine':
             # [ -1, 1 ] -> [ 0, 2 ] -> [ 0, 1 ]
             self.normalized = 1 - self.score
@@ -452,6 +467,8 @@ class NewspaperArticle(object):
         self.abstract = None
         self.category = None
         self.vector = None
+        self.text = None
+        self._setup_quick_vars()
 
 
     def __radd__(self, other):
@@ -477,11 +494,11 @@ class NewspaperArticle(object):
         Iterate through each word in this article.
         :return: string Next word in the article.
         """
+        self._setup_reader()
         logger.debug(hr(
             title='Parsing through {}'.format(os.path.basename(self.path)),
             line_char='-'
         ))
-        self._setup_reader()
         for w in self._next_word():
             yield w
 
@@ -489,13 +506,15 @@ class NewspaperArticle(object):
 class QianArticle(NewspaperArticle):
     punctuation_remover = str.maketrans('', '', string.punctuation)
 
+    def _setup_quick_vars(self):
+        category_dir = os.path.basename(os.path.dirname(self.path))
+        self.category = category_dir.split('_')[-1]
+ 
     def _setup_reader(self):
         soup = BeautifulSoup(open(self.path), 'html.parser')
         self.title = soup.doc.title.text
         self.abstract = soup.doc.abstract.text
         self.text = soup.doc.find('text').text
-        category_dir = os.path.basename(os.path.dirname(self.path))
-        self.category = category_dir.split('_')[-1]
 
     def _next_word(self):
         for line in self.text.split('\n'):
@@ -737,7 +756,7 @@ def get_arguments():
     return args
 
 
-def website(data):
+def website(data, args):
     from flask import Flask
     app = Flask(__name__, static_url_path='')
 
@@ -746,7 +765,7 @@ def website(data):
 
     @app.route('/')
     def matrix_choices():
-        return render_template('choices.html')
+        return render_template('choices.html', num_articles=args.num_to_select)
 
 
     @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
@@ -784,7 +803,7 @@ def from_pickle(n):
 def main(args):
     data = load(args.num_to_select)
     if args.website:
-        website(data)
+        website(data, args)
 
 
 if __name__ == '__main__':
