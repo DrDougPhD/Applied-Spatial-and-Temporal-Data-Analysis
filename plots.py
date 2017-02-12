@@ -22,6 +22,7 @@ def oo_graph():
 from pylab import *
 import string
 import random
+random.seed(0)
 import matplotlib.pyplot as plt
 def horizontal_graph(n=10):
 
@@ -44,8 +45,17 @@ def horizontal_graph(n=10):
   ax.set_xlabel('Performance')
   ax.set_title('How fast do you want to go today?')
 
+  # add left axis
+  left = ax.twinx()
+  plt.text(13.61, .5, 'Most frequent\ncommon word')
+  left.set_yticks(y_pos)
+  left_labels = [ '"{0}"'.format(random_word(10)) 
+                  for i in range(n) ]
+  left.set_yticklabels(left_labels)
+  left.invert_yaxis()  # labels read top-to-bottom
+
   plt.tight_layout()
-  plt.subplots_adjust(left=0.12)
+  plt.subplots_adjust(left=0.12, right=0.9)
   plt.show()
 
 
@@ -89,9 +99,9 @@ def two_scales():
   plt.show()
 
 
-def random_word():
+def random_word(n=64):
   return "".join([
-    random.choice(string.ascii_letters) for i in range(random.randint(3, 64))
+    random.choice(string.ascii_letters) for i in range(random.randint(3, n))
   ]).title()
 
 
