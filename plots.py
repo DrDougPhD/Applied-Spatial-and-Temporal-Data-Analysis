@@ -22,29 +22,71 @@ def oo_graph():
 from pylab import *
 import string
 import random
-def horizontal_graph(n=15):
-  import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+def horizontal_graph(n=10):
+
+  plt.rcdefaults()
+  fig, ax = plt.subplots(1, figsize=(20, 6), dpi=80)
+
+  # Example data
+  ylabels = [ '{0}\n{1}'.format(random_word(), random_word()) 
+              for i in range(n) ]
+
+  y_pos = np.arange(n)
+  performance = 3 + 10 * np.random.rand(n)
+  error = np.random.rand(n)
+
+  ax.barh(y_pos, performance, xerr=error, align='center',
+          color='green', ecolor='black')
+  ax.set_yticks(y_pos)
+  ax.set_yticklabels(ylabels)
+  ax.invert_yaxis()  # labels read top-to-bottom
+  ax.set_xlabel('Performance')
+  ax.set_title('How fast do you want to go today?')
+
+  plt.tight_layout()
+  plt.subplots_adjust(left=0.12)
+  plt.show()
+
+
+  """
   val = 3+10*rand(n)    # the bar lengths
   pos = arange(n)+.5    # the bar centers on the y axis
   ylabels = [ '{0}\n{1}'.format(random_word(), random_word()) 
               for i in range(n) ]
-  """
   fig = plt.figure(1)
   barh(pos,val, align='center')
   yticks(pos, ('Tom', 'Dick', 'Harry', 'Slim', 'Jim'))
   xlabel('Performance')
   title('How fast do you want to go today?')
   grid(True)
-  """
   plt.figure(2, figsize=(20, 6), dpi=80)
   barh(pos, val, xerr=rand(n), ecolor='r', align='center')
   yticks(pos, ylabels)
   xlabel('Performance')
-  plt.tight_layout()
-  plt.subplots_adjust(left=0.12)
 
   show()
+  """
 
+
+def two_scales():
+  fig, ax1 = plt.subplots()
+  t = np.arange(0.01, 10.0, 0.01)
+  s1 = np.exp(t)
+  ax1.plot(t, s1, 'b-')
+  ax1.set_xlabel('time (s)')
+  # Make the y-axis label, ticks and tick labels match the line color.
+  ax1.set_ylabel('exp', color='b')
+  ax1.tick_params('y', colors='b')
+
+  ax2 = ax1.twinx()
+  s2 = np.sin(2 * np.pi * t)
+  ax2.plot(t, s2, 'r.')
+  ax2.set_ylabel('sin', color='r')
+  ax2.tick_params('y', colors='r')
+
+  fig.tight_layout()
+  plt.show()
 
 
 def random_word():
@@ -55,3 +97,4 @@ def random_word():
 
 if __name__ == '__main__':
   horizontal_graph()
+  #two_scales()
