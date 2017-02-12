@@ -10,11 +10,14 @@ import logging
 logger = logging.getLogger('cnn.plots')
 
 def store_to(directory, data):
-  # highest similar article pairs for each fn
-  for fn in data:
+    # highest similar article pairs for each fn
+    """
+    for fn in data:
     similarities = data[fn]
     first_10 = similarities[:10]
     most_similar_articles(first_10, fn)
+    """
+    article_length_distribution(data)
 
 
 def most_similar_articles(similarities, function_name):
@@ -63,6 +66,50 @@ def most_similar_articles(similarities, function_name):
     plt.show()
 
 
+def article_length_distribution(data):
+    fig, axes = plt.subplots(3, sharex=True, sharey=True)
+
+    # add a big axes, hide frame
+    ax = fig.add_subplot(111, frameon=False)
+
+    # hide tick and tick label of the big axes
+    ax.tick_params(labelcolor='none', top='off', bottom='off', left='off',
+                    right='off')
+    ax.set_xlabel('Rank of Article Pair')
+    ax.yaxis.set_tick_params(pad=15)
+    ax.set_ylabel('Summed Length of Article Pair')
+    ax.set_title('Article Length Distribution')
+
+    for i, fn in enumerate(data):
+        ax = axes[i]
+        similarities = data[fn]
+        n = len(similarities)
+        x = np.arange(1, n+1)
+
+        article_lengths = map(lambda c: sorted([c.article[0].length,
+                                                c.article[1].length]),
+                              similarities)
+
+        y_lines = np.array(list(article_lengths)).T
+        ax.vlines(x, y_lines[0], y_lines[1])
+
+        ax.annotate(fn.title(), xy=(1, 0), xytext=(-5, 5),
+                    xycoords='axes fraction',
+                    horizontalalignment='right',
+                    verticalalignment='bottom',
+                    textcoords='offset pixels')
+        ax.set_ylim(ymin=0)
+        #axes[i].set_ylabel('Function {}'.format(i))
+
+    # Fine-tune figure; make subplots close to each other and hide x ticks for
+    # all but bottom plot.
+    fig.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+
+    plt.tight_layout()
+    plt.show()
+
+
 def scatterplot(n=100):
     import matplotlib.pyplot as plt
 
@@ -92,13 +139,6 @@ def scatterplot(n=100):
     ax.set_ylabel('Summed Length of Article Pair')
     ax.set_title('Article Length Distribution')
 
-    """
-    plt.xlim(xmin=1)
-    plt.ylim(ymin=0)
-
-    fig.subplots_adjust(hspace=0)
-    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
-    """
     plt.tight_layout()
     plt.show()
 
