@@ -75,7 +75,7 @@ except:
 logger = logging.getLogger(__appname__)
 
 
-RANDOM_SEED = 0
+RANDOM_SEED = 1 # 0 was throwing a weird error
 random.seed(RANDOM_SEED)
 
 
@@ -213,7 +213,11 @@ class ArticleSelector(object):
                 subcat_files = []
                 abspath = os.path.join(article_categories_in, category)
                 for article_path in self._retrieve_from_category(abspath):
-                    subcat_files.append( QianArticle(path=article_path) )
+                    article = QianArticle(path=article_path)
+                    if article:
+                        subcat_files.append( article )
+                    else:
+                        article.delete_from_dataset()
                 logger.info('Files within {0}: {1}'.format(category, len(subcat_files)))
                 articles.extend(subcat_files)
             return articles
@@ -396,7 +400,11 @@ class PairwiseSimilarity(object):
             csvfile.writerow(['token', 'count'])
 
             summed_vector = sum(self._matrix).toarray()[0]
-            csvfile.writerows(zip(self.features, summed_vector))
+            csvfile.writerows(sorted(
+              zip(self.features, summed_vector),
+              key=lambda e: e[1],
+              reverse=True,
+            ))
 
 
 # TODO: make class for distance functions and normalizing them
@@ -456,6 +464,18 @@ class ComparedArticles(object):
                     repr(self.article[0]), repr(self.article[1]),
                     self.distance_fn,
                     self.score)
+"""        return '{0}\n'\
+               '{4}\n'\
+               'vs.\n'\
+               '{1}\n'\
+               '{5}\n'\
+               '== SCORE ({2}): {3}'.format(
+                    repr(self.article[0]), repr(self.article[1]),
+                    self.distance_fn,
+                    self.score,
+                    [ e for e in self.article[0].vector ],
+                    [ e for e in self.article[1].vector ])
+"""
 
 
 class NewspaperArticle(object):
@@ -501,6 +521,15 @@ class NewspaperArticle(object):
         ))
         for w in self._next_word():
             yield w
+
+    def __bool__(self):
+        # load file
+        self._setup_reader()
+        return bool(self.text.strip())
+
+    def delete_from_dataset(self):
+        logger.warning('Deleting empty file: {}'.format(self.path))
+        os.remove(self.path)
 
 
 class QianArticle(NewspaperArticle):
