@@ -5,6 +5,8 @@
 		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
 		Spring 2017}
 
+\usepackage{verbatim}
+
 \begin{document}
 
 \maketitle
@@ -17,10 +19,9 @@
 For this report, a dataset consisting of over 2000 articles from CNN.com was chosen, with articles spanning January 1st, 2014 to April 4th, 2014\footnote{
 https://sites.google.com/site/qianmingjie/home/datasets/cnn-and-fox-news
 }.
-It was compiled by Qian and Zhai for their research in multi-view unsupervised feature selection on unlabeled text and image data \cite{qian2014unsupervised}.
-This dataset consists of news articles and images from January 1st, 2014, to April 4th, 2014, and spans multiple categories such as articles about crime, politics, and entertainment.
-The distribution of articles to each category is provided in Table \ref{table:categories}.
-For this report's experiments, the images were discarded and only the textual portion of the articles was analyzed.
+This dataset was compiled by Qian and Zhai for their research in multi-view unsupervised feature selection on unlabeled text and image data \cite{qian2014unsupervised}.
+Articles within the dataset span multiple categories, such as crime, politics, and entertainment.
+The number and proportion of articles to each category is provided in Table \ref{table:categories}.
 
 \begin{table}[h]
 	\centering
@@ -40,6 +41,13 @@ For this report's experiments, the images were discarded and only the textual po
 	\caption{Number and Proportion of Articles per Category}
 	\label{table:categories}
 \end{table}
+
+Each article is represented as an XML document with tags corresponding to metadata about the article and the article's textual content.
+For this report's experiments, the images were discarded and only the textual portion of the articles was analyzed.
+
+\begin{verbatim}
+Sample article text goes here.
+\end{verbatim}
 
 \section{Implementation}
 
