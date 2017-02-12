@@ -223,9 +223,10 @@ class PairwiseSimilarity(object):
     def pairwise_compare(self, by, save_to=None):
         progress = None
         i = 0
+        n = int(nCr(len(self.corpus), 2))
         if __name__ == '__main__':
             progress = ProgressBar(
-                max_value=nCr(len(self.corpus), 2))
+                max_value=n) 
 
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
@@ -242,9 +243,15 @@ class PairwiseSimilarity(object):
         if progress:
             progress.finish()
 
+        # sort similarities by their normalized scores
+        similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
+
         if save_to:
-            similarities_file = os.path.join(save_to, '{distance}.tsv'.format(
-                  distance=by.__name__))
+            similarities_file = os.path.join(
+                 save_to,
+                 '{method}.{distance}.{n}.tsv'.format(distance=by.__name__,
+                                                      method=self.method,
+                                                      n=n))
             with open(similarities_file, 'w') as f:
                 CREATED_FILES.append(similarities_file)
 
@@ -295,8 +302,6 @@ class PairwiseSimilarity(object):
                                                          .score
                     ))
 
-        # sort similarities by their normalized scores
-        similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
         return similarity_calculations
 
     def save_matrix_to(self, directory):
