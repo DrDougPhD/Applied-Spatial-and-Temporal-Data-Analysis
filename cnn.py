@@ -47,9 +47,7 @@ import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-STOP_WORDS = ENGLISH_STOP_WORDS.union([
-  'said',
-])
+STOP_WORDS = ENGLISH_STOP_WORDS.union('new says time just like told cnn according did make way really dont going know said'.split())
 import shutil
 import subprocess
 import hashlib
@@ -157,12 +155,21 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
 
     # compute pairwise similarities between selected articles
     logger.info(hr('Pairwise Similarities'))
-    data = {}
+
+    if args.no_stopwords:
+      logger.info('No stopwords will be used')
+      stopwords = frozenset([])
+    else:
+      logger.info('Using stopwords')
+      stopwords = STOP_WORDS
+
     similarity_calculater = PairwiseSimilarity(selected_articles,
-                                               method=method)
+                                               method=method,
+                                               stopwords=stopwords)
     similarity_calculater.save_matrix_to(directory=DATA_DIR)
     similarity_calculater.save_aggregate_feature_counts(directory=DATA_DIR)
 
+    data = {}
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(
@@ -190,7 +197,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
 # compare.py
 
 class PairwiseSimilarity(object):
-    def __init__(self, corpus, method):
+    def __init__(self, corpus, method, stopwords):
         self.corpus = corpus
         self.method = method
 
@@ -200,11 +207,11 @@ class PairwiseSimilarity(object):
         #  3. Tf-Idf matrix
         if method == 'tfidf':
             self.vectorizer = TfidfVectorizer(min_df=1,
-                                              stop_words=STOP_WORDS)
+                                              stop_words=stopwords)
         else:
             # matrix will be converted to binary matrix further down
             self.vectorizer = CountVectorizer(min_df=1,
-                                              stop_words=STOP_WORDS)
+                                              stop_words=stopwords)
 
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
@@ -347,8 +354,11 @@ class ComparedArticles(object):
 
     class HighestCommonFeature(object):
         def __init__(self, articles, features, max_or_min=max):
-            summed_vector = sum([a.vector for a in articles])
-            i, score = max_or_min(enumerate(summed_vector),
+            u, v = map(lambda x: x.vector, articles)
+            # only sum up token occurrences for tokens that appear in both documents
+            shared_appearances = (u + v)*(u != 0)*(v != 0)
+            
+            (i,), score = max_or_min(numpy.ndenumerate(shared_appearances),
                                   key=lambda e: e[1])
             self.name = features[i]
             self.score = score
@@ -411,6 +421,7 @@ class NewspaperArticle(object):
         self.category = None
         self.vector = None
         self.text = None
+        self.length = 0
         self._setup_quick_vars()
 
 
@@ -443,6 +454,7 @@ class NewspaperArticle(object):
             line_char='-'
         ))
         for w in self._next_word():
+            self.length += 1
             yield w
 
     def __bool__(self):
@@ -453,6 +465,9 @@ class NewspaperArticle(object):
     def delete_from_dataset(self):
         logger.warning('Deleting empty file: {}'.format(self.path))
         os.remove(self.path)
+
+    def __len__(self):
+        return self.length
 
 
 class QianArticle(NewspaperArticle):
@@ -763,6 +778,9 @@ def get_arguments():
     parser.add_argument('-f', '--force-recompute', dest='no_pickle',
                         action='store_true', default=False,
                         help='force recomputing corpus w/o using pickle')
+    parser.add_argument('-s', '--no-stop-words', dest='no_stopwords',
+                        action='store_true', default=False,
+                        help='perform analysis without using stopwords (default: use stopwords)')
 
     args = parser.parse_args()
     return args
@@ -792,32 +810,36 @@ def website(data, args):
     app.run()
 
 
-def load(n, no_pickle):
+def load(args):
+    n = args.num_to_select
+    no_pickle = args.no_pickle
+    distance_fns = args.distance_fns
     if no_pickle:
       data = None
     else:
-      data = from_pickle(n)
+      data = from_pickle(n, distance_fns)
 
     if data is None:
-        data = process(n=args.num_to_select, method=args.method,
+        data = process(n=n, method=args.method,
                        dataset_dir=args.dataset_dir,
-                       distance_fns=args.distance_fns,
+                       distance_fns=distance_fns,
                        args=args)
     else:
         logger.info('Data loaded from pickle')
     return data
 
 
-def from_pickle(n):
+def from_pickle(n, fns):
     pfile = PICKLED_RESULTS.format(num_items=n)
     if not os.path.isfile(pfile):
         return None
     pkl = pickle.load(open(pfile, 'rb'))
-    return pkl
+    data = { k: pkl[k] for k in fns }
+    return data
 
 
 def main(args):
-    data = load(args.num_to_select, args.no_pickle)
+    data = load(args)
     if args.website:
         website(data, args)
 
