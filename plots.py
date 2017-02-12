@@ -9,14 +9,16 @@ import matplotlib.pyplot as plt
 import logging
 logger = logging.getLogger('cnn.plots')
 
+PLOT_FILETYPE = 'png'
+
 def store_to(directory, data):
     # highest similar article pairs for each fn
-    """
+
     for fn in data:
-    similarities = data[fn]
-    first_10 = similarities[:10]
-    most_similar_articles(first_10, fn)
-    """
+        similarities = data[fn]
+        first_10 = similarities[:10]
+        most_similar_articles(first_10, fn)
+
     article_length_distribution(data)
 
 
@@ -54,21 +56,34 @@ def most_similar_articles(similarities, function_name):
              transform=ax.transAxes)
     left.barh(y_pos, np.zeros(n), align='center', ecolor='black')
     left.set_yticks(y_pos)
+    left_labels = []
+    for s in similarities:
+        common_feat = s.highest_common_feat
+        if common_feat.score == 0:
+            left_labels.append('No common words')
+        else:
+            left_labels.append('"{0}" ({1} time{2})'.format(
+                common_feat.name, common_feat.score,
+                's' if common_feat.score > 1 else ''))
+
+    """
     left_labels = ['"{0}" ({1} times)'.format(s.highest_common_feat.name,
                                               s.highest_common_feat.score)
                    for s in similarities]
+    """
     left.set_yticklabels(left_labels)
     left.invert_yaxis()  # labels read top-to-bottom
 
     #plt.xlim([0, 1])
     plt.tight_layout()
     plt.subplots_adjust(left=0.3, right=0.9)
-    plt.show()
+    plt.savefig('results/{0}_most_sim.{1}'.format(function_name, PLOT_FILETYPE),
+                bbox_inches='tight')
 
 
 def article_length_distribution(data):
     fig, axes = plt.subplots(3, sharex=True, sharey=True,
-                             figsize=(7, 8))
+                             figsize=(6, 7))
 
     # add a big axes, hide frame
     ax = fig.add_subplot(111, frameon=False)
@@ -87,14 +102,28 @@ def article_length_distribution(data):
         n = len(similarities)
         x = np.arange(1, n+1)
 
+        """
+        # Draw line between smallest and largest article of the pair
         article_lengths = map(lambda c: sorted([c.article[0].length,
                                                 c.article[1].length]),
                               similarities)
-
         y_lines = np.array(list(article_lengths)).T
         ax.vlines(x, y_lines[0], y_lines[1])
+        """
 
-        ax.annotate(fn.title(), xy=(1, 0), xytext=(-5, 5),
+        # Draw a dot for the summed length of the two documents
+        article_summed_lengths = map(lambda c: sum([c.article[0].length,
+                                                c.article[1].length]),
+                              similarities)
+        ax.scatter(x, list(article_summed_lengths), s=1)
+
+        if fn == 'euclidean':
+            xytext = (-5, 5)
+            xy = (1, 0)
+        else:
+            xytext = (-5, -20)
+            xy = (1, 1)
+        ax.annotate(fn.title(), xy=xy, xytext=xytext,
                     xycoords='axes fraction',
                     horizontalalignment='right',
                     verticalalignment='bottom',
@@ -102,13 +131,17 @@ def article_length_distribution(data):
         ax.set_ylim(ymin=0)
         #axes[i].set_ylabel('Function {}'.format(i))
 
+    # make first two origin ticks invisible
+    [ ax.yaxis.get_major_ticks()[0].set_visible(False)
+      for ax in axes[:-1] ]
+
     # Fine-tune figure; make subplots close to each other and hide x ticks for
     # all but bottom plot.
     fig.subplots_adjust(hspace=0)
     plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
-    plt.tight_layout()
-    plt.show()
+    plt.savefig('results/article_length_dist.{}'.format(PLOT_FILETYPE),
+                bbox_inches='tight')
 
 
 def scatterplot(n=100):
