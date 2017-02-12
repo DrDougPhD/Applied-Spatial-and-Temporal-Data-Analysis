@@ -759,6 +759,7 @@ def get_arguments():
                              ' - i.e. tf, existence, tfidf')
     parser.add_argument('-D', '--distances', dest='distance_fns', nargs='+',
                         choices=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
+                        default=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
                         help='distance functions to use (select 1 or more)')
 
     def directory_in_cwd(directory, create=True):
