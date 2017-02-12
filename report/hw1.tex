@@ -1,0 +1,126 @@
+\documentclass[11pt]{article}
+%Gummi|065|=)
+\title{Homework \#1: Discussion on the Similarities between CNN News Articles}
+\author{Doug McGeehan\\
+		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
+		Spring 2017}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+
+\section{News Article Dataset}
+
+For this report, a dataset consisting of over 2000 articles from CNN.com was chosen, with articles spanning January 1st, 2014 to April 4th, 2014\footnote{
+https://sites.google.com/site/qianmingjie/home/datasets/cnn-and-fox-news
+}.
+It was compiled by Qian and Zhai for their research in multi-view unsupervised feature selection on unlabeled text and image data \cite{qian2014unsupervised}.
+This dataset consists of news articles and images from January 1st, 2014, to April 4th, 2014, and spans multiple categories such as articles about crime, politics, and entertainment.
+The distribution of articles to each category is provided in Table \ref{table:categories}.
+For this report's experiments, the images were discarded and only the textual portion of the articles was analyzed.
+
+\begin{table}[h]
+	\centering
+	\begin{tabular}{ r c c c c  }
+		\hline
+	Category: &              Politics & Entertainment & Crime & \\ \hline
+	Number of Articles: &    409 &      392 &           349 & \\ \hline
+	Percentage of Dataset: & 20\% &    19\% &           17\% & \\
+	  \hline
+	  \hline
+	   Health & Travel & Living & Technology \\ \hline
+	   286    & 273    & 198    & 148 \\ \hline
+	   14\%   & 13.3\% & 10\%   & 7.2\% \\
+	\hline
+	\end{tabular}
+	
+	\caption{Number and Proportion of Articles per Category}
+	\label{table:categories}
+\end{table}
+
+\section{Implementation}
+
+\subsection{Distance Metrics}
+
+The SciPy project offers many distance functions for a pair of vectors as part of their spatial module\footnote{
+https://docs.scipy.org/doc/scipy/reference/spatial.distance.html
+}, including one for Euclidean distance %\footnote{
+%https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.euclidean.html
+%}
+and Cosine distance. %\footnote{
+%https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cosine.html
+%}
+Although there is a distance function named \texttt{jaccard}, it does not compute the Jaccard similarity, but rather the Jaccard-Needham dissimilarity\footnote{
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jaccard.html
+}.
+Thus, a custom-implemented Jaccard similarity function was developed for this report.
+
+
+\subsection{Mapping Distance to Similarity}
+
+In order to properly use distance metrics as a means to quantify the similarity between two vectors, the distance metrics need to be mapped so that the result is between 0 and 1 such that values near 0 indicate low similarity and values near 1 indicate high similarity. The method in which the distance metrics were normalized is described below.
+
+Let $d_i(u, v)$ denote the distance of vectors $u$ and $v$ as computed by the $i$-th distance method, and $s_i(u, v)$ denote their corresponding similarity.
+For Euclidean distance:
+
+\begin{equation} \label{eq:euclid}
+s_{euclid}(u, v) = \frac{1}{d_{euclid}(u, v) + 1}
+\end{equation}
+And for cosine distance:
+\begin{equation} \label{eq:cosine}
+s_{cos}(u, v) = 1 - d_{cos}(u, v)
+\end{equation}
+Since the Jaccard similarity was custom implemented, there was no need to transform it.
+
+
+\section{Analysis of News Articles}
+
+\subsection{Results of Euclidean Distance}
+The use of the Euclidean Distance, as normalized by the Equation \ref{eq:euclid}, favors pairs of short articles and appears to do a poor job at grouping semantically similar articles together.
+These articles have tokenized vectors filled with the most zeros and the lowest word counts as compared with other articles.
+This results in a small Euclidean distance between two vectors, as both vectors will be much closer to a plane's origin than longer documents, and thus much closer to one another.
+Of the top 30 closest pairs of documents, every article considered has fewer than 500 words each; 11 have fewer than 200 words.
+It is also observed that there are many repeats of the same article appearing in other pairs with small Euclidean distances.
+Of the closest 20 pairs, the article titled "Know your Oscar history: Best picture" appeared 9 times.
+This flaw in the Euclidean distance becomes even more apparent when one analyzes the common words shared between two documents with the lowest Euclidean distance.
+Of the closest 30 pairs of documents, 13 share no words in common.
+
+\subsection{Results of Jaccard Similarity}
+
+Like the Euclidean distance, the Jaccard similarity shows some favoritism towards pairs of short documents, but not to the same extent.
+Of the top 30 most similar article pairs, 7 of them both had fewer than 500 words, which is in stark contrast to the results from the Euclidean distance test finding every article falling below 500 words.
+This favoritism is due to its use of the total number of unique words as a normalizer of number of common observations.
+For example, consider one pair of articles with 20 unique words, 5 of which appear the same number of times in both articles.
+It's Jaccard similarity would be equal to $\frac{5}{20} = 0.25$.
+For a pair of articles with 500 unique words, 5 of which appear the same number of times, the Jaccard similarity would be equal to 0.01.
+This is only a slight favoritism, though.
+Of those same 30 articles, 20 of them have 700 or more words each.
+
+Unlike the Euclidean distance, those articles with the highest similarity appear to share semantic content with one another.
+For instance, the most similar pair of articles discusses a scandal involving the actor and filmmaker Woody Allen, and the third most similar pair discusses Russia's involvement in Ukraine during the Crimea annexation.
+Within the top 20 pairs of similar articles, 9 of them appear semantically similar with regards to the topic of the articles' discussions.
+However, there are false positives in the list mainly attributed to pairs of articles with fewer than 500 words.
+
+\subsection{Results of Cosine Distance}
+The benefit of the Cosine distance is that it doesn't show favoritism towards short documents as do the Jaccard similarity and Euclidean distance metrics.
+This is due to its usage of the angle between two article vectors as opposed to the length of the article vectors.
+If two articles share many of the same words, they will point towards the same region in the word space and thus have a small angle between them, regardless of how short or long the vector may be.
+This trait offers an improvement on its ability to identify semantically similar articles over that of the Jaccard similarity.
+With the Jaccard similarity, as applied to term frequency vectors, a shared word is only counted if the word occurs the same number of times in one document as it does in the other.
+Intuitively, this results in many false positives, as semantically similar articles are not likely to have a semantically meaningful word occur the same number of times in both articles.
+
+The results from the Cosine distance share many of the same document pairs obtaining high similarity scores. For instance, the first and second highest document pairs are on the Woody Allen scandal and Russia's involvement in Ukraine, respectively.
+In regards to false positives, the Cosine distance appears to have the lowest of the three.
+All of the top 30 ranking article pairs appear to share a similar semantic topic of discussion.
+
+\section{Conclusion}
+
+Between the Jaccard similarity, cosine distance, and Euclidean distance, the results of a pairwise similarity analysis of 100 randomly selected news articles suggest that cosine distance is the best metric for identifying similar articles represented by term-frequency vectors.
+However, there are a few instances where the two articles are not in equal tone. For instance, the 32nd ranking article pair primarily focuses on universities, but whereas one discusses notable university buildings in regards to their architectural beauty, the other discusses the death of a student due to a school shooting.
+
+\bibliography{bibliography}{}
+\bibliographystyle{plain}
+\end{document}
