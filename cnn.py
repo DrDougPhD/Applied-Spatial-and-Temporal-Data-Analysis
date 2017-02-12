@@ -59,10 +59,13 @@ from progressbar import ProgressBar
 import math
 import pickle
 
+
+# Custom modules
+import plots
+
 def nCr(n,r):
     f = math.factorial
     return f(n) / f(r) / f(n-r)
-
 
 try:    # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -781,6 +784,9 @@ def get_arguments():
     parser.add_argument('-s', '--no-stop-words', dest='no_stopwords',
                         action='store_true', default=False,
                         help='perform analysis without using stopwords (default: use stopwords)')
+    parser.add_argument('-p', '--plot', dest='plot_results',
+                        action='store_true', default=False,
+                        help='create plots of the results')
 
     args = parser.parse_args()
     return args
@@ -840,7 +846,10 @@ def from_pickle(n, fns):
 
 def main(args):
     data = load(args)
-    if args.website:
+    if args.plot_results:
+        plots.store_to(directory=DATA_DIR, data=data)
+
+    elif args.website:
         website(data, args)
 
 

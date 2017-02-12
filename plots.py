@@ -1,8 +1,61 @@
 #!/usr/bin/env python
 # make a horizontal bar chart
 
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
+import string
+import random
+random.seed(0)
+import numpy as np
+import matplotlib.pyplot as plt
+import logging
+logger = logging.getLogger('cnn.plots')
+
+def store_to(directory, data):
+  # highest similar article pairs for each fn
+  for fn in data:
+    similarities = data[fn]
+    first_10 = similarities[:10]
+    most_similar_articles(first_10, fn)
+
+
+def most_similar_articles(similarities, function_name):
+    fig, ax = plt.subplots(1, figsize=(20, 6), dpi=80)
+
+    max_length = 40
+    def short_titles(similar):
+        titles = map(lambda a: a.title, similar.article)
+        shorter_titles = map(lambda t: '{}...'.format(t[:max_length]),
+                             titles)
+        return shorter_titles
+
+    article_titles = ['{0}\n{1}'.format(*short_titles(s)) for s in similarities]
+
+    n = len(similarities)
+    y_pos = np.arange(n)
+    performance = map(lambda s: s.normalized, similarities)
+
+    ax.barh(y_pos, list(performance), align='center',
+            color='green', ecolor='black')
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(article_titles)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Pairwise Similarity Scores')
+    ax.set_title('{} Similarities'.format(function_name.title()))
+
+    # add left axis
+    left = ax.twinx()
+    plt.text(13.61, .5, 'Most frequent\ncommon word')
+    left.barh(y_pos, np.zeros(n), align='center', ecolor='black')
+    left.set_yticks(y_pos)
+    left_labels = ['"{0}" ({1} times)'.format(s.highest_common_feat.name,
+                                              s.highest_common_feat.score)
+                   for s in similarities]
+    left.set_yticklabels(left_labels)
+    left.invert_yaxis()  # labels read top-to-bottom
+
+    plt.tight_layout()
+    plt.subplots_adjust(left=0.25, right=0.9)
+    plt.show()
+
 
 def oo_graph():
   from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -18,12 +71,6 @@ def oo_graph():
   ax.set_ylabel('volts')
   canvas.print_figure('test')
 
-
-from pylab import *
-import string
-import random
-random.seed(0)
-import matplotlib.pyplot as plt
 def horizontal_graph(n=10):
 
   plt.rcdefaults()
