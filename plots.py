@@ -63,6 +63,46 @@ def most_similar_articles(similarities, function_name):
     plt.show()
 
 
+def scatterplot(n=100):
+    import matplotlib.pyplot as plt
+
+    fig, axes = plt.subplots(3, sharex=True, sharey=True)
+
+    # add a big axes, hide frame
+    ax = fig.add_subplot(111, frameon=False)
+
+    # hide tick and tick label of the big axes
+    ax.tick_params(labelcolor='none', top='off', bottom='off', left='off',
+                    right='off')
+
+    for i in range(3):
+        np.random.seed(0)
+        x = np.arange(1, n+1)
+        y = 20 + 3*x + np.random.normal(0, 60, n)
+
+        axes[i].plot(x, y, "o")
+        axes[i].annotate('XLabel', xy=(1, 0), xytext=(-5, 5),
+                         xycoords='axes fraction',
+                         horizontalalignment='right',
+                         verticalalignment='bottom',
+                         textcoords='offset pixels')
+        #axes[i].set_ylabel('Function {}'.format(i))
+
+    ax.set_xlabel('Rank of Article Pair')
+    ax.set_ylabel('Summed Length of Article Pair')
+    ax.set_title('Article Length Distribution')
+
+    """
+    plt.xlim(xmin=1)
+    plt.ylim(ymin=0)
+
+    fig.subplots_adjust(hspace=0)
+    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+    """
+    plt.tight_layout()
+    plt.show()
+
+
 def oo_graph():
   from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
   from matplotlib.figure import Figure
@@ -114,26 +154,6 @@ def horizontal_graph(n=10):
   plt.show()
 
 
-  """
-  val = 3+10*rand(n)    # the bar lengths
-  pos = arange(n)+.5    # the bar centers on the y axis
-  ylabels = [ '{0}\n{1}'.format(random_word(), random_word()) 
-              for i in range(n) ]
-  fig = plt.figure(1)
-  barh(pos,val, align='center')
-  yticks(pos, ('Tom', 'Dick', 'Harry', 'Slim', 'Jim'))
-  xlabel('Performance')
-  title('How fast do you want to go today?')
-  grid(True)
-  plt.figure(2, figsize=(20, 6), dpi=80)
-  barh(pos, val, xerr=rand(n), ecolor='r', align='center')
-  yticks(pos, ylabels)
-  xlabel('Performance')
-
-  show()
-  """
-
-
 def two_scales():
   fig, ax1 = plt.subplots()
   t = np.arange(0.01, 10.0, 0.01)
@@ -161,5 +181,6 @@ def random_word(n=64):
 
 
 if __name__ == '__main__':
-  horizontal_graph()
+  #horizontal_graph()
   #two_scales()
+  scatterplot(n=100)
