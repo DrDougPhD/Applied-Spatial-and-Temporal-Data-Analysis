@@ -20,11 +20,15 @@ def store_to(directory, data):
 def most_similar_articles(similarities, function_name):
     fig, ax = plt.subplots(1, figsize=(20, 6), dpi=80)
 
-    max_length = 40
+    max_length = 80
     def short_titles(similar):
         titles = map(lambda a: a.title, similar.article)
-        shorter_titles = map(lambda t: '{}...'.format(t[:max_length]),
-                             titles)
+        shorter_titles = []
+        for t in titles:
+            shortened = t[:max_length]
+            if len(shortened) != len(t):
+                shortened = '{}...'.format(shortened)
+            shorter_titles.append(shortened)
         return shorter_titles
 
     article_titles = ['{0}\n{1}'.format(*short_titles(s)) for s in similarities]
@@ -43,7 +47,8 @@ def most_similar_articles(similarities, function_name):
 
     # add left axis
     left = ax.twinx()
-    plt.text(13.61, .5, 'Most frequent\ncommon word')
+    plt.text(1, 1, 'Most frequent\ncommon words:',
+             transform=ax.transAxes)
     left.barh(y_pos, np.zeros(n), align='center', ecolor='black')
     left.set_yticks(y_pos)
     left_labels = ['"{0}" ({1} times)'.format(s.highest_common_feat.name,
@@ -52,8 +57,9 @@ def most_similar_articles(similarities, function_name):
     left.set_yticklabels(left_labels)
     left.invert_yaxis()  # labels read top-to-bottom
 
+    #plt.xlim([0, 1])
     plt.tight_layout()
-    plt.subplots_adjust(left=0.25, right=0.9)
+    plt.subplots_adjust(left=0.3, right=0.9)
     plt.show()
 
 
