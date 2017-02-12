@@ -67,7 +67,8 @@ def most_similar_articles(similarities, function_name):
 
 
 def article_length_distribution(data):
-    fig, axes = plt.subplots(3, sharex=True, sharey=True)
+    fig, axes = plt.subplots(3, sharex=True, sharey=True,
+                             figsize=(7, 8))
 
     # add a big axes, hide frame
     ax = fig.add_subplot(111, frameon=False)
