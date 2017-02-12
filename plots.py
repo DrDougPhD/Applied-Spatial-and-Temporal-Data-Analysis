@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import logging
 logger = logging.getLogger('cnn.plots')
 
-PLOT_FILETYPE = 'png'
+PLOT_FILETYPE = 'pdf'
 
 def store_to(directory, data):
     # highest similar article pairs for each fn
