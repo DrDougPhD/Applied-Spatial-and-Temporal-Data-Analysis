@@ -48,6 +48,8 @@ def horizontal_graph(n=10):
   # add left axis
   left = ax.twinx()
   plt.text(13.61, .5, 'Most frequent\ncommon word')
+  left.barh(y_pos, np.zeros(n), align='center',
+          color='green', ecolor='black')
   left.set_yticks(y_pos)
   left_labels = [ '"{0}"'.format(random_word(10)) 
                   for i in range(n) ]
