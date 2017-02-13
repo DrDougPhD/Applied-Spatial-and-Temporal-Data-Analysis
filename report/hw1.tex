@@ -164,7 +164,18 @@ The software was executed on a randomly-selected subset of 100 articles from the
 The 100 articles comprise the corpus of this experiment.
 The corpus was transformed into a $100 \times n$ term-frequency matrix $C_{tf} = [ c_{i,j} ]$, where $n$ is the total number of unique words in the union of all 100 articles, and $c_{i,j}$ represents the number of occurrences of the $j$-th word in the $i$-th article (i.e. $c_{i,j} \ge 0$ for $1 \le i \le 100$ and $1 \le j \le n$).
 
-For each pair of articles, three distance metrics were
+\subsection{Stopwords: Filtering out Semantically Meaningless Words}
+
+In the English language, there are a subset of words that occur very frequently in dialog or written texts.
+A few examples include ``the'', ``a'', ``among'', ``nevertheless'', and ``indeed''.
+These are called stopwords and are typically filtered out before or after processing natural language data.
+Indeed, the presence of these words skew the results of these experiments because of their frequent reoccurrence.
+% Figure \ref{fig:stopwords} illustrates the most common words within the entire corpus.
+To prevent stopwords from interferring with the similarity experiments, and to accommodate meaningful comparisons between articles, those words occurring more than <> times were removed from the term-frequency matrix.
+Additionally, words that were defined as stopwords by the lasgow Information
+Retrieval Group\footnote{http://ir.dcs.gla.ac.uk/resources/linguistic\_utils/stop\_words} were also removed.
+
+
 
 \subsection{Results of Euclidean Distance}
 The use of the Euclidean Distance, as normalized by the Equation \ref{eq:euclid}, favors pairs of short articles and appears to do a poor job at grouping semantically similar articles together.
