@@ -27,7 +27,7 @@ https://sites.google.com/site/qianmingjie/home/datasets/cnn-and-fox-news
 }.
 This dataset was compiled by Qian and Zhai for their research in multi-view unsupervised feature selection on unlabeled text and image data \cite{qian2014unsupervised}.
 Articles within the dataset span multiple categories, such as crime, politics, and entertainment.
-The number and proportion of articles to each category is provided in Table \ref{table:categories}.
+The number and proportion of articles to each category is provided in Table \ref{tab:categories}.
 
 \begin{table}[h]
 	\centering
@@ -102,7 +102,7 @@ Custom-written software was developed for the purpose of performing the experime
 There were many external libraries used to facilitate this functionality.
 These libraries are summarized in Table \ref{table:libraries}.
 
-\begin{table}[h] \label{table:libraries}
+\begin{table}[h] \label{tab:libraries}
 	\centering
 	\begin{tabular}{ r|c|l }
 		\hline
@@ -120,7 +120,6 @@ These libraries are summarized in Table \ref{table:libraries}.
 	\end{tabular}
 	
 	\caption{Software Libraries and Technologies used in the Software Implementation}
-	\label{table:categories}
 \end{table}
 
 \subsection{Distance Metrics}
@@ -134,7 +133,7 @@ and Cosine distance. %\footnote{
 %https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cosine.html
 %}
 These functions compute various \emph{dissimilarity} metrics which require mapping to an appropriate similarity metric.
-Details on this mapping is provided in Section \ref{sec:mapping}.
+Details on this mapping is provided in Section \ref{sec:mapping}. 
 
 Although there is a distance function named \texttt{jaccard}, it does not compute the Jaccard similarity, but rather the Jaccard-Needham dissimilarity\footnote{
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jaccard.html
