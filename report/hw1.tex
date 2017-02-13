@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 %Gummi|065|=)
-\title{Homework \#1: Discussion on the Similarities between CNN News Articles}
+\title{Homework \#1: Discussion on the Cosine, \\ Jaccard, and Euclidean Similarities\\ of CNN News Articles}
 \author{Doug McGeehan\\
 		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
 		Spring 2017}
@@ -10,6 +10,7 @@
 \usepackage{framed}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{graphicx}
 
 
 \begin{document}
@@ -95,7 +96,7 @@ Everything else is ignored.
 %\begin{Verbatim}[frame=single]
 %\end{Verbatim}
 
-\section{Implementation}
+\section{Implementation} \label{sec:software}
 
 \begin{table}[h]
 	\centering
@@ -157,10 +158,10 @@ s_{cos}(u, v) = 1 - d_{cos}(u, v)
 The Jaccard similarity was implemented as a similarity metric, and thus there is no need for a mapping.
 
 
-\section{Analysis of News Articles}
+\section{Experimental Setup and Analysis}
 
 In this section, the results of the similarity analyses is reviewed and discussed.
-The software was executed on a randomly-selected subset of 100 articles from the CNN.com dataset compiled by Qian and Zhai \cite{qian2014unsupervised}.
+The software described in Section \ref{sec:software} was executed on a randomly-selected subset of 100 articles from the CNN.com dataset compiled by Qian and Zhai \cite{qian2014unsupervised}.
 The 100 articles comprise the corpus of this experiment.
 The corpus was transformed into a $100 \times n$ term-frequency matrix $C_{tf} = [ c_{i,j} ]$, where $n$ is the total number of unique words in the union of all 100 articles, and $c_{i,j}$ represents the number of occurrences of the $j$-th word in the $i$-th article (i.e. $c_{i,j} \ge 0$ for $1 \le i \le 100$ and $1 \le j \le n$).
 
@@ -170,33 +171,47 @@ In the English language, there are a subset of words that occur very frequently 
 A few examples include ``the'', ``a'', ``among'', ``nevertheless'', and ``indeed''.
 These are called stopwords and are typically filtered out before or after processing natural language data.
 Indeed, the presence of these words skew the results of these experiments because of their frequent reoccurrence.
-% Figure \ref{fig:stopwords} illustrates the most common words within the entire corpus.
+% Figure \ref{fig:stopwords} illustrates the most frequently occurring words in the selected 100-article corpus.
 To prevent stopwords from interferring with the similarity experiments, and to accommodate meaningful comparisons between articles, those words occurring more than <> times were removed from the term-frequency matrix.
-Additionally, words that were defined as stopwords by the lasgow Information
+Additionally, words that were defined as stopwords by the Glasgow Information
 Retrieval Group\footnote{http://ir.dcs.gla.ac.uk/resources/linguistic\_utils/stop\_words} were also removed.
 
-
-
 \subsection{Results of Euclidean Distance}
+
 The use of the Euclidean Distance, as normalized by the Equation \ref{eq:euclid}, favors pairs of short articles and appears to do a poor job at grouping semantically similar articles together.
-These articles have tokenized vectors filled with the most zeros and the lowest word counts as compared with other articles.
-This results in a small Euclidean distance between two vectors, as both vectors will be much closer to a plane's origin than longer documents, and thus much closer to one another.
-Of the top 30 closest pairs of documents, every article considered has fewer than 500 words each; 11 have fewer than 200 words.
-It is also observed that there are many repeats of the same article appearing in other pairs with small Euclidean distances.
-Of the closest 20 pairs, the article titled "Know your Oscar history: Best picture" appeared 9 times.
+Figure \ref{fig:euclid} provides a list of the top 10 article pairs with the highest Euclidean similarity between one another.
+These articles have tokenized vectors filled with the most zeros and the lowest article lengths as compared with other articles.
+This results in a small Euclidean distance between two vectors, as both vectors are closer to the word space's origin than longer documents, and thus much closer to one another.
+
+\begin{figure}[h] \label{fig:euclid}
+  \centering
+  \includegraphics[width=\textwidth]{figures/euclidean_most_sim}
+  \caption{The top 10 article pairs with the highest Euclidean similarity.
+  The right-side axis shows the word that had the most common occurrence in both documents.}
+\end{figure}
+
+Of the top 30 closest pairs of documents, every compared article has fewer than 500 words each; 11 have fewer than 200.
+It is also observed that there are many repeats of the same article reappearing in higher rankings.
+For example, the article titled "Know your Oscar history: Best picture" appears 9 times out of the top 20 closest article pairs.
 This flaw in the Euclidean distance becomes even more apparent when one analyzes the common words shared between two documents with the lowest Euclidean distance.
 Of the closest 30 pairs of documents, 13 share no words in common.
 
 \subsection{Results of Jaccard Similarity}
 
 Like the Euclidean distance, the Jaccard similarity shows some favoritism towards pairs of short documents, but not to the same extent.
-Of the top 30 most similar article pairs, 7 of them both had fewer than 500 words, which is in stark contrast to the results from the Euclidean distance test finding every article falling below 500 words.
-This favoritism is due to its use of the total number of unique words as a normalizer of number of common observations.
+Of the top 30 most similar article pairs, 7 of them both had fewer than 500 words, which is in stark contrast to the results from the Euclidean distance experiment.
+This favoritism is due to its use of the total number of unique words as a normalizer of number of shared word observations.
 For example, consider one pair of articles with 20 unique words, 5 of which appear the same number of times in both articles.
 It's Jaccard similarity would be equal to $\frac{5}{20} = 0.25$.
-For a pair of articles with 500 unique words, 5 of which appear the same number of times, the Jaccard similarity would be equal to 0.01.
+For a pair of articles with 500 unique words, 5 of which having the same occurrence count, the Jaccard similarity would be equal to 0.01.
 This is only a slight favoritism, though.
 Of those same 30 articles, 20 of them have 700 or more words each.
+
+\begin{figure}[h] \label{fig:jaccard}
+  \centering
+  \includegraphics[width=\textwidth]{figures/jaccard_most_sim}
+  \caption{The top 10 article pairs with the highest Jaccard similarity.}
+\end{figure}
 
 Unlike the Euclidean distance, those articles with the highest similarity appear to share semantic content with one another.
 For instance, the most similar pair of articles discusses a scandal involving the actor and filmmaker Woody Allen, and the third most similar pair discusses Russia's involvement in Ukraine during the Crimea annexation.
@@ -204,12 +219,20 @@ Within the top 20 pairs of similar articles, 9 of them appear semantically simil
 However, there are false positives in the list mainly attributed to pairs of articles with fewer than 500 words.
 
 \subsection{Results of Cosine Distance}
+
+Figure \ref{fig:cosine} lists the top 10 article pairs that garnered the highest cosine similarity.
 The benefit of the Cosine distance is that it doesn't show favoritism towards short documents as do the Jaccard similarity and Euclidean distance metrics.
-This is due to its usage of the angle between two article vectors as opposed to the length of the article vectors.
+This is due to its usage of the angle between two article vectors as opposed to their cardinality and length, respectively.
 If two articles share many of the same words, they will point towards the same region in the word space and thus have a small angle between them, regardless of how short or long the vector may be.
 This trait offers an improvement on its ability to identify semantically similar articles over that of the Jaccard similarity.
-With the Jaccard similarity, as applied to term frequency vectors, a shared word is only counted if the word occurs the same number of times in one document as it does in the other.
-Intuitively, this results in many false positives, as semantically similar articles are not likely to have a semantically meaningful word occur the same number of times in both articles.
+With the Jaccard similarity, as applied to term-frequency vectors, a shared word is only counted if the word occurs the same number of times in one document as it does in the other.
+Intuitively, this results in many false positives, as semantically similar articles may not have a semantically meaningful word occur the same number of times in both articles.
+
+\begin{figure}[h] \label{fig:cosine}
+  \centering
+  \includegraphics[width=\textwidth]{figures/cosine_most_sim}
+  \caption{The top 10 article pairs with the highest Cosine similarity.}
+\end{figure}
 
 The results from the Cosine distance share many of the same document pairs obtaining high similarity scores. For instance, the first and second highest document pairs are on the Woody Allen scandal and Russia's involvement in Ukraine, respectively.
 In regards to false positives, the Cosine distance appears to have the lowest of the three.
@@ -219,6 +242,10 @@ All of the top 30 ranking article pairs appear to share a similar semantic topic
 
 Between the Jaccard similarity, cosine distance, and Euclidean distance, the results of a pairwise similarity analysis of 100 randomly selected news articles suggest that cosine distance is the best metric for identifying similar articles represented by term-frequency vectors.
 However, there are a few instances where the two articles are not in equal tone. For instance, the 32nd ranking article pair primarily focuses on universities, but whereas one discusses notable university buildings in regards to their architectural beauty, the other discusses the death of a student due to a school shooting.
+Although this result may be an outlier, it demonstrates the necessity of multiple tools in one's tool belt when performing feature extraction and document similarities.
+
+For future investigations, a good next step would be to use term-frequency, inverse-document-frequency matrix and perform a comparative analysis with the results of using only term-frequency.
+The code for performing such an experiment has already been written, but due to time constraints an analysis of the results was omitted from this report.
 
 
 \bibliography{bibliography}{}
