@@ -143,6 +143,62 @@ def article_length_distribution(data):
     plt.savefig('results/article_length_dist.{}'.format(PLOT_FILETYPE),
                 bbox_inches='tight')
 
+def word_occurrences(n=200):
+    import csv
+    tokens = []
+    counts = []
+    with open('results/aggregate_feature_counts.csv') as f:
+        csvfile = csv.DictReader(f)
+        for i, r in enumerate(csvfile):
+            tokens.append(r['token'])
+            counts.append(int(r['count']))
+            if i+1 == n:
+                break
+
+    print(tokens)
+    counts = np.array(counts)
+    print(counts)
+    y_pos = np.arange(n)+1
+        
+    fig, ax = plt.subplots(1, figsize=(20, 6), dpi=80)
+
+    ax.barh(y_pos, counts)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(tokens)
+    ax.invert_yaxis()  # labels read top-to-bottom
+    ax.set_xlabel('Word count in corpus')
+    ax.set_title('Word Occurrences Across Corpus')
+
+    # add left axis
+    """
+    left = ax.twinx()
+    plt.text(1, 1, 'Most frequent\ncommon words:',
+             transform=ax.transAxes)
+    left.barh(y_pos, np.zeros(n), align='center', ecolor='black')
+    left.set_yticks(y_pos)
+    left_labels = []
+    for s in similarities:
+        common_feat = s.highest_common_feat
+        if common_feat.score == 0:
+            left_labels.append('No common words')
+        else:
+            left_labels.append('"{0}" ({1} time{2})'.format(
+                common_feat.name, common_feat.score,
+                's' if common_feat.score > 1 else ''))
+
+    left.set_yticklabels(left_labels)
+    left.invert_yaxis()  # labels read top-to-bottom
+    """
+    #plt.xlim([0, 1])
+    plt.tight_layout()
+    """
+    plt.subplots_adjust(left=0.3, right=0.9)
+    plt.savefig('results/{0}_most_sim.{1}'.format(function_name, PLOT_FILETYPE),
+                bbox_inches='tight')
+    """
+    plt.show()
+
+
 
 def scatterplot(n=100):
     import matplotlib.pyplot as plt
@@ -255,6 +311,7 @@ def random_word(n=64):
 
 
 if __name__ == '__main__':
-  #horizontal_graph()
-  #two_scales()
-  scatterplot(n=100)
+    #horizontal_graph()
+    #two_scales()
+    #scatterplot(n=100)
+    word_occurrences()
