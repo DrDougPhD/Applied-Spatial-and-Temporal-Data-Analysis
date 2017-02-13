@@ -159,7 +159,7 @@ Given two $n$-dimensional vectors $\hat{u} = [ u_1, \cdots, u_n ]$ and $\hat{v} 
 In relation to this report, the Jaccard similarity records the number of times in which one article has the same positive number of occurrences of a particular word as the other article.
 This is then scaled by the number of unique words in the union of the two articles. For example, if two articles have the word ``beef'' occur 5 times, then it will be counted in the numerator of Equation \ref{eq:jaccard}.
 However, if one article has the word ``dog'' 4 times and the other 3 times, it will not be counted in the numerator, but will be counted in the denominator.
-Similarly, the abscence of a word in both documents (i.e. $\exists \, i$ such that $u_i = v_i = 0$) is not counted in either the numerator or the denominator.
+Similarly, the absence of a word in both documents (i.e. $\exists \, i$ such that $u_i = v_i = 0$) is not counted in either the numerator or the denominator.
 
 For details on the definition of the Euclidean distance and the Cosine distance of two vectors, refer to the SciPi API reference in the footnotes on the previous page.
 
@@ -209,13 +209,13 @@ This figure is particularly intriguing, and its results will be discussed later 
 
 \subsection{Stopwords: Filtering out Semantically Meaningless Words} \label{sec:stopwords}
 
-In the English language, there are some of words that occur disproportionally frequent in dialog and written texts.
+In the English language, there are some of words that occur disproportionately frequent in dialog and written texts.
 A few examples include ``the'', ``a'', ``among'', ``nevertheless'', and ``indeed''.
-Indeed, the presence of these words skew the results of these experiments because of their frequent reoccurrence.
+Indeed, the presence of these words skew the results of these experiments because of their frequent recurrence.
 These are called stopwords and are typically filtered out before or after processing natural language data.
 Figure \ref{fig:stopwords} illustrates the most frequently occurring words in the selected 100-article corpus before (left) and after (right) stopwords are removed.
 
-To prevent stopwords from interferring with the similarity experiments of this report, and to accommodate meaningful comparisons between articles, the words occurring more than 300 times were removed from the term-frequency matrix.
+To prevent stopwords from interfering with the similarity experiments of this report, and to accommodate meaningful comparisons between articles, the words occurring more than 300 times were removed from the term-frequency matrix.
 Additionally, words that were defined as stopwords by the Glasgow Information
 Retrieval Group\footnote{http://ir.dcs.gla.ac.uk/resources/linguistic\_utils/stop\_words} were also removed.
 As indicated in the right panel of Figure 1, there still remains many stopwords in the corpus, such as ``including'', ``he's'', and ``that's''.
@@ -246,7 +246,7 @@ Intuitively, these articles have tokenized vectors filled with the most zeros an
 This results in a small Euclidean distance between two vectors, as both vectors are closer to the origin of the corpus' word space than longer documents, and thus much closer to one another.
 
 The poor performance of the Euclidean distance is also demonstrated in Figure 3, which provides a list of the top 10 article pairs with the highest Euclidean similarity between one another.
-This figure demonstrates that there are many repeats of the same article reappearing in higher rankings.
+This figure demonstrates that there are many repeats of the same article appearing in higher rankings.
 For example, the article titled "Know your Oscar history: Best picture" appears 8 times out of 10.
 The flaws in the Euclidean distance becomes even more apparent when one analyzes the common words shared between two documents with the lowest Euclidean distance.
 Of the closest 10 pairs of documents, 6 share no words in common.
