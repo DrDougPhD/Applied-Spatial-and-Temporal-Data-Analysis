@@ -86,7 +86,7 @@ Everything else is ignored.
         isolated Middle East nation can soon improve its
         economy, its world standing and its people's lives if
         there's a breakthrough nuclear deal.
-    ...
+        ...
     </TEXT>
 </DOC>
 \end{verbatim}
@@ -162,8 +162,7 @@ The Jaccard similarity was implemented as a similarity metric, and thus there is
 
 In this section, the results of the similarity analyses is reviewed and discussed.
 The software described in Section \ref{sec:software} was executed on a randomly-selected subset of 100 articles from the CNN.com dataset compiled by Qian and Zhai \cite{qian2014unsupervised}.
-The 100 articles comprise the corpus of this experiment.
-The corpus was transformed into a $100 \times n$ term-frequency matrix $C_{tf} = [ c_{i,j} ]$, where $n$ is the total number of unique words in the union of all 100 articles, and $c_{i,j}$ represents the number of occurrences of the $j$-th word in the $i$-th article (i.e. $c_{i,j} \ge 0$ for $1 \le i \le 100$ and $1 \le j \le n$).
+These articles were transformed into a $100 \times n$ term-frequency matrix $C = [ c_{i,j} ]$, where $n$ is the total number of unique words in the union of all 100 articles, and $c_{i,j}$ represents the number of occurrences of the $j$-th word in the $i$-th article (i.e. $c_{i,j} \ge 0$ for $1 \le i \le 100$ and $1 \le j \le n$).
 
 \subsection{Stopwords: Filtering out Semantically Meaningless Words}
 
@@ -171,10 +170,25 @@ In the English language, there are a subset of words that occur very frequently 
 A few examples include ``the'', ``a'', ``among'', ``nevertheless'', and ``indeed''.
 These are called stopwords and are typically filtered out before or after processing natural language data.
 Indeed, the presence of these words skew the results of these experiments because of their frequent reoccurrence.
-% Figure \ref{fig:stopwords} illustrates the most frequently occurring words in the selected 100-article corpus.
-To prevent stopwords from interferring with the similarity experiments, and to accommodate meaningful comparisons between articles, those words occurring more than <> times were removed from the term-frequency matrix.
+Figure \ref{fig:stopwords} illustrates the most frequently occurring words in the selected 100-article corpus before (left) and after (right) stopwords are removed.
+
+\begin{figure}[h] \label{fig:stopwords}
+  \centering
+  \includegraphics[width=\textwidth]{figures/stopwords}
+  \caption{The 30 most frequent words in the corpus. The left panel shows a high occurrence of stopwords which offer little semantic meaning. The right panel shows the most frequent words after stopwords defined by the Glasgow Information Retrieval Group were removed.}
+\end{figure}
+
+To prevent stopwords from interferring with the similarity experiments, and to accommodate meaningful comparisons between articles, those words occurring more than 300 times were removed from the term-frequency matrix.
 Additionally, words that were defined as stopwords by the Glasgow Information
 Retrieval Group\footnote{http://ir.dcs.gla.ac.uk/resources/linguistic\_utils/stop\_words} were also removed.
+As indicated in the right panel of Figure \ref{fig:stopwords}, there still remains many stopwords in the corpus, such as ``including'', ``he's'', and ``that's''.
+Due to time constraints, the list of all present stopswords was not constructed.
+
+\begin{figure}[h] \label{fig:articlelengths}
+  \centering
+  \includegraphics[width=\textwidth]{figures/article_length_dist}
+  \caption{The summed lengths of each pair of the articles is plotted to demonstrate the bias towards short articles characteristic of the Euclidean distance. The opposite appears to be true for the Cosine and Jaccard similarity metrics.}
+\end{figure}
 
 \subsection{Results of Euclidean Distance}
 
