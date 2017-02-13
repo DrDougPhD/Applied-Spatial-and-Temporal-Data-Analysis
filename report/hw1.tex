@@ -5,7 +5,12 @@
 		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
 		Spring 2017}
 
+\usepackage[margin=1in]{geometry}
 \usepackage{verbatim}
+\usepackage{framed}
+\usepackage{amsmath}
+\usepackage{amssymb}
+
 
 \begin{document}
 
@@ -42,18 +47,71 @@ The number and proportion of articles to each category is provided in Table \ref
 	\label{table:categories}
 \end{table}
 
-Each article is represented as an XML document with tags corresponding to metadata about the article and the article's textual content.
-For this report's experiments, the images were discarded and only the textual portion of the articles was analyzed.
 
+\subsection{Article Contents}
+
+For this report's experiments, the images accompanying each article were discarded and only the textual portion of the articles was analyzed.
+Each article is represented as an XML document with tags corresponding to the article's content and metadata.
+Of interest is the content within the \texttt{<TEXT></TEXT>} block.
+Everything else is ignored.
+
+\pagebreak
+\subsection{Example of an Article}
+
+\small 
+\begin{quote} \label{samplearticle}
 \begin{verbatim}
-Sample article text goes here.
+<DOC>
+    <DOCNO>1897</DOCNO>
+    <URL>
+        http://rss.cnn.com/\~r/rss/cnn\_allpolitics/\~3/
+        -AmYNL5GUcc/index.html
+    </URL>
+    <TITLE>
+        Obama to Iran: 'We have the opportunity to start
+        down a new path'
+    </TITLE>
+    <TIME>Thu, 20 Mar 2014 11:10:42 EDT</TIME>
+    <ABSTRACT>
+        In a message to the Iranian people, an upbeat President
+        Barack Obama said Thursday that the long isolated
+        Middle East nation can soon improve its economy, its
+        world standing and its people's lives if there's a
+        breakthrough nuclear deal.
+    </ABSTRACT>
+    <TEXT>
+        (CNN) -- In a message to the Iranian people, an upbeat
+        President Barack Obama said Thursday that the long
+        isolated Middle East nation can soon improve its
+        economy, its world standing and its people's lives if
+        there's a breakthrough nuclear deal.
+    ...
+    </TEXT>
+</DOC>
 \end{verbatim}
+\end{quote}
+\normalsize
+
+%\begin{Verbatim}[frame=single]
+%\end{Verbatim}
 
 \section{Implementation}
 
+\begin{table}[h]
+	\centering
+	\begin{tabular}{ r c c  }
+		\hline
+		Environment: & Library & Purpose \\ \hline
+
+	\end{tabular}
+	
+	\caption{Software Libraries and Technologies used in the Software Implementation}
+	\label{table:categories}
+\end{table}
+
 \subsection{Distance Metrics}
 
-The SciPy project offers many distance functions for a pair of vectors as part of their spatial module\footnote{
+The SciPy project offers many distance functions operating on a pair of vectors as part of their spatial module\footnote{
 https://docs.scipy.org/doc/scipy/reference/spatial.distance.html
 }, including one for Euclidean distance %\footnote{
 %https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.euclidean.html
@@ -61,30 +119,52 @@ https://docs.scipy.org/doc/scipy/reference/spatial.distance.html
 and Cosine distance. %\footnote{
 %https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cosine.html
 %}
+These functions compute various \emph{dissimilarity} metrics which require mapping to an appropriate similarity metric.
+Details on this mapping is provided in Section \ref{sec:mapping}.
+
 Although there is a distance function named \texttt{jaccard}, it does not compute the Jaccard similarity, but rather the Jaccard-Needham dissimilarity\footnote{
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.jaccard.html
-}.
+} which cannot be directly mapped to a Jaccard similarity.
 Thus, a custom-implemented Jaccard similarity function was developed for this report.
+Given two $n$-dimensional vectors $\hat{u} = [ u_1, \cdots, u_n ]$ and $\hat{v} = [ v_1, \cdots, v_n ]$, where $u_i, v_i \ge 0 \, \forall \, 1 \le i \le n$, the Jaccard similarity metric, as is implemented in the custom-implemented Jaccard similarity function, is defined as:
 
+\begin{equation} \label{eq:jaccard}
+	s_{\text{jaccard}} = \frac{ \left| \{i \, | \, u_i = v_i \land u_i \ne 0 \} \right| }
+	                          { \left| \{i \, | \, u_i = v_i \land u_i = 0 \}^\complement \right| }
+\end{equation}
+In relation to this report, the Jaccard similarity records the number of times in which one article has the same positive number of occurrences of a particular word as the other article.
+This is then scaled by the number of unique words in the union of the two articles. For example, if two articles have the word ``beef'' occur 5 times, then it will be counted in the numerator of Equation \ref{eq:jaccard}.
+However, if one article has the word ``dog'' 4 times and the other 3 times, it will not be counted in the numerator, but will be counted in the denominator.
+Similarly, the abscence of a word in both documents (i.e. $\exists \, i$ such that $u_i = v_i = 0$) is not counted in either the numerator or the denominator.
 
-\subsection{Mapping Distance to Similarity}
+For details on the definition of the Euclidean distance and the Cosine distance of two vectors, refer to the SciPi API reference in the footnotes on the previous page.
 
-In order to properly use distance metrics as a means to quantify the similarity between two vectors, the distance metrics need to be mapped so that the result is between 0 and 1 such that values near 0 indicate low similarity and values near 1 indicate high similarity. The method in which the distance metrics were normalized is described below.
+\subsection{Mapping Distance to Similarity} \label{sec:mapping}
 
-Let $d_i(u, v)$ denote the distance of vectors $u$ and $v$ as computed by the $i$-th distance method, and $s_i(u, v)$ denote their corresponding similarity.
-For Euclidean distance:
+In order to properly use distance metrics as a means to quantify the similarity between two vectors, the distance metrics need to be mapped to some value in the range $[0, 1]$ such that a value near 0 indicates the two vectors have low similarity, and similarity a value near 1 indicates high similarity.
+The method in which the distance metrics were normalized is described below.
+
+Let $d_i(u, v)$ denote the distance of vectors $u$ and $v$ as computed by the $i$-th distance method, and let $s_i(u, v)$ denote their corresponding similarity.
+For Euclidean distance, the following formula is adopted to map it to a Euclidean similarity:
 
 \begin{equation} \label{eq:euclid}
 s_{euclid}(u, v) = \frac{1}{d_{euclid}(u, v) + 1}
 \end{equation}
-And for cosine distance:
+and for cosine distance:
 \begin{equation} \label{eq:cosine}
 s_{cos}(u, v) = 1 - d_{cos}(u, v)
 \end{equation}
-Since the Jaccard similarity was custom implemented, there was no need to transform it.
+The Jaccard similarity was implemented as a similarity metric, and thus there is no need for a mapping.
 
 
 \section{Analysis of News Articles}
+
+In this section, the results of the similarity analyses is reviewed and discussed.
+The software was executed on a randomly-selected subset of 100 articles from the CNN.com dataset compiled by Qian and Zhai \cite{qian2014unsupervised}.
+The 100 articles comprise the corpus of this experiment.
+The corpus was transformed into a $100 \times n$ term-frequency matrix $C_{tf} = [ c_{i,j} ]$, where $n$ is the total number of unique words in the union of all 100 articles, and $c_{i,j}$ represents the number of occurrences of the $j$-th word in the $i$-th article (i.e. $c_{i,j} \ge 0$ for $1 \le i \le 100$ and $1 \le j \le n$).
+
+For each pair of articles, three distance metrics were
 
 \subsection{Results of Euclidean Distance}
 The use of the Euclidean Distance, as normalized by the Equation \ref{eq:euclid}, favors pairs of short articles and appears to do a poor job at grouping semantically similar articles together.
@@ -128,6 +208,7 @@ All of the top 30 ranking article pairs appear to share a similar semantic topic
 
 Between the Jaccard similarity, cosine distance, and Euclidean distance, the results of a pairwise similarity analysis of 100 randomly selected news articles suggest that cosine distance is the best metric for identifying similar articles represented by term-frequency vectors.
 However, there are a few instances where the two articles are not in equal tone. For instance, the 32nd ranking article pair primarily focuses on universities, but whereas one discusses notable university buildings in regards to their architectural beauty, the other discusses the death of a student due to a school shooting.
+
 
 \bibliography{bibliography}{}
 \bibliographystyle{plain}
