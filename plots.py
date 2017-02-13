@@ -133,14 +133,24 @@ def article_length_distribution(data):
         ax.set_ylim(ymin=0)
         #axes[i].set_ylabel('Function {}'.format(i))
 
+    # show rank at the bottom of the plot
+    bottom = axes[-1]
+    major_ticks = list(range(0, n+1, 1000))
+    major_ticks.append(n)
+    minor_ticks = np.arange(0, n+1, 200)
+
+    bottom.set_xticks(major_ticks)
+    bottom.set_xticks(minor_ticks, minor=True)
+    bottom.set_xticklabels(major_ticks)
+
     # make first two origin ticks invisible
-    [ ax.yaxis.get_major_ticks()[0].set_visible(False)
-      for ax in axes[:-1] ]
+    [ axis.yaxis.get_major_ticks()[0].set_visible(False)
+      for axis in axes[:-1] ]
 
     # Fine-tune figure; make subplots close to each other and hide x ticks for
     # all but bottom plot.
     fig.subplots_adjust(hspace=0)
-    plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
+    #plt.setp([a.get_xticklabels() for a in fig.axes[:-1]], visible=False)
 
     plt.savefig('results/article_length_dist.{}'.format(PLOT_FILETYPE),
                 bbox_inches='tight')
