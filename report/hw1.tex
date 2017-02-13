@@ -98,12 +98,25 @@ Everything else is ignored.
 
 \section{Implementation} \label{sec:software}
 
-\begin{table}[h]
+Custom-written software was developed for the purpose of performing the experiments of this report. This software was written in the Python 3 programming language and the HTML5 markup language and performs such tasks as automatic extraction of the dataset, corpus transformation into a term-frequency matrix, pairwise article similarity computation, and the presentation of the final sorted results in both an easy to read textual format as well as a web page.
+There were many external libraries used to facilitate this functionality.
+These libraries are summarized in Table \ref{table:libraries}.
+
+\begin{table}[h] \label{table:libraries}
 	\centering
-	\begin{tabular}{ r c c  }
+	\begin{tabular}{ r|c|l }
 		\hline
 		Environment: & Library & Purpose \\ \hline
-
+		Python: & BeautifulSoup & Parsing the XML of the news articles \\
+		&	scikit-learn\cite{scikit-learn} & Corpus to term-frequency matrix transformation \\
+		& & and stopword filtering \\
+		& 	SciPy\cite{scipy} & Euclidean and Cosine distances \\
+		&   numpy & Fast vector operations \\
+		&  pickle & Fast reloading of experiment results \\
+		& matplotlib & Bar graphs and other visual aids \\ \hline
+		Webpage & Bootstrap & Simplified gridwork and design \\
+		&  Flask  & Lightweight web server for Python \\
+		& Jinja & Web page templating for Python
 	\end{tabular}
 	
 	\caption{Software Libraries and Technologies used in the Software Implementation}
@@ -112,7 +125,7 @@ Everything else is ignored.
 
 \subsection{Distance Metrics}
 
-The SciPy project offers many distance functions operating on a pair of vectors as part of their spatial module\footnote{
+The SciPy project \cite{scipy} offers many distance functions operating on a pair of vectors as part of their spatial module\footnote{
 https://docs.scipy.org/doc/scipy/reference/spatial.distance.html
 }, including one for Euclidean distance %\footnote{
 %https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.euclidean.html
@@ -183,12 +196,6 @@ Additionally, words that were defined as stopwords by the Glasgow Information
 Retrieval Group\footnote{http://ir.dcs.gla.ac.uk/resources/linguistic\_utils/stop\_words} were also removed.
 As indicated in the right panel of Figure \ref{fig:stopwords}, there still remains many stopwords in the corpus, such as ``including'', ``he's'', and ``that's''.
 Due to time constraints, the list of all present stopswords was not constructed.
-
-\begin{figure}[h] \label{fig:articlelengths}
-  \centering
-  \includegraphics[width=\textwidth]{figures/article_length_dist}
-  \caption{The summed lengths of each pair of the articles is plotted to demonstrate the bias towards short articles characteristic of the Euclidean distance. The opposite appears to be true for the Cosine and Jaccard similarity metrics.}
-\end{figure}
 
 \subsection{Results of Euclidean Distance}
 
@@ -261,6 +268,11 @@ Although this result may be an outlier, it demonstrates the necessity of multipl
 For future investigations, a good next step would be to use term-frequency, inverse-document-frequency matrix and perform a comparative analysis with the results of using only term-frequency.
 The code for performing such an experiment has already been written, but due to time constraints an analysis of the results was omitted from this report.
 
+\begin{figure}[h] \label{fig:articlelengths}
+  \centering
+  \includegraphics[width=\textwidth]{figures/article_length_dist}
+  \caption{The summed lengths of each pair of the articles is plotted to demonstrate the bias towards short articles characteristic of the Euclidean distance. The opposite appears to be true for the Cosine and Jaccard similarity metrics.}
+\end{figure}
 
 \bibliography{bibliography}{}
 \bibliographystyle{plain}
