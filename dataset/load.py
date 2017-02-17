@@ -2,7 +2,6 @@ import os
 import logging
 import subprocess
 import shutil
-from .articles import ArticleSelector
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -12,11 +11,6 @@ except:
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
-
-DATA_DIR = 'data'
-DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
-SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
-
 logger = logging.getLogger(__name__)
 
 

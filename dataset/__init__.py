@@ -1,12 +1,8 @@
 import os
 from . import load
-from .load import ArticleSelector
+from .articles import ArticleSelector
 
-DATA_DIR = 'data'
-DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
-
-
-def get(n=10, from_=DEFAULT_DATASET_DIR, randomize=True):
+def get(from_, n=10, randomize=True):
     dataset_dir = load.get_dataset_dir(from_)
     archive_files = load.get_datasets(indir=dataset_dir)
     decompressed_dataset_directories = {}

@@ -38,7 +38,6 @@ import argparse
 import logging
 import os
 import random
-import string
 import sys
 from datetime import datetime
 
@@ -52,21 +51,14 @@ import itertools
 from scipy.spatial import distance
 import csv
 import numpy
+import shutil
 from progressbar import ProgressBar
 import math
 import pickle
 
 # Custom modules
 import plots
-
-from dataset import load
-import shutil
-import subprocess
-import glob
-from bs4 import BeautifulSoup
-
-
-
+import dataset
 
 
 def nCr(n, r):
@@ -84,15 +76,10 @@ logger = logging.getLogger(__appname__)
 RANDOM_SEED = 1  # 0 was throwing a weird error
 random.seed(RANDOM_SEED)
 
-IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
-EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
-EXTRACTOR_SCRIPT = 'extract.sh'
-
-DATA_DIR = 'data'
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 DEFAULT_DATASET_DIR = os.path.join(DATA_DIR, 'downloads')
 MATRIX_FILE_PATH = os.path.join(DATA_DIR, 'matrix.csv')
 FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
-SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
 PICKLED_RESULTS = os.path.join(DATA_DIR, 'pickled_seed{0}_{1}.p'.format(
     RANDOM_SEED, '{num_items}'))
 
@@ -128,29 +115,8 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
         distance_fns = [fn for fn in ACTIVATED_DISTANCE_FNS
                         if fn.__name__ in distance_fns]
 
-    # TODO: refactor this into a class perhaps?
-    dataset_dir = get_dataset_dir(dataset_dir)
-    archive_files = get_datasets(indir=dataset_dir)
-    extractor_script = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
-    decompressed_dataset_directories = {}
-    for f in archive_files:
-        filename = os.path.basename(f)
-        filename_prefix = '.'.join(filename.split('.')[:-1])
-        extract_to = os.path.join(dataset_dir, filename_prefix)
-        decompress(f, to=extract_to, dataset_dir=dataset_dir)
-        decompressed_dataset_directories[filename] = extract_to
-
-    logger.info(hr('Datasets to preprocess'))
-    for dbname in decompressed_dataset_directories:
-        dir = decompressed_dataset_directories[dbname]
-        logger.info(dir)
-
-    # randomly select articles
-    logger.info(hr('Article Selection'))
-    selector = ArticleSelector(decompressed_dataset_directories)
-    selected_articles = selector.get(n, randomize=randomize,
-                                     archive_to=SELECTED_ARTICLE_ARCHIVE)
-    CREATED_FILES.append(SELECTED_ARTICLE_ARCHIVE)
+    selected_articles = dataset.get(n=n, from_=dataset_dir,
+                                    randomize=randomize)
     # loading data ends
     ###########################################################################
 
@@ -395,299 +361,6 @@ class ComparedArticles(object):
             repr(self.article[0]), repr(self.article[1]),
             self.distance_fn,
             self.score)
-
-# Article
-
-class NewspaperArticle(object):
-    def __init__(self, path):
-        assert os.path.isfile(path), 'File not found: {}'.format(path)
-        self.path = path
-        self.filename = os.path.basename(path)
-        self.title = None
-        self.abstract = None
-        self.category = None
-        self.vector = None
-        self.text = None
-        self.length = 0
-        self._setup_quick_vars()
-
-    def __radd__(self, other):
-        return other + self.vector
-
-    def __str__(self):
-        """
-        Return the plaintext of the article as a string.
-        :return: string The plaintext of the article.
-        """
-        # simply iterate over every word in the document, removing newlines
-        # and bad characters, and return as one long string
-        return ' '.join(self)
-
-    def __repr__(self):
-        return '"{0.title}"\n' \
-               '\tcategory: {0.category}\n' \
-               '\tvector:   {1}'.format(self, self.vector)
-
-    def __iter__(self):
-        """
-        Iterate through each word in this article.
-        :return: string Next word in the article.
-        """
-        self._setup_reader()
-        logger.debug(hr(
-            title='Parsing through {}'.format(os.path.basename(self.path)),
-            line_char='-'
-        ))
-        for w in self._next_word():
-            self.length += 1
-            yield w
-
-    def __bool__(self):
-        # load file
-        self._setup_reader()
-        return bool(self.text.strip())
-
-    def delete_from_dataset(self):
-        logger.warning('Deleting empty file: {}'.format(self.path))
-        os.remove(self.path)
-
-    def __len__(self):
-        return self.length
-
-
-class QianArticle(NewspaperArticle):
-    punctuation_remover = str.maketrans('', '', string.punctuation)
-
-    def _setup_quick_vars(self):
-        category_dir = os.path.basename(os.path.dirname(self.path))
-        self.category = category_dir.split('_')[-1]
-
-    def _setup_reader(self):
-        soup = BeautifulSoup(open(self.path), 'html.parser')
-        self.title = soup.doc.title.text
-        self.abstract = soup.doc.abstract.text
-        self.text = soup.doc.find('text').text
-
-    def _next_word(self):
-        for line in self.text.split('\n'):
-            if self._matches_useless_line(line):
-                continue
-
-            if '(CNN)' in line:
-                # first line of the article
-                prefix_removed = line.split('(CNN)')[-1]
-                line = prefix_removed
-
-            for word in line.split():
-                # word lowering is done internally by scikit-learn
-                # word = word.lower()
-                word = word.translate(QianArticle.punctuation_remover)
-                if not word or word.isspace():
-                    continue
-
-                yield word.lower()
-
-    def _matches_useless_line(self, line):
-        if line.startswith('Watch Anderson Cooper'):
-            # it's not a diss, Mr. Cooper. But the line containing that
-            # text does not pertain to the article's contents
-            return True
-
-        return False
-
-
-# Dataset accessing
-
-class ArticleSelector(object):
-    """
-    Given a dataset of articles, select a subset for further processing.
-    Obtain the article's title, category, and plain text.
-    """
-
-    class BaseDatasetAccessor(object):
-        """
-        Base class for accessing articles within a given directory.
-        """
-
-        def __init__(self, dir):
-            assert os.path.isdir(dir), \
-                "Directory doesn't exist: {}".format(dir)
-            self.stored_in = dir
-
-        def retrieve(self):
-            raise NotImplemented('.retrieve() method has not been implemented')
-
-    class QianDataset(BaseDatasetAccessor):
-        """
-        Retrieve article files from the Qian CNN dataset located in a specified
-        directory.
-        """
-
-        def retrieve(self):
-            logger.info('Retrieving articles from within {}'.format(
-                self.stored_in))
-            article_categories_in = os.path.join(self.stored_in, 'Raw')
-            categories = os.listdir(article_categories_in)
-            logger.info('Category directories: {}'.format(categories))
-            articles = []
-            for category in categories:
-                subcat_files = []
-                abspath = os.path.join(article_categories_in, category)
-                for article_path in self._retrieve_from_category(abspath):
-                    article = QianArticle(path=article_path)
-                    if article:
-                        subcat_files.append(article)
-                    else:
-                        article.delete_from_dataset()
-                logger.info(
-                    'Files within {0}: {1}'.format(category, len(subcat_files)))
-                articles.extend(subcat_files)
-            return articles
-
-        def _retrieve_from_category(self, category_directory):
-            glob_path = os.path.join(category_directory, 'cnn_*.txt')
-            files = []
-            for filename in glob.glob(glob_path):
-                # logger.debug('\t -->  {}'.format(filename))
-                files.append(os.path.join(category_directory, filename))
-            return files
-
-    article_accessor = {
-        # access articles by the file's bytesize
-        136208660: lambda dir: ArticleSelector.QianDataset(dir),
-    }
-
-    def __init__(self, datasets):
-        file_sizes = [(file, os.stat(datasets[file] + '.zip').st_size)
-                      for file in datasets]
-        self.accessors = [ArticleSelector.article_accessor[size](datasets[k])
-                          for k, size in file_sizes]
-
-    def get(self, count, randomize=True, archive_to=None):
-        # evenly distribute articles selected from each located dataset
-        articles = []
-        for selector in self.accessors:
-            subset = selector.retrieve()
-            articles.extend(subset)
-            assert len(articles) > 0, 'No articles found for {}'.format(
-                selector.__class__.__name__)
-
-        # shuffle and truncate set to the specified size
-        if randomize:
-            logger.debug('Random selection of {} articles'.format(count))
-            try:
-                selected_articles = random.choices(articles, k=count)
-            except AttributeError:  # Python 3.6 is not installed
-                random.shuffle(articles)
-                selected_articles = articles[:count]
-        else:
-            logger.debug('Non-random selection of {} articles'.format(count))
-            selected_articles = articles[:count]
-
-        if archive_to:
-            logger.debug('Copying files to {}'.format(archive_to))
-            os.makedirs(archive_to, exist_ok=True)
-            [shutil.copy(f.path, archive_to) for f in selected_articles]
-            logger.debug('{} files copied'.format(len(selected_articles)))
-
-        self._check_category_diversity(selected_articles)
-
-        return selected_articles
-
-    def _check_category_diversity(self, selected_articles):
-        categories = set()
-        for a in selected_articles:
-            categories.add(a.category)
-        logger.info('Categories chosen: {}'.format(categories))
-
-
-def get_dataset_dir(dataset_dir):
-    if not os.path.isabs(dataset_dir):
-        dataset_dir = os.path.join(os.path.dirname(os.path.abspath(
-            __file__)), dataset_dir)
-
-    if not os.path.exists(dataset_dir):
-        os.makedirs(dataset_dir)
-
-    return dataset_dir
-
-
-def get_datasets(indir):
-    files = set()
-    for dirpath, _, filenames in os.walk(indir):
-        files.update([os.path.join(dirpath, f)
-                      for f in filenames
-                      if is_archive(f)])
-    if not files:
-        raise Exception(
-            'Error loading datasets. Please download from this url:\n'
-            'https://sites.google.com'
-            '/site/qianmingjie/home/datasets/cnn-and-fox-news')
-
-    logger.debug('Archive files: {}'.format(files))
-    return files
-
-
-def is_archive(filename):
-    extension = filename.split('.')[-1]
-    if extension.lower() in IMPLEMENTED_ARCHIVE_EXTENSIONS:
-        return True
-    else:
-        return False
-
-
-def decompress(file, to, dataset_dir):
-    if os.path.exists(to):
-        logger.debug('Already existing file/dir at {}.'.format(to))
-        logger.debug('No extraction will be done for {}.'.format(
-            os.path.basename(file)))
-        return
-
-    extractor = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
-    if not os.path.isfile(extractor):
-        raise Exception('No archive extractor script found at {path}.\n'
-                        'Create it from this post: {url}'.format(
-            path=extractor,
-            url=EXTRACTOR_SCRIPT_SOURCE))
-
-    # take snapshot of directory so that the extracted directory can be spotted
-    current_files = set(os.listdir(os.getcwd()))
-
-    logger.info('Extracting dataset. This might take a while.')
-    subprocess.run(['bash', extractor, file])
-    logger.debug('Extraction complete.')
-
-    logger.debug('Moving to {}'.format(to))
-    new_files = list(set(os.listdir(os.getcwd())) - current_files)
-    relocate(new_files, to)
-
-    logger.info('Extraction complete. Uncompressed files'
-                ' are within {}'.format(to))
-    for f in os.listdir(to):
-        dirname = os.path.basename(to)
-        path = os.path.join('...', dirname, f)
-        logger.debug('\t{}'.format(path))
-
-
-def relocate(new_files, to):
-    logger.debug('New files after extraction: {}'.format(new_files))
-    if len(new_files) > 1:
-        # move all files
-        os.makedirs(to, exist_ok=True)
-        for f in new_files:
-            shutil.move(os.path.join(os.getcwd(), f), to)
-        logger.debug('{} files moved.'.format(len(new_files)))
-
-    elif len(new_files) == 1:
-        new_path = os.path.join(os.getcwd(), new_files[0])
-        if os.path.isfile(new_path):
-            logger.debug('Extracted only one file.')
-            os.makedirs(to, exist_ok=True)
-            shutil.move(new_path, to)
-
-        else:
-            logger.debug('Extracted a whole directory.')
-            os.rename(new_path, to)
 
 
 def setup_logger(args):

@@ -6,7 +6,7 @@ import random
 import shutil
 from bs4 import BeautifulSoup
 
-DATA_DIR = 'data'
+DATA_DIR = os.path.join('..', 'data')
 SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
 
 logger = logging.getLogger(__name__)
