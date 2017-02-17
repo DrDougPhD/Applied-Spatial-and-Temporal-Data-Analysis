@@ -32,25 +32,22 @@ __appname__ = "cnn"
 __author__ = "Doug McGeehan"
 __version__ = "0.0pre0"
 __license__ = "GNU GPLv3"
-__dev__ = True # used for debug messages in logs
-
+__dev__ = True  # used for debug messages in logs
 
 import argparse
-from datetime import datetime
-import sys
-import os
 import logging
-from bs4 import BeautifulSoup
-import glob
+import os
 import random
 import string
+import sys
+from datetime import datetime
+
+from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-STOP_WORDS = ENGLISH_STOP_WORDS.union('new says time just like told cnn according did make way really dont going know said'.split())
-import shutil
-import subprocess
-import hashlib
+
+STOP_WORDS = ENGLISH_STOP_WORDS.union(
+    'new says time just like told cnn according did make way really dont going know said'.split())
 import itertools
 from scipy.spatial import distance
 import csv
@@ -59,26 +56,33 @@ from progressbar import ProgressBar
 import math
 import pickle
 
-
 # Custom modules
 import plots
 
-def nCr(n,r):
-    f = math.factorial
-    return f(n) / f(r) / f(n-r)
+from dataset import load
+import shutil
+import subprocess
+import glob
+from bs4 import BeautifulSoup
 
-try:    # this is my own package, but it might not be present
+
+
+
+
+def nCr(n, r):
+    f = math.factorial
+    return f(n) / f(r) / f(n - r)
+
+
+try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
 except:
-    hr = lambda title, line_char='-': line_char*30 + title + line_char*30
-
+    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 
 logger = logging.getLogger(__appname__)
 
-
-RANDOM_SEED = 1 # 0 was throwing a weird error
+RANDOM_SEED = 1  # 0 was throwing a weird error
 random.seed(RANDOM_SEED)
-
 
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
@@ -102,7 +106,6 @@ def jaccard(u, v):
         return s[0] != 0 and s[0] == s[1]
     """
 
-    
     # TODO: zip together using numpy
     equal = (v == u)
     are_zero = (u == 0)
@@ -110,17 +113,11 @@ def jaccard(u, v):
     both_zeros = equal * are_zero
     results_not_zeros = (both_zeros == False)
     return numpy.sum(equal_nonzero) / numpy.sum(results_not_zeros)
-    """
-    z = list(zip(u, v))
-    positive_results = map(equal_nonzero, z)
-    non_zero_results = map(all, z)
-    return sum(positive_results)/sum(non_zero_results)
-    """
 
-
-ACTIVATED_DISTANCE_FNS = [ distance.euclidean, jaccard, distance.cosine ]
+ACTIVATED_DISTANCE_FNS = [distance.euclidean, jaccard, distance.cosine]
 
 CREATED_FILES = []
+
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
             distance_fns=None, randomize=True, args=None):
@@ -128,8 +125,8 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     if distance_fns is None:
         distance_fns = ACTIVATED_DISTANCE_FNS
     else:
-        distance_fns = [ fn for fn in ACTIVATED_DISTANCE_FNS
-                            if fn.__name__ in distance_fns ]
+        distance_fns = [fn for fn in ACTIVATED_DISTANCE_FNS
+                        if fn.__name__ in distance_fns]
 
     # TODO: refactor this into a class perhaps?
     dataset_dir = get_dataset_dir(dataset_dir)
@@ -161,40 +158,38 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     logger.info(hr('Pairwise Similarities'))
 
     if args.no_stopwords:
-      logger.info('No stopwords will be used')
-      stopwords = frozenset([])
+        logger.info('No stopwords will be used')
+        stopwords = frozenset([])
     else:
-      logger.info('Using stopwords')
-      stopwords = STOP_WORDS
+        logger.info('Using stopwords')
+        stopwords = STOP_WORDS
 
-    similarity_calculater = PairwiseSimilarity(selected_articles,
+    similarity_calculator = PairwiseSimilarity(selected_articles,
                                                method=method,
                                                stopwords=stopwords)
-    similarity_calculater.save_matrix_to(directory=DATA_DIR)
-    similarity_calculater.save_aggregate_feature_counts(directory=DATA_DIR)
+    similarity_calculator.save_matrix_to(directory=DATA_DIR)
+    similarity_calculator.save_aggregate_feature_counts(directory=DATA_DIR)
     # preprocessing ends
     ############################################################################
-
 
     data = {}
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
-        similarities = similarity_calculater.pairwise_compare(
-              by=fn, save_to=DATA_DIR)
+        similarities = similarity_calculator.pairwise_compare(
+            by=fn, save_to=DATA_DIR)
         data[fn.__name__] = similarities
 
     if args and args.relocate_files_to:
         logger.debug(hr('Relocating Created Files'))
         logger.debug('Storing files in {}'.format(args.relocate_files_to))
         for f in CREATED_FILES:
-          logger.debug(f)
-          filename = os.path.basename(f)
-          dst = os.path.join(args.relocate_files_to, filename)
-          if os.path.isdir(dst):
-              shutil.rmtree(dst)
-          #shutil.copy(f, args.relocate_files_to)
-          os.rename(f, os.path.join(args.relocate_files_to, filename))
-
+            logger.debug(f)
+            filename = os.path.basename(f)
+            dst = os.path.join(args.relocate_files_to, filename)
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            # shutil.copy(f, args.relocate_files_to)
+            os.rename(f, os.path.join(args.relocate_files_to, filename))
 
     # pickle the data
     pickle.dump(data, open(PICKLED_RESULTS.format(num_items=n), 'wb'))
@@ -220,14 +215,14 @@ class PairwiseSimilarity(object):
             self.vectorizer = CountVectorizer(min_df=1,
                                               stop_words=stopwords)
 
-        plain_text = [ str(document) for document in self.corpus ]
+        plain_text = [str(document) for document in self.corpus]
         self._matrix = self.vectorizer.fit_transform(plain_text)
         for i in range(len(corpus)):
             vector = self._matrix.getrow(i).toarray()[0]
             doc = corpus[i]
             if method == 'existence':
                 # convert vector into a binary vector (only 0s and 1s)
-                #vector = [ int(bool(e)) for e in vector ]
+                # vector = [ int(bool(e)) for e in vector ]
                 vector = (vector != 0).astype(int).toarray()[0]
             doc.vector = vector
 
@@ -240,10 +235,10 @@ class PairwiseSimilarity(object):
         n = int(nCr(len(self.corpus), 2))
         if __name__ == '__main__':
             progress = ProgressBar(
-                max_value=n) 
+                max_value=n)
 
         similarity_calculations = []
-        for u,v in itertools.combinations(self.corpus, 2):
+        for u, v in itertools.combinations(self.corpus, 2):
 
             if progress:
                 progress.update(i)
@@ -251,7 +246,7 @@ class PairwiseSimilarity(object):
 
             comparison = ComparedArticles(u, v, by, self.features)
             logger.debug(comparison)
-            logger.debug('-'*80)
+            logger.debug('-' * 80)
             similarity_calculations.append(comparison)
 
         if progress:
@@ -262,58 +257,58 @@ class PairwiseSimilarity(object):
 
         if save_to:
             similarities_file = os.path.join(
-                 save_to,
-                 '{method}.{distance}.{n}.tsv'.format(distance=by.__name__,
-                                                      method=self.method,
-                                                      n=n))
+                save_to,
+                '{method}.{distance}.{n}.tsv'.format(distance=by.__name__,
+                                                     method=self.method,
+                                                     n=n))
             with open(similarities_file, 'w') as f:
                 CREATED_FILES.append(similarities_file)
 
                 # find the length of the feature which occurs most commonly in
                 # both articles. for pretty printing
                 highest_feat_max_len_obj = max(
-                      similarity_calculations,
-                      key=lambda x: len(x.highest_common_feat.name))
+                    similarity_calculations,
+                    key=lambda x: len(x.highest_common_feat.name))
                 highest_feat_max_length = len(
-                      highest_feat_max_len_obj.highest_common_feat.name)
+                    highest_feat_max_len_obj.highest_common_feat.name)
 
                 # find the article title that is the shortest. make pretty
-                art_w_short_title = max([ c.article[0]
-                                          for c in similarity_calculations ],
+                art_w_short_title = max([c.article[0]
+                                         for c in similarity_calculations],
                                         key=lambda r: len(r.title))
                 short_title_len = len(art_w_short_title.title) + 4
 
-                f.write('{score:^10}\t'\
-                        '{normalized:^10}\t'\
-                        '{highest_common_feature}\t'\
-                        '{highest_common_feature_score:^10}\t'\
-                        '{title}\t'\
+                f.write('{score:^10}\t'
+                        '{normalized:^10}\t'
+                        '{highest_common_feature}\t'
+                        '{highest_common_feature_score:^10}\t'
+                        '{title}\t'
                         'Article #2\n'.format(
                     title='Article #1'.ljust(short_title_len),
                     score='score',
                     normalized='similarity',
-                    highest_common_feature='mcf'.center(highest_feat_max_length),
+                    highest_common_feature='mcf'.center(
+                        highest_feat_max_length),
                     highest_common_feature_score='# occurs',
                 ))
 
-
                 for calc in similarity_calculations:
-                    f.write('{score:10.5f}\t'\
-                            '{normalized:10.5f}\t'\
-                            '{highest_common_feature}\t'\
-                            '{highest_common_feature_score:10.5f}\t'\
-                            '{art1}\t'\
+                    f.write('{score:10.5f}\t'
+                            '{normalized:10.5f}\t'
+                            '{highest_common_feature}\t'
+                            '{highest_common_feature_score:10.5f}\t'
+                            '{art1}\t'
                             '"{art2}"\n'.format(
                         art1='"{}"'.format(calc.article[0].title)
-                                   .ljust(short_title_len),
+                            .ljust(short_title_len),
                         art2=calc.article[1].title,
                         score=calc.score,
                         normalized=calc.normalized,
-                        highest_common_feature=calc.highest_common_feat\
-                                                   .name.ljust(
-                                                      highest_feat_max_length),
-                        highest_common_feature_score=calc.highest_common_feat\
-                                                         .score
+                        highest_common_feature=calc.highest_common_feat
+                            .name.ljust(
+                            highest_feat_max_length),
+                        highest_common_feature_score=calc.highest_common_feat
+                            .score
                     ))
 
         return similarity_calculations
@@ -327,7 +322,6 @@ class PairwiseSimilarity(object):
             csvfile.writerow(self.features)
             csvfile.writerows(self._matrix.toarray())
 
-
     def save_aggregate_feature_counts(self, directory):
         features_file = os.path.join(directory, 'aggregate_feature_counts.csv')
         CREATED_FILES.append(features_file)
@@ -337,9 +331,9 @@ class PairwiseSimilarity(object):
 
             summed_vector = sum(self._matrix).toarray()[0]
             csvfile.writerows(sorted(
-              zip(self.features, summed_vector),
-              key=lambda e: e[1],
-              reverse=True,
+                zip(self.features, summed_vector),
+                key=lambda e: e[1],
+                reverse=True,
             ))
 
 
@@ -357,19 +351,18 @@ class BaseDistanceFunctor(object):
         ...
 """
 
-class ComparedArticles(object):
 
+class ComparedArticles(object):
     class HighestCommonFeature(object):
         def __init__(self, articles, features, max_or_min=max):
             u, v = map(lambda x: x.vector, articles)
             # only sum up token occurrences for tokens that appear in both documents
-            shared_appearances = (u + v)*(u != 0)*(v != 0)
-            
+            shared_appearances = (u + v) * (u != 0) * (v != 0)
+
             (i,), score = max_or_min(numpy.ndenumerate(shared_appearances),
-                                  key=lambda e: e[1])
+                                     key=lambda e: e[1])
             self.name = features[i]
             self.score = score
-
 
     def __init__(self, art1, art2, fn, features):
         # sort articles by title
@@ -388,33 +381,20 @@ class ComparedArticles(object):
             # [ -1, 1 ] -> [ 0, 2 ] -> [ 0, 1 ]
             self.normalized = 1 - self.score
         elif self.distance_fn == 'jaccard':
-            self.normalized = self.score # no need to normalize
+            self.normalized = self.score  # no need to normalize
 
         self.highest_common_feat = ComparedArticles.HighestCommonFeature(
-              articles=self.article,
-              features=features)
-
+            articles=self.article,
+            features=features)
 
     def __str__(self):
-        return '{0}\n'\
-               'vs.\n'\
-               '{1}\n'\
+        return '{0}\n' \
+               'vs.\n' \
+               '{1}\n' \
                '== SCORE ({2}): {3}'.format(
-                    repr(self.article[0]), repr(self.article[1]),
-                    self.distance_fn,
-                    self.score)
-"""        return '{0}\n'\
-               '{4}\n'\
-               'vs.\n'\
-               '{1}\n'\
-               '{5}\n'\
-               '== SCORE ({2}): {3}'.format(
-                    repr(self.article[0]), repr(self.article[1]),
-                    self.distance_fn,
-                    self.score,
-                    [ e for e in self.article[0].vector ],
-                    [ e for e in self.article[1].vector ])
-"""
+            repr(self.article[0]), repr(self.article[1]),
+            self.distance_fn,
+            self.score)
 
 # Article
 
@@ -431,10 +411,8 @@ class NewspaperArticle(object):
         self.length = 0
         self._setup_quick_vars()
 
-
     def __radd__(self, other):
         return other + self.vector
-
 
     def __str__(self):
         """
@@ -446,8 +424,8 @@ class NewspaperArticle(object):
         return ' '.join(self)
 
     def __repr__(self):
-        return '"{0.title}"\n'\
-               '\tcategory: {0.category}\n'\
+        return '"{0.title}"\n' \
+               '\tcategory: {0.category}\n' \
                '\tvector:   {1}'.format(self, self.vector)
 
     def __iter__(self):
@@ -483,7 +461,7 @@ class QianArticle(NewspaperArticle):
     def _setup_quick_vars(self):
         category_dir = os.path.basename(os.path.dirname(self.path))
         self.category = category_dir.split('_')[-1]
- 
+
     def _setup_reader(self):
         soup = BeautifulSoup(open(self.path), 'html.parser')
         self.title = soup.doc.title.text
@@ -530,20 +508,21 @@ class ArticleSelector(object):
         """
         Base class for accessing articles within a given directory.
         """
+
         def __init__(self, dir):
             assert os.path.isdir(dir), \
-                   "Directory doesn't exist: {}".format(dir)
+                "Directory doesn't exist: {}".format(dir)
             self.stored_in = dir
 
         def retrieve(self):
             raise NotImplemented('.retrieve() method has not been implemented')
-
 
     class QianDataset(BaseDatasetAccessor):
         """
         Retrieve article files from the Qian CNN dataset located in a specified
         directory.
         """
+
         def retrieve(self):
             logger.info('Retrieving articles from within {}'.format(
                 self.stored_in))
@@ -557,10 +536,11 @@ class ArticleSelector(object):
                 for article_path in self._retrieve_from_category(abspath):
                     article = QianArticle(path=article_path)
                     if article:
-                        subcat_files.append( article )
+                        subcat_files.append(article)
                     else:
                         article.delete_from_dataset()
-                logger.info('Files within {0}: {1}'.format(category, len(subcat_files)))
+                logger.info(
+                    'Files within {0}: {1}'.format(category, len(subcat_files)))
                 articles.extend(subcat_files)
             return articles
 
@@ -568,7 +548,7 @@ class ArticleSelector(object):
             glob_path = os.path.join(category_directory, 'cnn_*.txt')
             files = []
             for filename in glob.glob(glob_path):
-                #logger.debug('\t -->  {}'.format(filename))
+                # logger.debug('\t -->  {}'.format(filename))
                 files.append(os.path.join(category_directory, filename))
             return files
 
@@ -578,11 +558,10 @@ class ArticleSelector(object):
     }
 
     def __init__(self, datasets):
-        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
-                       for file in datasets ]
-        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
-                           for k, size in file_sizes ]
-
+        file_sizes = [(file, os.stat(datasets[file] + '.zip').st_size)
+                      for file in datasets]
+        self.accessors = [ArticleSelector.article_accessor[size](datasets[k])
+                          for k, size in file_sizes]
 
     def get(self, count, randomize=True, archive_to=None):
         # evenly distribute articles selected from each located dataset
@@ -597,10 +576,10 @@ class ArticleSelector(object):
         if randomize:
             logger.debug('Random selection of {} articles'.format(count))
             try:
-              selected_articles = random.choices(articles, k=count)
+                selected_articles = random.choices(articles, k=count)
             except AttributeError:  # Python 3.6 is not installed
-              random.shuffle(articles)
-              selected_articles = articles[:count]
+                random.shuffle(articles)
+                selected_articles = articles[:count]
         else:
             logger.debug('Non-random selection of {} articles'.format(count))
             selected_articles = articles[:count]
@@ -608,7 +587,7 @@ class ArticleSelector(object):
         if archive_to:
             logger.debug('Copying files to {}'.format(archive_to))
             os.makedirs(archive_to, exist_ok=True)
-            [ shutil.copy(f.path, archive_to) for f in selected_articles ]
+            [shutil.copy(f.path, archive_to) for f in selected_articles]
             logger.debug('{} files copied'.format(len(selected_articles)))
 
         self._check_category_diversity(selected_articles)
@@ -636,9 +615,9 @@ def get_dataset_dir(dataset_dir):
 def get_datasets(indir):
     files = set()
     for dirpath, _, filenames in os.walk(indir):
-        files.update([ os.path.join(dirpath, f)
-                       for f in filenames
-                       if is_archive(f) ])
+        files.update([os.path.join(dirpath, f)
+                      for f in filenames
+                      if is_archive(f)])
     if not files:
         raise Exception(
             'Error loading datasets. Please download from this url:\n'
@@ -711,8 +690,6 @@ def relocate(new_files, to):
             os.rename(new_path, to)
 
 
-
-
 def setup_logger(args):
     logger.setLevel(logging.DEBUG)
     # create file handler which logs even debug messages
@@ -749,7 +726,7 @@ def get_arguments():
     # during development, I set default to False so I don't have to keep
     # calling this with -v
     parser.add_argument('-v', '--verbose', action='store_true',
-                        default=False, #default=__dev__,
+                        default=False,  # default=__dev__,
                         help='verbose output')
     parser.add_argument('-d', '--dataset-dir', dest='dataset_dir',
                         help='directory to download / to load datasets',
@@ -759,7 +736,7 @@ def get_arguments():
                         help='number of articles to select for analysis')
     parser.add_argument('-m', '--method', dest='method',
                         default='tf', choices=['tf', 'existence', 'tfidf'],
-                        help='matrix representation of matrix'\
+                        help='matrix representation of matrix' \
                              ' - i.e. tf, existence, tfidf')
     parser.add_argument('-D', '--distances', dest='distance_fns', nargs='+',
                         choices=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
@@ -774,10 +751,11 @@ def get_arguments():
         return directory_abs_path
 
     parser.add_argument('-a', '--archive-to', dest='cache_to',
-                        default=directory_in_cwd('cache'), type=directory_in_cwd,
+                        default=directory_in_cwd('cache'),
+                        type=directory_in_cwd,
                         help='cache newspaper articles to directory')
     parser.add_argument('-z', '--clean-up', dest='relocate_files_to',
-                        type=directory_in_cwd, 
+                        type=directory_in_cwd,
                         default=directory_in_cwd('results'),
                         help='delete files after execution (default: False)')
     parser.add_argument('-c', '--no-website', dest='website',
@@ -808,11 +786,10 @@ def website(data, args):
     def matrix_choices():
         return render_template('choices.html', num_articles=args.num_to_select)
 
-
-    @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
+    @app.route('/<matrix_type>/<int:n>',
+               defaults={'matrix_type': 'tf', 'n': 10})
     def similarities(matrix_type, n):
         return render_template('similarities.html', similarities=data)
-
 
     @app.route('/get/<filename>')
     def load_article(filename):
@@ -826,9 +803,9 @@ def load(args):
     no_pickle = args.no_pickle
     distance_fns = args.distance_fns
     if no_pickle:
-      data = None
+        data = None
     else:
-      data = from_pickle(n, distance_fns)
+        data = from_pickle(n, distance_fns)
 
     if data is None:
         data = process(n=n, method=args.method,
@@ -845,7 +822,7 @@ def from_pickle(n, fns):
     if not os.path.isfile(pfile):
         return None
     pkl = pickle.load(open(pfile, 'rb'))
-    data = { k: pkl[k] for k in fns }
+    data = {k: pkl[k] for k in fns}
     return data
 
 
