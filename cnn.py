@@ -154,7 +154,8 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     selected_articles = selector.get(n, randomize=randomize,
                                      archive_to=SELECTED_ARTICLE_ARCHIVE)
     CREATED_FILES.append(SELECTED_ARTICLE_ARCHIVE)
-    
+    # loading data ends
+    ###########################################################################
 
     # compute pairwise similarities between selected articles
     logger.info(hr('Pairwise Similarities'))
@@ -171,6 +172,9 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
                                                stopwords=stopwords)
     similarity_calculater.save_matrix_to(directory=DATA_DIR)
     similarity_calculater.save_aggregate_feature_counts(directory=DATA_DIR)
+    # preprocessing ends
+    ############################################################################
+
 
     data = {}
     for fn in distance_fns:
