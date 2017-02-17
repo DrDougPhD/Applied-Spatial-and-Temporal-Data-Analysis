@@ -47,9 +47,7 @@ import string
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-ENGLISH_STOP_WORDS = list(ENGLISH_STOP_WORDS).extend([
-  'said',
-])
+STOP_WORDS = ENGLISH_STOP_WORDS.union('new says time just like told cnn according did make way really dont going know said'.split())
 import shutil
 import subprocess
 import hashlib
@@ -60,7 +58,6 @@ import numpy
 from progressbar import ProgressBar
 import math
 import pickle
-
 
 def nCr(n,r):
     f = math.factorial
@@ -76,7 +73,7 @@ except:
 logger = logging.getLogger(__appname__)
 
 
-RANDOM_SEED = 0
+RANDOM_SEED = 1 # 0 was throwing a weird error
 random.seed(RANDOM_SEED)
 
 
@@ -96,14 +93,26 @@ PICKLED_RESULTS = os.path.join(DATA_DIR, 'pickled_seed{0}_{1}.p'.format(
 # note: jaccard from scipy is not jaccard similarity, but rather computing
 #  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
 def jaccard(u, v):
+    """
     def equal_nonzero(tup):
         s = sorted(tup)
         return s[0] != 0 and s[0] == s[1]
+    """
 
+    
+    # TODO: zip together using numpy
+    equal = (v == u)
+    are_zero = (u == 0)
+    equal_nonzero = (are_zero == False) * equal
+    both_zeros = equal * are_zero
+    results_not_zeros = (both_zeros == False)
+    return numpy.sum(equal_nonzero) / numpy.sum(results_not_zeros)
+    """
     z = list(zip(u, v))
     positive_results = map(equal_nonzero, z)
     non_zero_results = map(all, z)
     return sum(positive_results)/sum(non_zero_results)
+    """
 
 
 ACTIVATED_DISTANCE_FNS = [ distance.euclidean, jaccard, distance.cosine ]
@@ -111,7 +120,7 @@ ACTIVATED_DISTANCE_FNS = [ distance.euclidean, jaccard, distance.cosine ]
 CREATED_FILES = []
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
-            distance_fns=None, randomize=False, args=None):
+            distance_fns=None, randomize=True, args=None):
     # select the distance functions that will be used in this script
     if distance_fns is None:
         distance_fns = ACTIVATED_DISTANCE_FNS
@@ -146,14 +155,21 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
 
     # compute pairwise similarities between selected articles
     logger.info(hr('Pairwise Similarities'))
-    data = {}
-    similarity_calculater = PairwiseSimilarity(selected_articles,
-                                               method=method)
-    similarity_calculater.save_matrix_to(matrix_file=MATRIX_FILE_PATH,
-                                         features_file=FEATURES_FILE_PATH)
-    CREATED_FILES.append(MATRIX_FILE_PATH)
-    CREATED_FILES.append(FEATURES_FILE_PATH)
 
+    if args.no_stopwords:
+      logger.info('No stopwords will be used')
+      stopwords = frozenset([])
+    else:
+      logger.info('Using stopwords')
+      stopwords = STOP_WORDS
+
+    similarity_calculater = PairwiseSimilarity(selected_articles,
+                                               method=method,
+                                               stopwords=stopwords)
+    similarity_calculater.save_matrix_to(directory=DATA_DIR)
+    similarity_calculater.save_aggregate_feature_counts(directory=DATA_DIR)
+
+    data = {}
     for fn in distance_fns:
         logger.info(hr(fn.__name__, line_char='-'))
         similarities = similarity_calculater.pairwise_compare(
@@ -178,101 +194,12 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     return data
 
 
-def from_pickle(n):
-    pfile = PICKLED_RESULTS.format(num_items=n)
-    if not os.path.isfile(pfile):
-        return None
-
-    return pickle.load(open(pfile, 'rb'))
-
-
-
-class ArticleSelector(object):
-    """
-    Given a dataset of articles, select a subset for further processing.
-    Obtain the article's title, category, and plain text.
-    """
-
-    class BaseDatasetAccessor(object):
-        """
-        Base class for accessing articles within a given directory.
-        """
-        def __init__(self, dir):
-            assert os.path.isdir(dir), \
-                   "Directory doesn't exist: {}".format(dir)
-            self.stored_in = dir
-
-        def retrieve(self):
-            raise NotImplemented('.retrieve() method has not been implemented')
-
-
-    class QianDataset(BaseDatasetAccessor):
-        """
-        Retrieve article files from the Qian CNN dataset located in a specified
-        directory.
-        """
-        def retrieve(self):
-            logger.debug('Retrieving articles from within {}'.format(
-                self.stored_in))
-            article_categories_in = os.path.join(self.stored_in, 'Raw')
-            categories = os.listdir(article_categories_in)
-            logger.debug('Category directories: {}'.format(categories))
-            for category in categories:
-                abspath = os.path.join(article_categories_in, category)
-                for article_path in self._retrieve_from_category(abspath):
-                    yield QianArticle(path=article_path)
-
-        def _retrieve_from_category(self, category_directory):
-            glob_path = os.path.join(category_directory, 'cnn_*.txt')
-            for filename in glob.glob(glob_path):
-                #logger.debug('\t -->  {}'.format(filename))
-                yield os.path.join(category_directory, filename)
-
-    article_accessor = {
-        # access articles by the file's bytesize
-        136208660: lambda dir: ArticleSelector.QianDataset(dir),
-    }
-
-    def __init__(self, datasets):
-        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
-                       for file in datasets ]
-        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
-                           for k, size in file_sizes ]
-
-
-    def get(self, count, randomize=True, archive_to=None):
-        # evenly distribute articles selected from each located dataset
-        articles = []
-        for selector in self.accessors:
-            subset = selector.retrieve()
-            articles.extend(subset)
-            assert len(articles) > 0, 'No articles found for {}'.format(
-                selector.__class__.__name__)
-
-        # shuffle and truncate set to the specified size
-        if randomize:
-            logger.debug('Random selection of {} articles'.format(count))
-            try:
-              selected_articles = random.choices(articles, k=count)
-            except AttributeError:  # Python 3.6 is not installed
-              random.shuffle(articles)
-              selected_articles = articles[:count]
-        else:
-            logger.debug('Non-random selection of {} articles'.format(count))
-            selected_articles = articles[:count]
-
-        if archive_to:
-            logger.debug('Copying files to {}'.format(archive_to))
-            os.makedirs(archive_to, exist_ok=True)
-            [ shutil.copy(f.path, archive_to) for f in selected_articles ]
-            logger.debug('{} files copied'.format(len(selected_articles)))
-
-        return selected_articles
-
+# compare.py
 
 class PairwiseSimilarity(object):
-    def __init__(self, corpus, method):
+    def __init__(self, corpus, method, stopwords):
         self.corpus = corpus
+        self.method = method
 
         # specify method in which corpus is repr'd as matrix:
         #  1. an existence matrix (0 if token is abscent, 1 if present)
@@ -280,11 +207,11 @@ class PairwiseSimilarity(object):
         #  3. Tf-Idf matrix
         if method == 'tfidf':
             self.vectorizer = TfidfVectorizer(min_df=1,
-                                              stop_words=ENGLISH_STOP_WORDS)
+                                              stop_words=stopwords)
         else:
             # matrix will be converted to binary matrix further down
             self.vectorizer = CountVectorizer(min_df=1,
-                                              stop_words=ENGLISH_STOP_WORDS)
+                                              stop_words=stopwords)
 
         plain_text = [ str(document) for document in self.corpus ]
         self._matrix = self.vectorizer.fit_transform(plain_text)
@@ -293,7 +220,8 @@ class PairwiseSimilarity(object):
             doc = corpus[i]
             if method == 'existence':
                 # convert vector into a binary vector (only 0s and 1s)
-                vector = [ int(bool(e)) for e in vector ]
+                #vector = [ int(bool(e)) for e in vector ]
+                vector = (vector != 0).astype(int).toarray()[0]
             doc.vector = vector
 
         self.features = self.vectorizer.get_feature_names()
@@ -302,9 +230,10 @@ class PairwiseSimilarity(object):
     def pairwise_compare(self, by, save_to=None):
         progress = None
         i = 0
+        n = int(nCr(len(self.corpus), 2))
         if __name__ == '__main__':
             progress = ProgressBar(
-                max_value=nCr(len(self.corpus), 2))
+                max_value=n) 
 
         similarity_calculations = []
         for u,v in itertools.combinations(self.corpus, 2):
@@ -321,9 +250,15 @@ class PairwiseSimilarity(object):
         if progress:
             progress.finish()
 
+        # sort similarities by their normalized scores
+        similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
+
         if save_to:
-            similarities_file = os.path.join(save_to, '{distance}.tsv'.format(
-                  distance=by.__name__))
+            similarities_file = os.path.join(
+                 save_to,
+                 '{method}.{distance}.{n}.tsv'.format(distance=by.__name__,
+                                                      method=self.method,
+                                                      n=n))
             with open(similarities_file, 'w') as f:
                 CREATED_FILES.append(similarities_file)
 
@@ -374,23 +309,31 @@ class PairwiseSimilarity(object):
                                                          .score
                     ))
 
-        # sort similarities by their normalized scores
-        similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
         return similarity_calculations
 
-    def save_matrix_to(self, matrix_file, features_file):
+    def save_matrix_to(self, directory):
         logger.info('Saving TF matrix to file')
+        matrix_file = os.path.join(directory, self.method + '_matrix.csv')
+        CREATED_FILES.append(matrix_file)
         with open(matrix_file, 'w') as f:
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
             csvfile.writerows(self._matrix.toarray())
 
+
+    def save_aggregate_feature_counts(self, directory):
+        features_file = os.path.join(directory, 'aggregate_feature_counts.csv')
+        CREATED_FILES.append(features_file)
         with open(features_file, 'w') as counts_file:
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
 
             summed_vector = sum(self._matrix).toarray()[0]
-            csvfile.writerows(zip(self.features, summed_vector))
+            csvfile.writerows(sorted(
+              zip(self.features, summed_vector),
+              key=lambda e: e[1],
+              reverse=True,
+            ))
 
 
 # TODO: make class for distance functions and normalizing them
@@ -411,8 +354,11 @@ class ComparedArticles(object):
 
     class HighestCommonFeature(object):
         def __init__(self, articles, features, max_or_min=max):
-            summed_vector = sum([a.vector for a in articles])
-            i, score = max_or_min(enumerate(summed_vector),
+            u, v = map(lambda x: x.vector, articles)
+            # only sum up token occurrences for tokens that appear in both documents
+            shared_appearances = (u + v)*(u != 0)*(v != 0)
+            
+            (i,), score = max_or_min(numpy.ndenumerate(shared_appearances),
                                   key=lambda e: e[1])
             self.name = features[i]
             self.score = score
@@ -430,7 +376,7 @@ class ComparedArticles(object):
         # normalize the score based on the distance function used
         if self.distance_fn == 'euclidean':
             # [ 0, +inf ) --(flipped)-> ( 0, +inf ) -> ( 0, 1 ] --(flip)-> [ 0, 1 )
-            self.normalized = 1 - (1 / (self.score + 1))
+            self.normalized = 1 / (self.score + 1)
         elif self.distance_fn == 'cosine':
             # [ -1, 1 ] -> [ 0, 2 ] -> [ 0, 1 ]
             self.normalized = 1 - self.score
@@ -450,16 +396,33 @@ class ComparedArticles(object):
                     repr(self.article[0]), repr(self.article[1]),
                     self.distance_fn,
                     self.score)
+"""        return '{0}\n'\
+               '{4}\n'\
+               'vs.\n'\
+               '{1}\n'\
+               '{5}\n'\
+               '== SCORE ({2}): {3}'.format(
+                    repr(self.article[0]), repr(self.article[1]),
+                    self.distance_fn,
+                    self.score,
+                    [ e for e in self.article[0].vector ],
+                    [ e for e in self.article[1].vector ])
+"""
 
+# Article
 
 class NewspaperArticle(object):
     def __init__(self, path):
         assert os.path.isfile(path), 'File not found: {}'.format(path)
         self.path = path
+        self.filename = os.path.basename(path)
         self.title = None
         self.abstract = None
         self.category = None
         self.vector = None
+        self.text = None
+        self.length = 0
+        self._setup_quick_vars()
 
 
     def __radd__(self, other):
@@ -485,25 +448,40 @@ class NewspaperArticle(object):
         Iterate through each word in this article.
         :return: string Next word in the article.
         """
+        self._setup_reader()
         logger.debug(hr(
             title='Parsing through {}'.format(os.path.basename(self.path)),
             line_char='-'
         ))
-        self._setup_reader()
         for w in self._next_word():
+            self.length += 1
             yield w
+
+    def __bool__(self):
+        # load file
+        self._setup_reader()
+        return bool(self.text.strip())
+
+    def delete_from_dataset(self):
+        logger.warning('Deleting empty file: {}'.format(self.path))
+        os.remove(self.path)
+
+    def __len__(self):
+        return self.length
 
 
 class QianArticle(NewspaperArticle):
     punctuation_remover = str.maketrans('', '', string.punctuation)
 
+    def _setup_quick_vars(self):
+        category_dir = os.path.basename(os.path.dirname(self.path))
+        self.category = category_dir.split('_')[-1]
+ 
     def _setup_reader(self):
         soup = BeautifulSoup(open(self.path), 'html.parser')
         self.title = soup.doc.title.text
         self.abstract = soup.doc.abstract.text
         self.text = soup.doc.find('text').text
-        category_dir = os.path.basename(os.path.dirname(self.path))
-        self.category = category_dir.split('_')[-1]
 
     def _next_word(self):
         for line in self.text.split('\n'):
@@ -531,6 +509,110 @@ class QianArticle(NewspaperArticle):
             return True
 
         return False
+
+
+# Dataset accessing
+
+class ArticleSelector(object):
+    """
+    Given a dataset of articles, select a subset for further processing.
+    Obtain the article's title, category, and plain text.
+    """
+
+    class BaseDatasetAccessor(object):
+        """
+        Base class for accessing articles within a given directory.
+        """
+        def __init__(self, dir):
+            assert os.path.isdir(dir), \
+                   "Directory doesn't exist: {}".format(dir)
+            self.stored_in = dir
+
+        def retrieve(self):
+            raise NotImplemented('.retrieve() method has not been implemented')
+
+
+    class QianDataset(BaseDatasetAccessor):
+        """
+        Retrieve article files from the Qian CNN dataset located in a specified
+        directory.
+        """
+        def retrieve(self):
+            logger.info('Retrieving articles from within {}'.format(
+                self.stored_in))
+            article_categories_in = os.path.join(self.stored_in, 'Raw')
+            categories = os.listdir(article_categories_in)
+            logger.info('Category directories: {}'.format(categories))
+            articles = []
+            for category in categories:
+                subcat_files = []
+                abspath = os.path.join(article_categories_in, category)
+                for article_path in self._retrieve_from_category(abspath):
+                    article = QianArticle(path=article_path)
+                    if article:
+                        subcat_files.append( article )
+                    else:
+                        article.delete_from_dataset()
+                logger.info('Files within {0}: {1}'.format(category, len(subcat_files)))
+                articles.extend(subcat_files)
+            return articles
+
+        def _retrieve_from_category(self, category_directory):
+            glob_path = os.path.join(category_directory, 'cnn_*.txt')
+            files = []
+            for filename in glob.glob(glob_path):
+                #logger.debug('\t -->  {}'.format(filename))
+                files.append(os.path.join(category_directory, filename))
+            return files
+
+    article_accessor = {
+        # access articles by the file's bytesize
+        136208660: lambda dir: ArticleSelector.QianDataset(dir),
+    }
+
+    def __init__(self, datasets):
+        file_sizes = [ (file, os.stat(datasets[file]+'.zip').st_size)
+                       for file in datasets ]
+        self.accessors = [ ArticleSelector.article_accessor[size](datasets[k])
+                           for k, size in file_sizes ]
+
+
+    def get(self, count, randomize=True, archive_to=None):
+        # evenly distribute articles selected from each located dataset
+        articles = []
+        for selector in self.accessors:
+            subset = selector.retrieve()
+            articles.extend(subset)
+            assert len(articles) > 0, 'No articles found for {}'.format(
+                selector.__class__.__name__)
+
+        # shuffle and truncate set to the specified size
+        if randomize:
+            logger.debug('Random selection of {} articles'.format(count))
+            try:
+              selected_articles = random.choices(articles, k=count)
+            except AttributeError:  # Python 3.6 is not installed
+              random.shuffle(articles)
+              selected_articles = articles[:count]
+        else:
+            logger.debug('Non-random selection of {} articles'.format(count))
+            selected_articles = articles[:count]
+
+        if archive_to:
+            logger.debug('Copying files to {}'.format(archive_to))
+            os.makedirs(archive_to, exist_ok=True)
+            [ shutil.copy(f.path, archive_to) for f in selected_articles ]
+            logger.debug('{} files copied'.format(len(selected_articles)))
+
+        self._check_category_diversity(selected_articles)
+
+        return selected_articles
+
+    def _check_category_diversity(self, selected_articles):
+        categories = set()
+        for a in selected_articles:
+            categories.add(a.category)
+        logger.info('Categories chosen: {}'.format(categories))
 
 
 def get_dataset_dir(dataset_dir):
@@ -622,53 +704,6 @@ def relocate(new_files, to):
             os.rename(new_path, to)
 
 
-def retrieve(articles, cache_in):
-    """
-    for article in articles:
-        yield retrieve_article(article, cache)
-    """
-    logger.debug('Retrieving articles, either from website or cache')
-    text = ''
-    url = ''
-    retrieved_article_count = 0
-    for article in articles:
-        text = retrieve_article(article, cache_in)
-        url = article.url
-        retrieved_article_count += 1
-        break
-    logger.debug('Retrieved {count} article{plural}'.format(
-            count=retrieved_article_count,
-            plural='s' if retrieved_article_count > 1 else ''))
-    return text, url
-
-
-def retrieve_article(article, cached_in=None):
-    logger.debug('Accessing {}'.format(article.url))
-    md5 = hashlib.md5()
-    md5.update(article.url.encode('utf-8'))
-    filename = '{hash}.txt'.format(h.hexdigest())
-    filepath = os.path.join(filename)
-
-    txt = ''
-    if os.path.isfile(filepath):
-        with open(filepath) as f:
-            txt = f.read()
-        logger.debug('Cached at {}'.format(filepath))
-        
-
-    else:
-        logger.debug('Cache not found. Downloading article')
-        article.download()
-        article.parse()
-        article.nlp()
-
-        with open(filepath, 'w') as f:
-            txt = article.text
-            f.write(txt)
-        logger.debug('Caching to {}'.format(filepath))
-
-    return txt
-
 
 
 def setup_logger(args):
@@ -737,15 +772,76 @@ def get_arguments():
                         type=directory_in_cwd, 
                         default=directory_in_cwd('results'),
                         help='delete files after execution (default: False)')
+    parser.add_argument('-c', '--no-website', dest='website',
+                        action='store_false', default=True,
+                        help='specify if the website should not be run')
+    parser.add_argument('-f', '--force-recompute', dest='no_pickle',
+                        action='store_true', default=False,
+                        help='force recomputing corpus w/o using pickle')
+    parser.add_argument('-s', '--no-stop-words', dest='no_stopwords',
+                        action='store_true', default=False,
+                        help='perform analysis without using stopwords (default: use stopwords)')
 
     args = parser.parse_args()
     return args
 
 
+def website(data, args):
+    from flask import Flask
+    app = Flask(__name__, static_url_path='')
+
+    from flask import render_template
+    from flask import send_from_directory
+
+    @app.route('/')
+    def matrix_choices():
+        return render_template('choices.html', num_articles=args.num_to_select)
+
+
+    @app.route('/<matrix_type>/<int:n>', defaults={'matrix_type': 'tf', 'n': 10})
+    def similarities(matrix_type, n):
+        return render_template('similarities.html', similarities=data)
+
+
+    @app.route('/get/<filename>')
+    def load_article(filename):
+        return send_from_directory('results/articles', filename)
+
+    app.run()
+
+
+def load(args):
+    n = args.num_to_select
+    no_pickle = args.no_pickle
+    distance_fns = args.distance_fns
+    if no_pickle:
+      data = None
+    else:
+      data = from_pickle(n, distance_fns)
+
+    if data is None:
+        data = process(n=n, method=args.method,
+                       dataset_dir=args.dataset_dir,
+                       distance_fns=distance_fns,
+                       args=args)
+    else:
+        logger.info('Data loaded from pickle')
+    return data
+
+
+def from_pickle(n, fns):
+    pfile = PICKLED_RESULTS.format(num_items=n)
+    if not os.path.isfile(pfile):
+        return None
+    pkl = pickle.load(open(pfile, 'rb'))
+    data = { k: pkl[k] for k in fns }
+    return data
+
+
 def main(args):
-    process(n=args.num_to_select, method=args.method,
-            dataset_dir=args.dataset_dir, distance_fns=args.distance_fns,
-            args=args)
+    data = load(args)
+    if args.website:
+        website(data, args)
 
 
 if __name__ == '__main__':
