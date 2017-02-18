@@ -2,6 +2,7 @@ import os
 import logging
 import subprocess
 import shutil
+import pickle
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -12,6 +13,17 @@ IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
 logger = logging.getLogger(__name__)
+
+
+def from_pickle(n, fns, pickle_filename_fmt):
+    pfile = pickle_filename_fmt.format(num_items=n)
+    if not os.path.isfile(pfile):
+        return None
+    pkl = pickle.load(open(pfile, 'rb'))
+    data = {k: pkl[k] for k in fns}
+    return data
+
+
 
 
 def get_dataset_dir(dataset_dir):
