@@ -13,7 +13,7 @@ try:  # this is my own package, but it might not be present
 except:
     hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('cnn.'+__name__)
 
 CREATED_FILES = []
 

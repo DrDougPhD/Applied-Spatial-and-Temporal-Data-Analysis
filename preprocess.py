@@ -1,12 +1,13 @@
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
-
 import logging
 
 from processing import PairwiseSimilarity
 
 STOP_WORDS = ENGLISH_STOP_WORDS.union(
-    'new says time just like told cnn according did make way really dont going know said'.split())
-logger = logging.getLogger(__name__)
+    'new says time just like told cnn according did make way really'
+    ' dont going know said'.split())
+logger = logging.getLogger('cnn.'+__name__)
+
 
 def execute(corpus, exclude_stopwords, method):
     if exclude_stopwords:

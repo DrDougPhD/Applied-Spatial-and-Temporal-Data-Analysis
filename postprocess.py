@@ -2,7 +2,7 @@ import logging
 import os
 import shutil
 import pickle
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('cnn.'+__name__)
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr

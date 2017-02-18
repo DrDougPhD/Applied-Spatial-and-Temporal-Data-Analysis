@@ -113,8 +113,7 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
                          store_in=DATA_DIR)
 
     # Postprocessing
-    postprocess.these(data=data,
-                      n=n,
+    postprocess.these(data=data, n=n,
                       file_relocation=args.relocate_files_to,
                       files=CREATED_FILES,
                       pickle_to=PICKLED_RESULTS)

@@ -12,7 +12,8 @@ except:
 IMPLEMENTED_ARCHIVE_EXTENSIONS = ['zip', 'tgz']
 EXTRACTOR_SCRIPT_SOURCE = 'http://askubuntu.com/a/338759'
 EXTRACTOR_SCRIPT = 'extract.sh'
-logger = logging.getLogger(__name__)
+print(hr(__name__))
+logger = logging.getLogger('cnn.'+__name__)
 
 
 def from_pickle(n, fns, pickle_filename_fmt):

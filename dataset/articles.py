@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 DATA_DIR = os.path.join('..', 'data')
 SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('cnn.'+__name__)
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
