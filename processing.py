@@ -1,25 +1,20 @@
+import logging
+from progressbar import ProgressBar
+import os
+
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import math
-import logging
-from progressbar import ProgressBar
 import numpy
 import itertools
 import os
 import csv
 from scipy.spatial import distance
-try:  # this is my own package, but it might not be present
-    from lib.lineheaderpadded import hr
-except:
-    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
+from lib.lineheaderpadded import hr
 
 logger = logging.getLogger('cnn.'+__name__)
 
-CREATED_FILES = []
 
-
-# note: jaccard from scipy is not jaccard similarity, but rather computing
-#  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
 def jaccard(u, v):
     equal = (v == u)
     are_zero = (u == 0)
@@ -51,6 +46,7 @@ def go(calc, funcs, store_in):
 def nCr(n, r):
     f = math.factorial
     return f(n) / f(r) / f(n - r)
+
 
 class PairwiseSimilarity(object):
     def __init__(self, corpus, method, stopwords):
@@ -113,8 +109,6 @@ class PairwiseSimilarity(object):
                                                      method=self.method,
                                                      n=n))
             with open(similarities_file, 'w') as f:
-                CREATED_FILES.append(similarities_file)
-
                 # find the length of the feature which occurs most commonly in
                 # both articles. for pretty printing
                 highest_feat_max_len_obj = max(
@@ -167,7 +161,6 @@ class PairwiseSimilarity(object):
     def save_matrix_to(self, directory):
         logger.info('Saving TF matrix to file')
         matrix_file = os.path.join(directory, self.method + '_matrix.csv')
-        CREATED_FILES.append(matrix_file)
         with open(matrix_file, 'w') as f:
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
@@ -175,7 +168,6 @@ class PairwiseSimilarity(object):
 
     def save_aggregate_feature_counts(self, directory):
         features_file = os.path.join(directory, 'aggregate_feature_counts.csv')
-        CREATED_FILES.append(features_file)
         with open(features_file, 'w') as counts_file:
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
