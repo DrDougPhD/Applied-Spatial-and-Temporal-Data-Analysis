@@ -47,13 +47,12 @@ import shutil
 
 import pickle
 
-from progressbar import ProgressBar
-
 # Custom modules
 import plots
 import dataset
 import preprocess
 import processing
+import postprocess
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -109,21 +108,12 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
                          funcs=distance_fns,
                          store_in=DATA_DIR)
 
+    postprocess.these(data=data,
+                      n=n,
+                      file_relocation=args.relocate_files_to,
+                      files=CREATED_FILES,
+                      pickle_to=PICKLED_RESULTS)
 
-    if args and args.relocate_files_to:
-        logger.debug(hr('Relocating Created Files'))
-        logger.debug('Storing files in {}'.format(args.relocate_files_to))
-        for f in CREATED_FILES:
-            logger.debug(f)
-            filename = os.path.basename(f)
-            dst = os.path.join(args.relocate_files_to, filename)
-            if os.path.isdir(dst):
-                shutil.rmtree(dst)
-            # shutil.copy(f, args.relocate_files_to)
-            os.rename(f, os.path.join(args.relocate_files_to, filename))
-
-    # pickle the data
-    pickle.dump(data, open(PICKLED_RESULTS.format(num_items=n), 'wb'))
     return data
 
 
