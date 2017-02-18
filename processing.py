@@ -84,27 +84,24 @@ class PairwiseSimilarity(object):
         logger.info('{} unique tokens'.format(len(self.features)))
 
     def pairwise_compare(self, by, save_to=None):
-        progress = None
         i = 0
         n = int(nCr(len(self.corpus), 2))
-        if __name__ == '__main__':
-            progress = ProgressBar(
-                max_value=n)
+
+        progress = ProgressBar(
+            max_value=n)
 
         similarity_calculations = []
         for u, v in itertools.combinations(self.corpus, 2):
 
-            if progress:
-                progress.update(i)
-                i += 1
+            progress.update(i)
+            i += 1
 
             comparison = ComparedArticles(u, v, by, self.features)
             logger.debug(comparison)
             logger.debug('-' * 80)
             similarity_calculations.append(comparison)
 
-        if progress:
-            progress.finish()
+        progress.finish()
 
         # sort similarities by their normalized scores
         similarity_calculations.sort(key=lambda c: c.normalized, reverse=True)
