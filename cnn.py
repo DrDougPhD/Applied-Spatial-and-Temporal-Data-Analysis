@@ -40,21 +40,14 @@ import os
 import random
 import sys
 from datetime import datetime
-
-from scipy.spatial import distance
-import numpy
-import shutil
-
-import pickle
-
-# Custom modules
 import plots
 import dataset
 import preprocess
 import processing
 import postprocess
+import website
 
-try:  # this is my own package, but it might not be present
+try:
     from lib.lineheaderpadded import hr
 except:
     hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
@@ -71,48 +64,64 @@ FEATURES_FILE_PATH = os.path.join(DATA_DIR, 'feature_counts.csv')
 PICKLED_RESULTS = os.path.join(DATA_DIR, 'pickled_seed{0}_{1}.p'.format(
     RANDOM_SEED, '{num_items}'))
 
-
-# note: jaccard from scipy is not jaccard similarity, but rather computing
-#  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
-def jaccard(u, v):
-    equal = (v == u)
-    are_zero = (u == 0)
-    equal_nonzero = (are_zero == False) * equal
-    both_zeros = equal * are_zero
-    results_not_zeros = (both_zeros == False)
-    return numpy.sum(equal_nonzero) / numpy.sum(results_not_zeros)
-
-ACTIVATED_DISTANCE_FNS = [distance.euclidean, jaccard, distance.cosine]
-
 CREATED_FILES = []
+
+
+
+def main(args):
+    data = load(args)
+    if args.website:
+        website.run(data, args)
+
+
+def load(args):
+    n = args.num_to_select
+    no_pickle = args.no_pickle
+    distance_fns = args.distance_fns
+    if no_pickle:
+        data = None
+    else:
+        data = dataset.load.from_pickle(n, distance_fns, PICKLED_RESULTS)
+
+    if data is None:
+        data = process(n=n, method=args.method,
+                       dataset_dir=args.dataset_dir,
+                       distance_fns=distance_fns,
+                       args=args)
+    else:
+        logger.info('Data loaded from pickle')
+    return data
 
 
 def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
             distance_fns=None, randomize=True, args=None):
+    # Load data
     selected_articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
-    # loading data ends
-    ###########################################################################
 
-    # compute pairwise similarities between selected articles
+    # Preprocess
     logger.info(hr('Pairwise Similarities'))
     similarity_calculator = preprocess.execute(corpus=selected_articles,
                                                exclude_stopwords=args.no_stopwords,
                                                method=method)
     similarity_calculator.save_matrix_to(directory=DATA_DIR)
     similarity_calculator.save_aggregate_feature_counts(directory=DATA_DIR)
-    # preprocessing ends
-    ############################################################################
 
+    # Process
     data = processing.go(calc=similarity_calculator,
                          funcs=distance_fns,
                          store_in=DATA_DIR)
 
+    # Postprocessing
     postprocess.these(data=data,
                       n=n,
                       file_relocation=args.relocate_files_to,
                       files=CREATED_FILES,
                       pickle_to=PICKLED_RESULTS)
+
+    # Plotting
+    if args.plot_results:
+        plots.store_to(directory=DATA_DIR, data=data)
 
     return data
 
@@ -165,9 +174,11 @@ def get_arguments():
                         default='tf', choices=['tf', 'existence', 'tfidf'],
                         help='matrix representation of matrix' \
                              ' - i.e. tf, existence, tfidf')
+
+    function_choices = [fn.__name__ for fn in processing.ACTIVATED_DISTANCE_FNS]
     parser.add_argument('-D', '--distances', dest='distance_fns', nargs='+',
-                        choices=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
-                        default=[fn.__name__ for fn in ACTIVATED_DISTANCE_FNS],
+                        choices=function_choices,
+                        default=function_choices,
                         help='distance functions to use (select 1 or more)')
 
     def directory_in_cwd(directory, create=True):
@@ -200,66 +211,6 @@ def get_arguments():
 
     args = parser.parse_args()
     return args
-
-
-def website(data, args):
-    from flask import Flask
-    app = Flask(__name__, static_url_path='')
-
-    from flask import render_template
-    from flask import send_from_directory
-
-    @app.route('/')
-    def matrix_choices():
-        return render_template('choices.html', num_articles=args.num_to_select)
-
-    @app.route('/<matrix_type>/<int:n>',
-               defaults={'matrix_type': 'tf', 'n': 10})
-    def similarities(matrix_type, n):
-        return render_template('similarities.html', similarities=data)
-
-    @app.route('/get/<filename>')
-    def load_article(filename):
-        return send_from_directory('results/articles', filename)
-
-    app.run()
-
-
-def load(args):
-    n = args.num_to_select
-    no_pickle = args.no_pickle
-    distance_fns = args.distance_fns
-    if no_pickle:
-        data = None
-    else:
-        data = from_pickle(n, distance_fns)
-
-    if data is None:
-        data = process(n=n, method=args.method,
-                       dataset_dir=args.dataset_dir,
-                       distance_fns=distance_fns,
-                       args=args)
-    else:
-        logger.info('Data loaded from pickle')
-    return data
-
-
-def from_pickle(n, fns):
-    pfile = PICKLED_RESULTS.format(num_items=n)
-    if not os.path.isfile(pfile):
-        return None
-    pkl = pickle.load(open(pfile, 'rb'))
-    data = {k: pkl[k] for k in fns}
-    return data
-
-
-def main(args):
-    data = load(args)
-    if args.plot_results:
-        plots.store_to(directory=DATA_DIR, data=data)
-
-    elif args.website:
-        website(data, args)
 
 
 if __name__ == '__main__':
