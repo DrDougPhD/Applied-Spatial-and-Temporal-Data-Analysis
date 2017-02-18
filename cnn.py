@@ -53,7 +53,7 @@ from progressbar import ProgressBar
 import plots
 import dataset
 import preprocess
-
+import processing
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -105,19 +105,10 @@ def process(n=10, dataset_dir=DEFAULT_DATASET_DIR, method='tf',
     # preprocessing ends
     ############################################################################
 
-    # select the distance functions that will be used in this script
-    if distance_fns is None:
-        distance_fns = ACTIVATED_DISTANCE_FNS
-    else:
-        distance_fns = [fn for fn in ACTIVATED_DISTANCE_FNS
-                        if fn.__name__ in distance_fns]
+    data = processing.go(calc=similarity_calculator,
+                         funcs=distance_fns,
+                         store_in=DATA_DIR)
 
-    data = {}
-    for fn in distance_fns:
-        logger.info(hr(fn.__name__, line_char='-'))
-        similarities = similarity_calculator.pairwise_compare(
-            by=fn, save_to=DATA_DIR)
-        data[fn.__name__] = similarities
 
     if args and args.relocate_files_to:
         logger.debug(hr('Relocating Created Files'))

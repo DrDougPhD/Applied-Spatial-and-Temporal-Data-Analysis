@@ -7,10 +7,46 @@ import numpy
 import itertools
 import os
 import csv
+from scipy.spatial import distance
+try:  # this is my own package, but it might not be present
+    from lib.lineheaderpadded import hr
+except:
+    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 
 logger = logging.getLogger(__name__)
 
 CREATED_FILES = []
+
+
+# note: jaccard from scipy is not jaccard similarity, but rather computing
+#  the jaccard dissimilarity! i.e. numerator is cTF+cFT, not cTT
+def jaccard(u, v):
+    equal = (v == u)
+    are_zero = (u == 0)
+    equal_nonzero = (are_zero == False) * equal
+    both_zeros = equal * are_zero
+    results_not_zeros = (both_zeros == False)
+    return numpy.sum(equal_nonzero) / numpy.sum(results_not_zeros)
+
+ACTIVATED_DISTANCE_FNS = [distance.euclidean, jaccard, distance.cosine]
+
+
+def go(calc, funcs, store_in):
+    if funcs is None:
+        distance_fns = ACTIVATED_DISTANCE_FNS
+    else:
+        distance_fns = [fn for fn in ACTIVATED_DISTANCE_FNS
+                        if fn.__name__ in funcs]
+
+    data = {}
+    for fn in distance_fns:
+        logger.info(hr(fn.__name__, line_char='-'))
+        similarities = calc.pairwise_compare(
+            by=fn, save_to=store_in)
+        data[fn.__name__] = similarities
+
+    return data
+
 
 def nCr(n, r):
     f = math.factorial
