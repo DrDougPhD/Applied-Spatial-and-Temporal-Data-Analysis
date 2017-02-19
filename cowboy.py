@@ -10,7 +10,7 @@ def setup_logger(name):
     # create console handler with a higher log level
     ch = logging.StreamHandler()
 
-    ch.setLevel(logging.DEBUG)
+    ch.setLevel(logging.INFO)
 
     # create formatter and add it to the handlers
     fh.setFormatter(logging.Formatter(
@@ -28,7 +28,10 @@ def setup_logger(name):
     return logger
 logger = setup_logger('cnn')
 
-
+try:
+    from lib.lineheaderpadded import hr
+except:
+    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 from sklearn import tree
 import pydotplus
 
@@ -65,6 +68,7 @@ import preprocess
 from experiments import tree
 from experiments import knn
 import experiments.knn.utils as knn_utils
+from experiments.knn import plot
 from scipy.spatial import distance
 from processing import jaccard
 
@@ -80,18 +84,16 @@ class Homework2Experiments(object):
 
     def __init__(self, n, dataset_dir, randomize=True, method='tf'):
         # load data
-        logger.debug('Looking for datasets in {}'.format(dataset_dir))
+        logger.info('Looking for datasets in {}'.format(dataset_dir))
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
+
         # preprocess
         self.vectorizers = {
             'tf': 'Term Frequency',
             #'existence': 'Existence',
             'tfidf': 'TF-IDF'
         }
-        # self.corpus = preprocess.execute(corpus=self.articles,
-        #                                  exclude_stopwords=True,
-        #                                  method=method)
         self.corpus_by_vectorizer = {
             self.vectorizers[k]: preprocess.execute(corpus=self.articles,
                                                exclude_stopwords=True,
@@ -101,22 +103,28 @@ class Homework2Experiments(object):
         self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
     def run(self):
+        logger.info(hr('Beginning Experiments'))
         self.decision_tree()
         self.knn()
 
     def decision_tree(self):
+        logger.info(hr('Decision Tree', '-'))
         tree.run(k=5, corpus=self.corpus)
 
     def knn(self):
+        logger.info(hr('k-Nearest Neighbors', '-'))
         # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
         experiment = knn.experiment.Experiment(
             cross_validation_n=5,
             vote_weight=knn_utils.inverse_squared,
             corpus_series=self.corpus_by_vectorizer)
-        selected_corpus_type = self.vectorizers['tf']
-        experiment.run(xvals=range(1, 3), series=selected_corpus_type,
-                       variation=distance.cosine)
+
+        for corpus_key in self.vectorizers:
+            selected_corpus_type = self.vectorizers[corpus_key]
+            experiment.run(xvals=range(1, 3), series=selected_corpus_type,
+                           variation=distance.cosine)
+        plot.draw(experiment)
 
     def archive(self):
         # news articles

@@ -1,7 +1,10 @@
 import logging
 from progressbar import ProgressBar
-import os
 
+try:
+    from lib.lineheaderpadded import hr
+except:
+    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.feature_extraction.text import TfidfVectorizer
 import math
@@ -154,6 +157,7 @@ class CorpusPartition(object):
 
 class PairwiseSimilarity(object):
     def __init__(self, corpus, method, stopwords):
+        logger.info(hr('Preprocessing to {} matrix'.format(method)))
         self.corpus = corpus
         self.method = method
 

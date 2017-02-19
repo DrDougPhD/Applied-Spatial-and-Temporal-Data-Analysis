@@ -13,10 +13,10 @@ class LoggingObject(object):
         self.logger = logging.getLogger(name)
 
     def debug(self, msg):
-        print('DEBUG: {}'.format(msg))
+        self.logger.debug(msg)
 
     def info(self, msg):
-        print('INFO:  {}'.format(msg))
+        self.logger.info(msg)
 
 
 class OptimalKNNbyDistanceMetric(lines.Line2D):
@@ -93,6 +93,7 @@ class ExperimentFigure(LoggingObject):
 
 class AccuracyLine(LoggingObject):
     def __init__(self, results):
+        super(AccuracyLine, self).__init__()
         self.results = results
 
         self.line = lines.Line2D(xdata=results.x,
@@ -187,18 +188,17 @@ class ExperimentDummy(LoggingObject):
 
 
 def draw(experiment):
-    vectorizer_types = ['Existence', 'Term Frequency', 'TF-IDF']
-    fig, verticle_axes = plt.subplots(len(vectorizer_types),
+    print('#'*80)
+    print(len(experiment.series))
+    fig, verticle_axes = plt.subplots(len(experiment.series),
                                       sharex=True,
                                       sharey=True)
     window = ExperimentFigure(fig)
 
-    for axes, vectorizer_type in zip(verticle_axes, vectorizer_types):
-        subplot = PlotAccuracyFromK(
-            axes,
-            label=experiment.get_vectorizer_type())
+    for axes, vectorizer_type in zip(verticle_axes, experiment.series):
+        subplot = PlotAccuracyFromK(axes, label=vectorizer_type)
 
-        for distance_metric in ['cosine', 'jaccard', 'eudlidean']:
+        for distance_metric in experiment.variations:
             l = AccuracyLine(experiment.get_results_for(
                 series=vectorizer_type,
                 variation=distance_metric))
