@@ -4,6 +4,8 @@ from sklearn.neighbors import KNeighborsClassifier
 import numpy
 import processing
 
+from . import experiment
+
 def run(k_neighbors, k_fold, corpus, distance_fn, vote_weights):
     accuracies = []
     partitioner = processing.CrossValidation(k=k_fold, dataset=corpus)
@@ -18,10 +20,10 @@ def run(k_neighbors, k_fold, corpus, distance_fn, vote_weights):
         logger.info('Predicting scores')
         successes = 0
         for m, label in testing:
-            logger.debug('-'*80)
-            logger.debug('Testing matrix:')
-            logger.debug(m)
-            logger.debug(type(m))
+            # logger.debug('-'*80)
+            # logger.debug('Testing matrix:')
+            # logger.debug(m)
+            # logger.debug(type(m))
             predicted = clf.predict(m)
             if predicted == label:
                 successes += 1
@@ -36,21 +38,6 @@ def run(k_neighbors, k_fold, corpus, distance_fn, vote_weights):
     logger.debug('-'*120)
 
 
-def inverse_squared(distances):
-    if 0. in distances:
-        return distances == 0
-
-    return 1 / numpy.square(distances)
-
-class Experiment(object):
-    def __init__(self):
-        pass
-
-    def run(self):
-        pass
-
-    def plot(self):
-        pass
 
 
 """
