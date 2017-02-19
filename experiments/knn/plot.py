@@ -9,6 +9,9 @@ from matplotlib.figure import Figure
 
 import logging
 class LoggingObject(object):
+    def __init__(self, name=__name__):
+        self.logger = logging.getLogger(name)
+
     def debug(self, msg):
         print('DEBUG: {}'.format(msg))
 
@@ -183,10 +186,7 @@ class ExperimentDummy(LoggingObject):
         )
 
 
-if __name__ == '__main__':
-
-    experiment = ExperimentDummy('Term Frequency', 'cosine')
-
+def draw(experiment):
     vectorizer_types = ['Existence', 'Term Frequency', 'TF-IDF']
     fig, verticle_axes = plt.subplots(len(vectorizer_types),
                                       sharex=True,
@@ -200,10 +200,19 @@ if __name__ == '__main__':
 
         for distance_metric in ['cosine', 'jaccard', 'eudlidean']:
             l = AccuracyLine(experiment.get_results_for(
-                vectorizer=vectorizer_type,
-                distance=distance_metric))
+                series=vectorizer_type,
+                variation=distance_metric))
             l.trigger_confidence_boxes(with_outliers=True)
             subplot.add_line(l)
+
+    plt.tight_layout(h_pad=1.0)
+    plt.show()
+
+
+if __name__ == '__main__':
+    experiment = ExperimentDummy('Term Frequency', 'cosine')
+    draw(experiment)
+
 
     # fig, verticle_axes = plt.subplots(3, sharex=True)
     # cosine = AccuracyLine(experiment.get_results_for(
@@ -259,6 +268,3 @@ if __name__ == '__main__':
 
     axes.add_line(line)
     """
-
-    plt.tight_layout(h_pad=1.0)
-    plt.show()
