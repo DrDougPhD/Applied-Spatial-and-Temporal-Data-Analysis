@@ -35,11 +35,22 @@ def run(k_neighbors, k_fold, corpus, distance_fn, vote_weights):
     logger.info('Accuracy: {0} -- {1}'.format(average_accuracy, accuracies))
     logger.debug('-'*120)
 
+
 def inverse_squared(distances):
     if 0. in distances:
         return distances == 0
 
     return 1 / numpy.square(distances)
+
+class Experiment(object):
+    def __init__(self):
+        pass
+
+    def run(self):
+        pass
+
+    def plot(self):
+        pass
 
 
 """
