@@ -49,7 +49,7 @@ class Experiment(LoggingObject):
         self.info('Experiments finished')
         result = ExperimentResults(xvals=numpy.asarray(xvals),
                                    yvals=average_accuracies,
-                                   label=variation)
+                                   label=variation_label)
 
         self.results[series][variation_label] = result
 
@@ -95,7 +95,8 @@ class Experiment(LoggingObject):
 
         average_accuracy = numpy.mean(accuracies)
 
-        logger.info('Accuracy: {0} -- {1}'.format(average_accuracy, accuracies))
+        logger.info('Accuracy: {0} -- {1}'.format(average_accuracy,
+                                                  accuracies))
         logger.debug('-' * 120)
         return average_accuracy
 

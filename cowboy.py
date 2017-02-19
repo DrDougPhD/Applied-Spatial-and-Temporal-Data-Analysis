@@ -10,7 +10,7 @@ def setup_logger(name):
     # create console handler with a higher log level
     ch = logging.StreamHandler()
 
-    ch.setLevel(logging.INFO)
+    ch.setLevel(logging.DEBUG)
 
     # create formatter and add it to the handlers
     fh.setFormatter(logging.Formatter(
@@ -74,11 +74,11 @@ from processing import jaccard
 
 class Homework2Experiments(object):
     distances = ['euclidean',
-                 'manhattan',
-                 'chebyshev',
-                 'hamming',
-                 'canberra',
-                 'braycurtis',
+                 #'manhattan',
+                 #'chebyshev',
+                 #'hamming',
+                 #'canberra',
+                 #'braycurtis',
                  distance.cosine,
                  distance.jaccard]
 
@@ -121,10 +121,15 @@ class Homework2Experiments(object):
             corpus_series=self.corpus_by_vectorizer)
 
         for corpus_key in self.vectorizers:
-            
             selected_corpus_type = self.vectorizers[corpus_key]
-            experiment.run(xvals=range(1, 3), series=selected_corpus_type,
-                           variation=distance.cosine)
+            logger.info(hr('{0} article matrices'.format(selected_corpus_type),
+                        '~'))
+            for distance_fn in Homework2Experiments.distances:
+                logger.info(hr('{0} distances'.format(distance_fn), "."))
+                experiment.run(xvals=range(1, 3),
+                               series=selected_corpus_type,
+                               variation=distance_fn)
+
         plot.draw(experiment)
 
     def archive(self):

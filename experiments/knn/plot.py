@@ -26,54 +26,6 @@ class LoggingObject(object):
         self.logger.info(msg)
 
 
-class OptimalKNNbyDistanceMetric(lines.Line2D):
-    def __init__(self, *args, **kwargs):
-        # we'll update the position when the line data is set
-        self.text = mtext.Text(0, 0, '')
-        lines.Line2D.__init__(self, *args, **kwargs)
-
-        # we can't access the label attr until *after* the line is
-        # inited
-        self.text.set_text(self.get_label())
-
-    def set_figure(self, figure):
-        self.text.set_figure(figure)
-        lines.Line2D.set_figure(self, figure)
-
-    def set_axes(self, axes):
-        self.text.set_axes(axes)
-        lines.Line2D.set_axes(self, axes)
-
-    def set_transform(self, transform):
-        # 2 pixel offset
-        texttrans = transform + mtransforms.Affine2D().translate(2, 2)
-        self.text.set_transform(texttrans)
-        lines.Line2D.set_transform(self, transform)
-
-    def set_data(self, x, y):
-        lines.Line2D.set_data(self, x, y)
-        if len(x):
-            text_location = self.get_last_point()
-            print('Text location: {0}'.format(text_location))
-            self.text.set_position(text_location)
-
-    def draw(self, renderer):
-        # draw my label at the end of the line with 2 pixel offset
-        lines.Line2D.draw(self, renderer)
-        self.text.draw(renderer)
-
-    def get_last_point(self):
-        return self.get_xdata()[-1], self.get_ydata()[-1]
-
-
-class AccuracyAxes(Axes):
-    def __init__(self, *args, **kwargs):
-        Axes.__init__(self, *args, **kwargs)
-
-
-###############################################################################
-
-
 class ExperimentFigure(LoggingObject):
     def __init__(self, figure):
         self.figure = figure
@@ -136,6 +88,7 @@ class AccuracyLine(LoggingObject):
 
 class PlotAccuracyFromK(LoggingObject):
     def __init__(self, axes, label):
+        super(PlotAccuracyFromK, self).__init__()
         self.label = label
         self.axes = axes
         self.lines = []
@@ -143,7 +96,8 @@ class PlotAccuracyFromK(LoggingObject):
         # Configure axes
         axes.set_title(label)
         axes.margins(0, tight=True)
-        axes.set_xlim(left=0)
+        axes.set_xlim(left=0, auto=True)
+        axes.set_ylim(bottom=0, auto=True)
         # axes.set_autoscale_on(True)
 
     def add_line(self, line):
@@ -151,15 +105,22 @@ class PlotAccuracyFromK(LoggingObject):
         #self.axes.add_line(line.get_line())
         self.axes.set_xlim(right=line.get_xmax(), auto=True)
         self.axes.set_ylim(top=line.get_ymax(), auto=True)
+        self.debug('Plotting {}:'.format(line.label))
+        self.debug(line.x)
+        self.debug(line.y)
         self.axes.plot(line.x, line.y)
 
         #self.axes.set_ylim(bottom=0, top=line.get_ymax())
 
 
         # add a text for the line
-        # self.axes.text(x=self.axes.get_xlim()[1]+1,
-        #                y=line.get_last_point()[1],
-        #                s=line.label)
+        x = self.axes.get_xlim()[1]
+        y = line.get_last_point()[1]
+        self.debug('Text for {0} at point: ({1}, {2})'.format(line.label,
+                                                               x, y))
+        self.axes.text(x=self.axes.get_xlim()[1],
+                       y=line.get_last_point()[1],
+                       s=line.label)
 
     def add_verticle_line_at_optimal(self):
         pass
@@ -214,6 +175,7 @@ def draw(experiment):
             subplot.add_line(l)
 
     plt.tight_layout(h_pad=1.0)
+    plt.subplots_adjust(right=0.87)
     plt.show()
 
 
