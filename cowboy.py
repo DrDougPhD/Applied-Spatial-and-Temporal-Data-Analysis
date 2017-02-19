@@ -64,6 +64,7 @@ import dataset
 import preprocess
 from experiments import tree
 from experiments import knn
+import experiments.knn.utils as knn_utils
 from scipy.spatial import distance
 from processing import jaccard
 
@@ -86,6 +87,11 @@ class Homework2Experiments(object):
         self.corpus = preprocess.execute(corpus=self.articles,
                                          exclude_stopwords=True,
                                          method=method)
+        self.corpus_by_vectorizer = {
+            'Existence': None,
+            'Term Frequency': None,
+            'TF-IDF': None,
+        }
 
     def run(self):
         self.decision_tree()
@@ -95,8 +101,12 @@ class Homework2Experiments(object):
         tree.run(k=5, corpus=self.corpus)
 
     def knn(self):
-        knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
-                distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
+        # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
+        #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
+        experiment = knn.experiment.Experiment(
+            cross_validation_n=5,
+            vote_weight=knn_utils.inverse_squared,
+            corpus_series=self.corpus_by_vectorizer)
 
     def archive(self):
         # news articles
