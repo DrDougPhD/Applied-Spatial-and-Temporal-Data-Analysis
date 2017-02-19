@@ -64,7 +64,19 @@ import dataset
 import preprocess
 from experiments import tree
 from experiments import knn
+from scipy.spatial import distance
+from processing import jaccard
+
 class Homework2Experiments(object):
+    distances = ['euclidean',
+                 'manhattan',
+                 'chebyshev',
+                 'hamming',
+                 'canberra',
+                 'braycurtis',
+                 distance.cosine,
+                 distance.jaccard]
+
     def __init__(self, n, dataset_dir, randomize=True, method='tf'):
         # load data
         logger.debug('Looking for datasets in {}'.format(dataset_dir))
@@ -84,7 +96,7 @@ class Homework2Experiments(object):
 
     def knn(self):
         knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
-                distance_fn='minkowski', vote_weights=knn.inverse_squared)
+                distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
 
     def archive(self):
         # news articles
@@ -96,7 +108,7 @@ class Homework2Experiments(object):
         pass
 
 
-def main(n=10):
+def main(n=100):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
     experiments.run()
     experiments.archive()

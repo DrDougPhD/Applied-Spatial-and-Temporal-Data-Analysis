@@ -139,10 +139,17 @@ class CorpusPartition(object):
         self.class_labels = class_labels
         self.features = features
 
-        """
-        logger.debug('Partitioned classes: {}'.format(self.classes))
-        logger.debug('Partitioned matrix:\n{}'.format(self.matrix.toarray()))
-        """
+
+        logger.debug('Partitioned classes {0}: {1}'.format(
+            self.classes.shape, self.classes))
+        logger.debug('Partitioned matrix {0}:\n{1}'.format(
+            self.matrix.shape, self.matrix.toarray()))
+
+    def __iter__(self):
+        num_rows = len(self.classes)
+        for i in range(num_rows):
+            yield self.matrix[i].toarray(), self.classes[i]
+
 
 
 class PairwiseSimilarity(object):

@@ -13,17 +13,32 @@ def run(k_neighbors, k_fold, corpus, distance_fn, vote_weights):
                                    algorithm='brute',
                                    metric=distance_fn,
                                    weights=vote_weights)
-        clf.fit(training.matrix, training.classes)
+        clf.fit(training.matrix.toarray(), training.classes)
 
         logger.info('Predicting scores')
-        accuracy = clf.score(testing.matrix, testing.classes)
-        accuracies.append(accuracy)
+        successes = 0
+        for m, label in testing:
+            logger.debug('-'*80)
+            logger.debug('Testing matrix:')
+            logger.debug(m)
+            logger.debug(type(m))
+            predicted = clf.predict(m)
+            if predicted == label:
+                successes += 1
+
+            accuracy = 0
+        accuracies.append(successes / len(testing.classes))
+        #accuracy = clf.score(testing.matrix, testing.classes)
+
     average_accuracy = numpy.mean(accuracies)
 
     logger.info('Accuracy: {0} -- {1}'.format(average_accuracy, accuracies))
     logger.debug('-'*120)
 
 def inverse_squared(distances):
+    if 0. in distances:
+        return distances == 0
+
     return 1 / numpy.square(distances)
 
 
