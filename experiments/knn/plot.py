@@ -5,11 +5,18 @@ import matplotlib.transforms as mtransforms
 import matplotlib.text as mtext
 
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure
+try:
+    from lib.lineheaderpadded import hr
+except:
+    hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 
 import logging
+logger = logging.getLogger('cnn.'+__name__)
+
 class LoggingObject(object):
-    def __init__(self, name=__name__):
+    def __init__(self, name=None):
+        if name is None:
+            name = 'cnn.{n}.{cn}'.format(n=__name__, cn=self.__class__.__name__)
         self.logger = logging.getLogger(name)
 
     def debug(self, msg):
@@ -188,17 +195,18 @@ class ExperimentDummy(LoggingObject):
 
 
 def draw(experiment):
-    print('#'*80)
-    print(len(experiment.series))
+    logger.info(hr('Plotting Results'))
     fig, verticle_axes = plt.subplots(len(experiment.series),
                                       sharex=True,
                                       sharey=True)
     window = ExperimentFigure(fig)
 
     for axes, vectorizer_type in zip(verticle_axes, experiment.series):
+        logger.info(hr('Matrix type: {}'.format(vectorizer_type), '-'))
         subplot = PlotAccuracyFromK(axes, label=vectorizer_type)
 
         for distance_metric in experiment.variations:
+            logger.info('Distance metrix: {}'.format(distance_metric))
             l = AccuracyLine(experiment.get_results_for(
                 series=vectorizer_type,
                 variation=distance_metric))

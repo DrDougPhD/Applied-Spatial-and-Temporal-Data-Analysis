@@ -121,6 +121,7 @@ class Homework2Experiments(object):
             corpus_series=self.corpus_by_vectorizer)
 
         for corpus_key in self.vectorizers:
+            
             selected_corpus_type = self.vectorizers[corpus_key]
             experiment.run(xvals=range(1, 3), series=selected_corpus_type,
                            variation=distance.cosine)
