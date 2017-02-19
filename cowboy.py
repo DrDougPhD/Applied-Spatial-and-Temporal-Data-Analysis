@@ -84,13 +84,19 @@ class Homework2Experiments(object):
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
         # preprocess
+        vectorizers = {
+            'tf': 'Term Frequency',
+            #'existence': 'Existence',
+            'tfidf': 'TF-IDF'
+        }
         self.corpus = preprocess.execute(corpus=self.articles,
                                          exclude_stopwords=True,
                                          method=method)
         self.corpus_by_vectorizer = {
-            'Existence': None,
-            'Term Frequency': None,
-            'TF-IDF': None,
+            vectorizers[k]: preprocess.execute(corpus=self.articles,
+                                               exclude_stopwords=True,
+                                               method=k)
+            for k in vectorizers
         }
 
     def run(self):
