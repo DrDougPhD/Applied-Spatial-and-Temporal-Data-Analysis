@@ -81,10 +81,11 @@ class AccuracyLine(LoggingObject):
     def __init__(self, results):
         self.results = results
 
-        # self.line = lines.Line2D(xdata=results.x,
-        #                          ydata=results.y)
+        self.line = lines.Line2D(xdata=results.x,
+                                 ydata=results.y)
         self.x = results.x
         self.y = results.y
+        self.label = results.label
 
         self.debug(self.results)
 
@@ -92,7 +93,9 @@ class AccuracyLine(LoggingObject):
         pass
 
     def get_last_point(self):
-        return (1, 1)
+        last_point = self.results.x[-1], self.results.y[-1]
+        self.debug('Last point: {}'.format(last_point))
+        return last_point
 
     def get_line(self):
         return self.line
@@ -113,13 +116,25 @@ class PlotAccuracyFromK(LoggingObject):
     def __init__(self, axes, label):
         self.label = label
         self.axes = axes
-        axes.set_autoscale_on(True)
-        #axes.set_xlim(left=0, right=1)
+        axes.margins(0, tight=True)
+        #axes.set_autoscale_on(True)
+        axes.set_xlim(left=0, right=1)
         self.lines = []
 
     def add_line(self, line):
         self.lines.append(line)
+        #self.axes.add_line(line.get_line())
+        self.axes.set_xlim(right=line.get_xmax(), auto=True)
+        self.axes.set_ylim(top=line.get_ymax(), auto=True)
         self.axes.plot(line.x, line.y)
+
+        #self.axes.set_ylim(bottom=0, top=line.get_ymax())
+
+
+        # add a text for the line
+        # self.axes.text(x=self.axes.get_xlim()[1]+1,
+        #                y=line.get_last_point()[1],
+        #                s=line.label)
 
     def add_verticle_line_at_optimal(self):
         pass
@@ -135,8 +150,13 @@ class ExperimentDummy(LoggingObject):
 
         self.x = np.arange(50)
         self.y = np.random.rand(50).T
+        self.label = distance
 
     def get_results_for(self, vectorizer, distance):
+        self.x = np.arange(50)
+        self.y = np.random.rand(50).T
+        self.vectorizer = vectorizer
+        self.distance = distance
         return self
 
     def get_vectorizer_type(self):
@@ -161,10 +181,26 @@ if __name__ == '__main__':
                                                      distance='cosine'))
     cosine.trigger_confidence_boxes(with_outliers=True)
 
+    jaccard = AccuracyLine(experiment.get_results_for(vectorizer='tf',
+                                                     distance='jaccard'))
+    jaccard.trigger_confidence_boxes(with_outliers=True)
+
+    euclidean = AccuracyLine(experiment.get_results_for(vectorizer='tf',
+                                                      distance='euclidean'))
+    euclidean.trigger_confidence_boxes(with_outliers=True)
+
     term_freq_subplot = PlotAccuracyFromK(
         verticle_axes[0],
         label=experiment.get_vectorizer_type())
-    term_freq_subplot.add_line(cosine)
+    lines = [cosine, jaccard, euclidean]
+    for l in lines:
+        term_freq_subplot.add_line(l)
+
+
+    # term_freq_subplot = PlotAccuracyFromK(
+    #     verticle_axes[0],
+    #   label=experiment.get_vectorizer_type())
+
     """
     term_freq_subplot.add_verticle_line_at_optimal()
     term_freq_subplot.add_verticle_line_at(x=3)
