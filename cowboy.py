@@ -79,7 +79,7 @@ class Homework2Experiments(object):
         self.knn()
 
     def decision_tree(self):
-        tree.run(k=4, corpus=self.corpus)
+        tree.run(k=5, corpus=self.corpus)
 
     def knn(self):
         pass

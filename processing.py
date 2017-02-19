@@ -50,9 +50,12 @@ def nCr(n, r):
 
 class CrossValidation(object):
     def __init__(self, k, dataset):
+        self.k = k
+        self.dataset = dataset
+        self.matrix = dataset.matrix
         logger.info('Partitioning corpus into {} partitions'.format(k))
-        labels = dataset.classes
-        n = len(labels)
+        self.classes = dataset.classes
+        n = len(self.classes)
         attributes = dataset.matrix
         assert n == attributes.shape[0],\
                'Dimensions of labels ({0}) does not match matrix ({1})'.format(
@@ -60,7 +63,7 @@ class CrossValidation(object):
                )
 
         # create partitions by indices
-        self._index_based_partitions(n, k)
+        self.partition_indices = self._index_based_partitions(n, k)
 
     def _index_based_partitions(self, n, k):
         # create a list of indices and shuffle
@@ -92,9 +95,54 @@ class CrossValidation(object):
             )
             starting_index = ending_index
         logger.debug('Partitioned indices: {}'.format(partitioned_indices))
+        return partitioned_indices
 
     def __iter__(self):
-        pass
+        for i in range(self.k):
+            # build the indices for the trainer by removing i from it
+            partition_nums = list(range(self.k))
+            partition_nums.pop(i)
+            logger.debug('Trainer partitions: {}'.format(partition_nums))
+            logger.debug('Tester partitions:  {}'.format([i]))
+
+            trainer_row_indices = list(self.partition_indices)
+            trainer_row_indices.pop(i)
+            trainer_row_indices = numpy.concatenate(trainer_row_indices)
+
+            """
+            logger.debug('Indices for trainer: {}'.format(trainer_row_indices))
+            logger.debug('Index for tester:    {}'.format(
+                self.partition_indices[i]))
+            """
+            #logger.debug('Trainer ===')
+            trainer = CorpusPartition(indices=trainer_row_indices,
+                                      classes=self.classes,
+                                      matrix=self.matrix,
+                                      class_labels=self.dataset.class_names,
+                                      features=self.dataset.features)
+            #logger.debug('Tester ===')
+            tester = CorpusPartition(indices=self.partition_indices[i],
+                                     classes=self.classes,
+                                     matrix=self.matrix,
+                                     class_labels=self.dataset.class_names,
+                                     features=self.dataset.features)
+            yield trainer, tester
+
+
+class CorpusPartition(object):
+    # ducked typed object to host the partitions
+    def __init__(self, indices, classes, matrix,
+                 class_labels, features):
+        self.indices = indices
+        self.classes = classes[indices]
+        self.matrix = matrix[indices, :]
+        self.class_labels = class_labels
+        self.features = features
+
+        """
+        logger.debug('Partitioned classes: {}'.format(self.classes))
+        logger.debug('Partitioned matrix:\n{}'.format(self.matrix.toarray()))
+        """
 
 
 class PairwiseSimilarity(object):
