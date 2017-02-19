@@ -67,14 +67,25 @@ class AccuracyAxes(Axes):
 class ExperimentFigure(LoggingObject):
     def __init__(self, figure):
         self.figure = figure
-        self.v_subplot_counts = 0
-        self.h_subplot_counts = 0
+        self.v_subplot_counts = 1
+        self.h_subplot_counts = 1
+
+        # add a big axes, hide frame
+        self.hidden_axes = figure.add_subplot(111, frameon=False)
+
+        # hide tick and tick label of the big axes
+        self.hidden_axes.tick_params(labelcolor='none', top='off', bottom='off', left='off',
+                                     right='off')
+        #self.hidden_axes.set_xlabel('Rank of Article Pair')
+        #self.hidden_axes.yaxis.set_tick_params(pad=15)
+        self.hidden_axes.set_ylabel('Accuracy')
+        #self.hidden_axes.set_title('Article Length Distribution')
 
     def add_vertical_axes(self, axes):
-        self.v_subplot_counts += 1
         self.figure.add_subplot(self.v_subplot_counts,
                                 self.h_subplot_counts,
                                 1, axes=axes)
+        self.v_subplot_counts += 1
 
 
 class AccuracyLine(LoggingObject):
@@ -116,10 +127,13 @@ class PlotAccuracyFromK(LoggingObject):
     def __init__(self, axes, label):
         self.label = label
         self.axes = axes
-        axes.margins(0, tight=True)
-        #axes.set_autoscale_on(True)
-        axes.set_xlim(left=0, right=1)
         self.lines = []
+
+        # Configure axes
+        axes.set_title(label)
+        axes.margins(0, tight=True)
+        axes.set_xlim(left=0)
+        # axes.set_autoscale_on(True)
 
     def add_line(self, line):
         self.lines.append(line)
@@ -173,28 +187,46 @@ if __name__ == '__main__':
 
     experiment = ExperimentDummy('Term Frequency', 'cosine')
 
-
-    fig, verticle_axes = plt.subplots(3, sharex=True)
+    vectorizer_types = ['Existence', 'Term Frequency', 'TF-IDF']
+    fig, verticle_axes = plt.subplots(len(vectorizer_types),
+                                      sharex=True,
+                                      sharey=True)
     window = ExperimentFigure(fig)
 
-    cosine = AccuracyLine(experiment.get_results_for(vectorizer='tf',
-                                                     distance='cosine'))
-    cosine.trigger_confidence_boxes(with_outliers=True)
+    for axes, vectorizer_type in zip(verticle_axes, vectorizer_types):
+        subplot = PlotAccuracyFromK(
+            axes,
+            label=experiment.get_vectorizer_type())
 
-    jaccard = AccuracyLine(experiment.get_results_for(vectorizer='tf',
-                                                     distance='jaccard'))
-    jaccard.trigger_confidence_boxes(with_outliers=True)
+        for distance_metric in ['cosine', 'jaccard', 'eudlidean']:
+            l = AccuracyLine(experiment.get_results_for(
+                vectorizer=vectorizer_type,
+                distance=distance_metric))
+            l.trigger_confidence_boxes(with_outliers=True)
+            subplot.add_line(l)
 
-    euclidean = AccuracyLine(experiment.get_results_for(vectorizer='tf',
-                                                      distance='euclidean'))
-    euclidean.trigger_confidence_boxes(with_outliers=True)
-
-    term_freq_subplot = PlotAccuracyFromK(
-        verticle_axes[0],
-        label=experiment.get_vectorizer_type())
-    lines = [cosine, jaccard, euclidean]
-    for l in lines:
-        term_freq_subplot.add_line(l)
+    # fig, verticle_axes = plt.subplots(3, sharex=True)
+    # cosine = AccuracyLine(experiment.get_results_for(
+    #     vectorizer='Term Frequency',
+    #     distance='cosine'))
+    # cosine.trigger_confidence_boxes(with_outliers=True)
+    #
+    # jaccard = AccuracyLine(experiment.get_results_for(
+    #     vectorizer='Term Frequency',
+    #     distance='jaccard'))
+    # jaccard.trigger_confidence_boxes(with_outliers=True)
+    #
+    # euclidean = AccuracyLine(experiment.get_results_for(
+    #     vectorizer='Term Frequency',
+    #     distance='euclidean'))
+    # euclidean.trigger_confidence_boxes(with_outliers=True)
+    #
+    # term_freq_subplot = PlotAccuracyFromK(
+    #     verticle_axes[0],
+    #     label=experiment.get_vectorizer_type())
+    # lines = [cosine, jaccard, euclidean]
+    # for l in lines:
+    #     term_freq_subplot.add_line(l)
 
 
     # term_freq_subplot = PlotAccuracyFromK(
@@ -228,6 +260,5 @@ if __name__ == '__main__':
     axes.add_line(line)
     """
 
-
-
+    plt.tight_layout(h_pad=1.0)
     plt.show()
