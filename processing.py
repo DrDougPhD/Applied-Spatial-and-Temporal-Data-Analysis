@@ -48,6 +48,55 @@ def nCr(n, r):
     return f(n) / f(r) / f(n - r)
 
 
+class CrossValidation(object):
+    def __init__(self, k, dataset):
+        logger.info('Partitioning corpus into {} partitions'.format(k))
+        labels = dataset.classes
+        n = len(labels)
+        attributes = dataset.matrix
+        assert n == attributes.shape[0],\
+               'Dimensions of labels ({0}) does not match matrix ({1})'.format(
+                   n, attributes.shape
+               )
+
+        # create partitions by indices
+        self._index_based_partitions(n, k)
+
+    def _index_based_partitions(self, n, k):
+        # create a list of indices and shuffle
+        indices = numpy.arange(n)
+        numpy.random.shuffle(indices)
+
+        # split list into k equal-sized subsets
+        part_size = n // k
+        part_sizes = [ part_size for i in range(k) ]
+        if part_size*k != n:
+            remains = n - part_size*k
+            logger.debug('{} partitions will receive an extra element'.format(
+                remains
+            ))
+            for i in range(remains):
+                part_sizes[i] += 1
+
+            assert sum(part_sizes) == n, 'Partitions do not include all ' \
+                                         'elements'
+        logger.debug('Partition sizes: {}'.format(part_sizes))
+
+        # partition index array
+        partitioned_indices = []
+        starting_index = 0
+        for part_size in part_sizes:
+            ending_index = starting_index + part_size
+            partitioned_indices.append(
+                indices[starting_index:ending_index]
+            )
+            starting_index = ending_index
+        logger.debug('Partitioned indices: {}'.format(partitioned_indices))
+
+    def __iter__(self):
+        pass
+
+
 class PairwiseSimilarity(object):
     def __init__(self, corpus, method, stopwords):
         self.corpus = corpus
@@ -66,9 +115,9 @@ class PairwiseSimilarity(object):
                                               stop_words=stopwords)
 
         plain_text = [str(document) for document in self.corpus]
-        self._matrix = self.vectorizer.fit_transform(plain_text)
+        self.matrix = self.vectorizer.fit_transform(plain_text)
         for i in range(len(corpus)):
-            vector = self._matrix.getrow(i).toarray()[0]
+            vector = self.matrix.getrow(i).toarray()[0]
             doc = corpus[i]
             if method == 'existence':
                 # convert vector into a binary vector (only 0s and 1s)
@@ -78,6 +127,12 @@ class PairwiseSimilarity(object):
 
         self.features = self.vectorizer.get_feature_names()
         logger.info('{} unique tokens'.format(len(self.features)))
+
+        # extract class labels from the articles
+        self.class_names = set([document.category for document in self.corpus])
+        class_to_index = { k: i for i, k in enumerate(self.class_names) }
+        self.classes = numpy.array([class_to_index[doc.category]
+                                    for doc in self.corpus])
 
     def pairwise_compare(self, by, save_to=None):
         i = 0
@@ -164,7 +219,7 @@ class PairwiseSimilarity(object):
         with open(matrix_file, 'w') as f:
             csvfile = csv.writer(f, delimiter='|')
             csvfile.writerow(self.features)
-            csvfile.writerows(self._matrix.toarray())
+            csvfile.writerows(self.matrix.toarray())
 
     def save_aggregate_feature_counts(self, directory):
         features_file = os.path.join(directory, 'aggregate_feature_counts.csv')
@@ -172,7 +227,7 @@ class PairwiseSimilarity(object):
             csvfile = csv.writer(counts_file)
             csvfile.writerow(['token', 'count'])
 
-            summed_vector = sum(self._matrix).toarray()[0]
+            summed_vector = sum(self.matrix).toarray()[0]
             csvfile.writerows(sorted(
                 zip(self.features, summed_vector),
                 key=lambda e: e[1],

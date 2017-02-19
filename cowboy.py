@@ -62,18 +62,26 @@ def cowboy():
 
 import dataset
 import preprocess
+from lib import tree
 class Homework2Experiments(object):
     def __init__(self, n, dataset_dir, randomize=True, method='tf'):
         # load data
         logger.debug('Looking for datasets in {}'.format(dataset_dir))
-        self.corpus = dataset.get(n=n, from_=dataset_dir,
-                                  randomize=randomize)
+        self.articles = dataset.get(n=n, from_=dataset_dir,
+                                    randomize=randomize)
         # preprocess
-        self.calc = preprocess.execute(corpus=self.corpus,
-                                       exclude_stopwords=True,
-                                       method=method)
+        self.corpus = preprocess.execute(corpus=self.articles,
+                                         exclude_stopwords=True,
+                                         method=method)
 
     def run(self):
+        self.decision_tree()
+        self.knn()
+
+    def decision_tree(self):
+        tree.run(k=4, corpus=self.corpus)
+
+    def knn(self):
         pass
 
     def archive(self):
