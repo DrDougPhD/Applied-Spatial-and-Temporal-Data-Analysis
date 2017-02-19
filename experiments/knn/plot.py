@@ -75,12 +75,12 @@ class AccuracyLine(LoggingObject):
         return self.line
 
     def get_xmax(self):
-        v = max(self.results.y)
+        v = max(self.results.x)
         self.debug('Max X: {}'.format(v))
         return v
 
     def get_ymax(self):
-        v = max(self.results.x)
+        v = max(self.results.y)
         self.debug('Max Y: {}'.format(v))
         return v
 
@@ -103,23 +103,24 @@ class PlotAccuracyFromK(LoggingObject):
     def add_line(self, line):
         self.lines.append(line)
         #self.axes.add_line(line.get_line())
-        self.axes.set_xlim(right=line.get_xmax(), auto=True)
-        self.axes.set_ylim(top=line.get_ymax(), auto=True)
+        #self.axes.set_xlim(left=0, right=line.get_xmax(), auto=True)
+        #self.axes.set_ylim(bottom=0, top=1.05*line.get_ymax(), auto=True)
         self.debug('Plotting {}:'.format(line.label))
-        self.debug(line.x)
-        self.debug(line.y)
+        self.debug('\tx := {}'.format(line.x))
+        self.debug('\ty := {}'.format(line.y))
         self.axes.plot(line.x, line.y)
 
         #self.axes.set_ylim(bottom=0, top=line.get_ymax())
 
 
         # add a text for the line
-        x = self.axes.get_xlim()[1]
+        x_min, x_max = self.axes.get_xlim()
+        x_offset = 0.01 * (x_max - x_min)
+        x_text = x_max + x_offset
         y = line.get_last_point()[1]
         self.debug('Text for {0} at point: ({1}, {2})'.format(line.label,
-                                                               x, y))
-        self.axes.text(x=self.axes.get_xlim()[1],
-                       y=line.get_last_point()[1],
+                                                               x_text, y))
+        self.axes.text(x=x_text, y=y,
                        s=line.label)
 
     def add_verticle_line_at_optimal(self):
