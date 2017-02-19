@@ -7,6 +7,14 @@ import matplotlib.text as mtext
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
+import logging
+class LoggingObject(object):
+    def debug(self, msg):
+        print('DEBUG: {}'.format(msg))
+
+    def info(self, msg):
+        print('INFO:  {}'.format(msg))
+
 
 class OptimalKNNbyDistanceMetric(lines.Line2D):
     def __init__(self, *args, **kwargs):
@@ -56,32 +64,62 @@ class AccuracyAxes(Axes):
 ###############################################################################
 
 
-class ExperimentFigure(Figure):
+class ExperimentFigure(LoggingObject):
     def __init__(self, figure):
         self.figure = figure
+        self.v_subplot_counts = 0
+        self.h_subplot_counts = 0
 
     def add_vertical_axes(self, axes):
-        self.add_subplot(1, 1, 1, axes=axes)
+        self.v_subplot_counts += 1
+        self.figure.add_subplot(self.v_subplot_counts,
+                                self.h_subplot_counts,
+                                1, axes=axes)
 
 
-class AccuracyLine(object):
+class AccuracyLine(LoggingObject):
     def __init__(self, results):
         self.results = results
+
+        # self.line = lines.Line2D(xdata=results.x,
+        #                          ydata=results.y)
+        self.x = results.x
+        self.y = results.y
+
+        self.debug(self.results)
 
     def trigger_confidence_boxes(self, with_outliers=False):
         pass
 
     def get_last_point(self):
-        return self.get_xdata()[-1], self.get_ydata()[-1]
+        return (1, 1)
+
+    def get_line(self):
+        return self.line
+
+    def get_xmax(self):
+        v = max(self.results.y)
+        self.debug('Max X: {}'.format(v))
+        return v
+
+    def get_ymax(self):
+        v = max(self.results.x)
+        self.debug('Max Y: {}'.format(v))
+        return v
 
 
-class PlotAccuracyFromK(object):
+
+class PlotAccuracyFromK(LoggingObject):
     def __init__(self, axes, label):
         self.label = label
         self.axes = axes
+        axes.set_autoscale_on(True)
+        #axes.set_xlim(left=0, right=1)
+        self.lines = []
 
     def add_line(self, line):
-        pass
+        self.lines.append(line)
+        self.axes.plot(line.x, line.y)
 
     def add_verticle_line_at_optimal(self):
         pass
@@ -90,7 +128,7 @@ class PlotAccuracyFromK(object):
         pass
 
 
-class ExperimentDummy:
+class ExperimentDummy(LoggingObject):
     def __init__(self, vectorizer, distance):
         self.vectorizer = vectorizer
         self.distance = distance
@@ -104,21 +142,30 @@ class ExperimentDummy:
     def get_vectorizer_type(self):
         return self.vectorizer
 
+    def __str__(self):
+        return (
+            'X: {x}\n'
+            'Y: {y}'.format(x=self.x, y=self.y)
+        )
+
 
 if __name__ == '__main__':
 
     experiment = ExperimentDummy('Term Frequency', 'cosine')
-    """
-    fig, verticle_axes = plt.subplots(3)
+
+
+    fig, verticle_axes = plt.subplots(3, sharex=True)
     window = ExperimentFigure(fig)
 
     cosine = AccuracyLine(experiment.get_results_for(vectorizer='tf',
                                                      distance='cosine'))
     cosine.trigger_confidence_boxes(with_outliers=True)
 
-    term_freq_subplot = PlotAccuracyFromK(verticle_axes[0],
-                                          label=experiment.get_vectorizer())
+    term_freq_subplot = PlotAccuracyFromK(
+        verticle_axes[0],
+        label=experiment.get_vectorizer_type())
     term_freq_subplot.add_line(cosine)
+    """
     term_freq_subplot.add_verticle_line_at_optimal()
     term_freq_subplot.add_verticle_line_at(x=3)
     """
