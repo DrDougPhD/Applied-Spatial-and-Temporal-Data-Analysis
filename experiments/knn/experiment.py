@@ -9,10 +9,10 @@ class LoggingObject(object):
         self.logger = logging.getLogger(name)
 
     def debug(self, msg):
-        print('DEBUG: {}'.format(msg))
+        logger.debug(msg)
 
     def info(self, msg):
-        print('INFO:  {}'.format(msg))
+        logger.info(msg)
 
 
 class Experiment(LoggingObject):
@@ -32,6 +32,9 @@ class Experiment(LoggingObject):
             self.run_single(x, series, variation)
 
     def run_single(self, x, series, variation):
+        self.info('k = {0}, series = {1}, variation = {2}'.format(
+            x, series, variation
+        ))
         accuracies = []
         partitioner = processing.CrossValidation(
             k=self.n_fold,

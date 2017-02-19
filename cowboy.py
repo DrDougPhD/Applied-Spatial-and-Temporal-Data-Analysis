@@ -84,20 +84,21 @@ class Homework2Experiments(object):
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
         # preprocess
-        vectorizers = {
+        self.vectorizers = {
             'tf': 'Term Frequency',
             #'existence': 'Existence',
             'tfidf': 'TF-IDF'
         }
-        self.corpus = preprocess.execute(corpus=self.articles,
-                                         exclude_stopwords=True,
-                                         method=method)
+        # self.corpus = preprocess.execute(corpus=self.articles,
+        #                                  exclude_stopwords=True,
+        #                                  method=method)
         self.corpus_by_vectorizer = {
-            vectorizers[k]: preprocess.execute(corpus=self.articles,
+            self.vectorizers[k]: preprocess.execute(corpus=self.articles,
                                                exclude_stopwords=True,
                                                method=k)
-            for k in vectorizers
+            for k in self.vectorizers
         }
+        self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
     def run(self):
         self.decision_tree()
@@ -113,6 +114,9 @@ class Homework2Experiments(object):
             cross_validation_n=5,
             vote_weight=knn_utils.inverse_squared,
             corpus_series=self.corpus_by_vectorizer)
+        selected_corpus_type = self.vectorizers['tf']
+        experiment.run(xvals=range(1, 3), series=selected_corpus_type,
+                       variation=distance.cosine)
 
     def archive(self):
         # news articles
@@ -124,7 +128,7 @@ class Homework2Experiments(object):
         pass
 
 
-def main(n=100):
+def main(n=10):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
     experiments.run()
     experiments.archive()
