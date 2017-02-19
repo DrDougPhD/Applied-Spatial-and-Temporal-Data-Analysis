@@ -62,7 +62,8 @@ def cowboy():
 
 import dataset
 import preprocess
-from lib import tree
+from experiments import tree
+from experiments import knn
 class Homework2Experiments(object):
     def __init__(self, n, dataset_dir, randomize=True, method='tf'):
         # load data
@@ -82,7 +83,8 @@ class Homework2Experiments(object):
         tree.run(k=5, corpus=self.corpus)
 
     def knn(self):
-        pass
+        knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
+                distance_fn='minkowski', vote_weights=knn.inverse_squared)
 
     def archive(self):
         # news articles

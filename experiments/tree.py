@@ -19,3 +19,6 @@ def run(k, corpus):
 
     logger.info('Accuracy: {0} -- {1}'.format(average_accuracy, accuracies))
     logger.debug('-'*120)
+
+# TODO: Save decision trees for visualization?
+# Make pretty plots.
