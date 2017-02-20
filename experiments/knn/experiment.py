@@ -3,6 +3,7 @@ logger = logging.getLogger('cnn.'+__name__)
 from sklearn.neighbors import KNeighborsClassifier
 import numpy
 import processing
+import itertools
 
 class LoggingObject(object):
     def __init__(self, name=__name__):
@@ -90,7 +91,6 @@ class Experiment(LoggingObject):
                 # logger.debug(m)
                 # logger.debug(type(m))
                 predicted = clf.predict(m)
-
                 if predicted == label:
                     successes += 1
 
@@ -124,6 +124,7 @@ class PrecisionAndRecall(LoggingObject):
     def __init__(self):
         int_defdict = lambda: defaultdict(int)
         self.data = defaultdict(int_defdict)
+        self.observations = []
 
     def record(self, actual_class, predicted_class):
         class_data = self.data[actual_class]
@@ -131,6 +132,7 @@ class PrecisionAndRecall(LoggingObject):
             class_data[predicted_class] = 0
 
         class_data[predicted_class] += 1
+        self.observations.append((int(actual_class), int(predicted_class)))
 
     def true_positives(self, for_):
         return self.data[for_][for_]
@@ -146,10 +148,24 @@ class PrecisionAndRecall(LoggingObject):
 
     def true_negatives(self, for_):
         tns = 0
+        # for each class that is not this class...
+        other_classes = set(self.data.keys()) - set(for_)
+        logger.debug('True Negatives for {0}:'.format(for_))
+        for i in list(other_classes):
+            for j in list(other_classes):
+                logger.debug('{0} to {1}'.format(i, j))
+                tns += self.data[i][j]
+
+        """
         for key in self.data:
             if key == for_:
                 continue
+
+            # count up the number of times that item was not
+            # classed as this class
             tns += self.true_positives(for_=key)
+        """
+
         return tns
 
     def false_negatives(self, for_):
@@ -184,11 +200,11 @@ class PrecisionAndRecall(LoggingObject):
         return f
 
     def __str__(self):
+        self.observations.sort(key=lambda x: x[0])
         output_lines = []
         max_key_length = len(max(self.data, key=len))
-        for key in self.data:
+        for key in sorted(self.data.keys()):
             output_lines.append(
-                '-----------------------------------------\n'
                 '{key}:\t True Positives: {tp}\n'
                 '{pad} \tFalse Positives: {fp}\n'
                 '{pad} \t True Negatives: {tn}\n'
@@ -208,4 +224,9 @@ class PrecisionAndRecall(LoggingObject):
                     r=self.recall(for_=key)
                 )
             )
+
+        output_lines.append('\n'.join([
+            str(o) for o in self.observations
+        ]))
+
         return '\n'.join(output_lines)
