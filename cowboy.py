@@ -110,7 +110,7 @@ class Homework2Experiments(object):
 
     def run(self):
         logger.info(hr('Beginning Experiments'))
-        #self.decision_tree()
+        self.decision_tree(save_to='figures')
         self.knn(max_neighbors=15)
 
     """
@@ -134,9 +134,9 @@ class Homework2Experiments(object):
                     open(pickle_path, 'wb'))
     """
 
-    def decision_tree(self):
+    def decision_tree(self, save_to):
         logger.info(hr('Decision Tree', '+'))
-        tree.run(k=5, corpus=self.corpus)
+        tree.run(k=5, corpus=self.corpus, save_to=save_to)
 
     def knn(self, max_neighbors):
         logger.info(hr('k-Nearest Neighbors', '+'))

@@ -108,7 +108,7 @@ class PlotAccuracyFromK(LoggingObject):
         self.debug('Plotting {}:'.format(line.label))
         self.debug('\tx := {}'.format(line.x))
         self.debug('\ty := {}'.format(line.y))
-        self.axes.plot(line.x, line.y)
+        self.axes.plot(line.x, line.y, label=line.label)
 
         #self.axes.set_ylim(bottom=0, top=line.get_ymax())
 
@@ -118,10 +118,10 @@ class PlotAccuracyFromK(LoggingObject):
         x_offset = 0.01 * (x_max - x_min)
         x_text = x_max + x_offset
         y = line.get_last_point()[1]
-        self.debug('Text for {0} at point: ({1}, {2})'.format(line.label,
-                                                               x_text, y))
-        self.axes.text(x=x_text, y=y,
-                       s=line.label)
+        #self.debug('Text for {0} at point: ({1}, {2})'.format(line.label,
+        #                                                       x_text, y))
+        #self.axes.text(x=x_text, y=y,
+        #               s=line.label)
 
     def add_verticle_line_at_optimal(self):
         pass
@@ -148,6 +148,17 @@ def draw_accuracies(experiment, save_to):
                     variation=distance_metric))
             l.trigger_confidence_boxes(with_outliers=True)
             subplot.add_line(l)
+
+        legend = axes.legend(loc='upper left', shadow=True)
+        # The frame is matplotlib.patches.Rectangle instance surrounding the legend.
+        frame = legend.get_frame()
+        frame.set_facecolor('0.90')
+        # Set the fontsize
+        for label in legend.get_texts():
+            label.set_fontsize('large')
+
+        for label in legend.get_lines():
+            label.set_linewidth(1.5)  # the legend line width
 
     plt.tight_layout(h_pad=1.0)
     plt.subplots_adjust(right=0.87)
