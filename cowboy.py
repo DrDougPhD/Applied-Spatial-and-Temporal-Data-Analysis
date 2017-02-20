@@ -94,6 +94,7 @@ class Homework2Experiments(object):
         self.dataset_dir = dataset_dir
         self.knn_vote_weight=knn_vote_weight
         self.output_dir = os.path.join('figures', knn_vote_weight)
+        os.makedirs(self.output_dir, exist_ok=True)
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
 
@@ -167,17 +168,23 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        os.makedirs(self.output_dir, exist_ok=True)
-        plot.draw_accuracies(self.experiment, save_to='figures/uniform/')
+        #plot.draw_accuracies(self.experiment, save_to=self.output_dir)
         plot.draw_fmeasures(self.experiment,
-            [('cosine', 'Term Frequency'), ('jaccard', 'TF-IDF')],
+            [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
             save_to=self.output_dir)
 
 
-def main(n=20):
-    experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR,
-                                       knn_vote_weight='uniform')
-    experiments.run(knn_neighbors_max=3)
+def main():
+    configuration = {
+        'n': 20,
+        'k': 3,
+        'knn_voting_weight': 'distance',
+    }
+    experiments = Homework2Experiments(
+        n=configuration['n'],
+        dataset_dir=DATA_DIR,
+        knn_vote_weight=configuration['knn_voting_weight'])
+    experiments.run(knn_neighbors_max=configuration['k'])
     experiments.archive()
     experiments.plot()
 

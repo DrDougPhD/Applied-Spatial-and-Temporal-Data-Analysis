@@ -14,6 +14,28 @@ except:
 import logging
 logger = logging.getLogger('cnn.'+__name__)
 
+import itertools
+pixel = ','
+point = '.'
+circle = 'o'
+triangle_down = 'v'
+square = 's'
+plus = '+'
+star = '*'
+cross_x = 'x'
+diamond = 'd'
+marker_list = [pixel,
+               point,
+               circle,
+               triangle_down,
+               square,
+               plus,
+               star,
+               cross_x,
+               diamond]
+marker = itertools.cycle(marker_list)
+
+
 class LoggingObject(object):
     def __init__(self, name=None):
         if name is None:
@@ -87,6 +109,7 @@ class AccuracyLine(LoggingObject):
 
 
 class PlotAccuracyFromK(LoggingObject):
+    markers = {}
     def __init__(self, axes, label):
         super(PlotAccuracyFromK, self).__init__()
         self.label = label
@@ -108,7 +131,12 @@ class PlotAccuracyFromK(LoggingObject):
         self.debug('Plotting {}:'.format(line.label))
         self.debug('\tx := {}'.format(line.x))
         self.debug('\ty := {}'.format(line.y))
-        self.axes.plot(line.x, line.y, label=line.label)
+        if line.label not in PlotAccuracyFromK.markers:
+            PlotAccuracyFromK.markers[line.label] = next(marker)
+        m = PlotAccuracyFromK.markers[line.label]
+
+        self.axes.plot(line.x, line.y, label=line.label,
+                       marker=m)
 
         #self.axes.set_ylim(bottom=0, top=line.get_ymax())
 
@@ -167,6 +195,8 @@ def draw_accuracies(experiment, save_to):
 
 
 def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
+    fmeasure_markers = {}
+
     logger.debug(hr('Drawing F-Measures Plot'))
     def get_fmeasures(results):
         precs_n_recs = results.pnc
@@ -194,18 +224,23 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
         logger.debug(results_by_metric)
         for l in experiment.classnames:
             yvals = [pnc[l, 'fscore'] for pnc in fmeasure_results]
-            line = axes.plot(xvals, yvals, label=l)
+            if l not in fmeasure_markers:
+                fmeasure_markers[l] = next(marker)
+            m = fmeasure_markers[l]
+            line = axes.plot(xvals, yvals, label=l, marker=m)
 
         axes.set_title(matrix)
         axes.set_xlabel('k (for kNN)')
         axes.set_ylabel('F-Measure')
-        legend = axes.legend(loc='upper left', shadow=True)
+        axes.set_xlim(left=xvals[0], right=xvals[-1])
+        legend = axes.legend(loc='center right', shadow=True,
+                             bbox_to_anchor=(1.33, 0.5))
         # The frame is matplotlib.patches.Rectangle instance surrounding the legend.
         frame = legend.get_frame()
         frame.set_facecolor('0.90')
         # Set the fontsize
-        for label in legend.get_texts():
-            label.set_fontsize('large')
+        # for label in legend.get_texts():
+        #     label.set_fontsize('large')
 
         for label in legend.get_lines():
             label.set_linewidth(1.5)  # the legend line width
