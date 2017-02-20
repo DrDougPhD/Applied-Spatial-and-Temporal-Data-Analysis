@@ -113,14 +113,15 @@ class Experiment(LoggingObject):
                 distances, indices = clf.kneighbors(m)
                 distances = distances[0]
                 indices = indices[0]
-                logger.debug('-'*30)
+
                 # logger.debug('Distances:')
                 # logger.debug(distances)
                 # logger.debug('Indices:')
                 # logger.debug(indices)
-                logger.debug('Neighbors of:{0: >15} -- "{1}"'.format(
-                    article.category, article.title,
-                ))
+                # logger.debug('-' * 30)
+                # logger.debug('Neighbors of:{0: >15} -- "{1}"'.format(
+                #     article.category, article.title,
+                # ))
 
                 predicted_class_name = partitioner.classnames[predicted]
                 article_neighbors = []
@@ -136,9 +137,9 @@ class Experiment(LoggingObject):
                     d = float(d)
                     i = int(i)
                     neighbor = training.get_article(i)
-                    logger.debug('{0:.9f}: {1: >15} -- "{2}"'.format(
-                        d, neighbor.category, neighbor.title
-                    ))
+                    # logger.debug('{0:.9f}: {1: >15} -- "{2}"'.format(
+                    #     d, neighbor.category, neighbor.title
+                    # ))
                     article_neighbors.append({
                         'neighbor': neighbor,
                         'distance': d,
@@ -155,13 +156,21 @@ class Experiment(LoggingObject):
                     = summed_neighbor_distances
                 neighbors.append(neighbor_entry)
 
-                logger.debug('  Predicted: {: >15}'.format(predicted_class_name))
+                # logger.debug('  Predicted: {: >15}'.format(
+                # predicted_class_name))
 
             accuracies.append(successes / len(testing.classes))
             # accuracy = clf.score(testing.matrix, testing.classes)
 
+
+        # print some nice strings about the neighbors
+        #neighbors.sort(key=lambda x: x['closest_distance'])
+        neighbor_string_info = []
         for article_neighborinos in neighbors:
-            printable_string = self.print_neighbor_info(article_neighborinos)
+            printable_string = self.stringify_neighbor_info(article_neighborinos)
+            neighbor_string_info.append(printable_string)
+
+        logger.debug('\n'.join(neighbor_string_info))
 
         average_accuracy = numpy.mean(accuracies)
 
@@ -175,8 +184,8 @@ class Experiment(LoggingObject):
     def get_results_for(self, series, variation):
         return self.results[series][variation]
 
-    def print_neighbor_info(self, neighbor_dict):
-        lines = []
+    def stringify_neighbor_info(self, neighbor_dict):
+        lines = ['-'*80]
 
         article = neighbor_dict['article']
         lines.append('Neighbors of:{0: >15} -- "{1}"'.format(
@@ -194,6 +203,7 @@ class Experiment(LoggingObject):
         predicted_class_name = neighbor_dict['predicted_class']
         lines.append('  Predicted: {: >15}'.format(
             predicted_class_name))
+        return '\n'.join(lines)
 
 
 

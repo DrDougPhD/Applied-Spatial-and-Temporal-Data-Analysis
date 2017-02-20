@@ -74,14 +74,16 @@ from processing import jaccard
 import pickle
 
 class Homework2Experiments(object):
-    distances = ['euclidean',
-                 #'manhattan',
-                 #'chebyshev',
-                 #'hamming',
-                 #'canberra',
-                 #'braycurtis',
-                 distance.cosine,
-                 distance.jaccard]
+    distances = [
+        distance.jaccard,
+        'euclidean',
+         #'manhattan',
+         #'chebyshev',
+         #'hamming',
+         #'canberra',
+         #'braycurtis',
+         distance.cosine
+    ]
 
     pickle_file_fmt = 'hw2.n{n}.pickle'
 
