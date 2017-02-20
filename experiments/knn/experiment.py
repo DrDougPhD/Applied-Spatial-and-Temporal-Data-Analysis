@@ -208,7 +208,7 @@ class Experiment(LoggingObject):
         logger.info('Precision and Recall: {}'.format(
             prec_n_rec)) #prec_and_rec.fmeasure()))
         logger.debug('-' * 120)
-        return average_accuracy, None
+        return average_accuracy, prec_n_rec
 
     def get_results_for(self, series, variation):
         return self.results[series][variation]
@@ -243,7 +243,7 @@ class ExperimentResults(LoggingObject):
         self.x = xvals
         self.y = yvals
         self.label = label
-        self.pnc = precision_and_recalls
+        self.prec_n_recs = precision_and_recalls
 
 
 class PrecisionAndRecalls(LoggingObject):
@@ -264,9 +264,26 @@ class PrecisionAndRecalls(LoggingObject):
                 average=None,
             )
 
+        self.values_by_label_idx = list(zip(self.precisions,
+                                            self.recalls,
+                                            self.fscores,
+                                            self.supports,
+                                            self.label_names))
+        self.values_by_label = {
+            label_names[i]: {
+                'precision': x[0],
+                'recall': x[1],
+                'fscore': x[2],
+                'support': x[3]
+            } for i, x in enumerate(self.values_by_label_idx)
+        }
+
+    def __getitem__(self, key):
+        label_name, attribute_name = key
+        return self.values_by_label[label_name][attribute_name]
+
     def __iter__(self):
-        for tup in zip(self.precisions, self.recalls, self.fscores,
-                       self.supports, self.label_names):
+        for tup in self.values_by_label_idx:
             yield tup
 
     def __str__(self):

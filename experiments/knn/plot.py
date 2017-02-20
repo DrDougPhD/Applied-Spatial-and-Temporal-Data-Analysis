@@ -185,14 +185,15 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
     for axes, (k, matrix) in zip(ax, best_metric_for_matrix):
 
         results_for_matrix_type = results[matrix]
-        results_for_distance_metric = results_for_matrix_type[k]
-        xvals = results_for_distance_metric.x
+        results_by_metric = results_for_matrix_type[k]
+        xvals = results_by_metric.x
+        fmeasure_results = results_by_metric.prec_n_recs
 
-        fmeasures, labels = get_fmeasures(results_for_distance_metric)
+        #fmeasures, labels = get_fmeasures(results_by_metric)
         logger.debug('Just extracted fmeasures. What does it look like?')
-        logger.debug(fmeasures)
-        for l in labels:
-            yvals = [pnc[l] for pnc in fmeasures]
+        logger.debug(results_by_metric)
+        for l in experiment.classnames:
+            yvals = [pnc[l, 'fscore'] for pnc in fmeasure_results]
             line = axes.plot(xvals, yvals, label=l)
 
         axes.set_title(matrix)

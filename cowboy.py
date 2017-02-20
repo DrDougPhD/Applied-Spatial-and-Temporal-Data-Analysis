@@ -93,7 +93,7 @@ class Homework2Experiments(object):
         self.n = n
         self.dataset_dir = dataset_dir
         self.knn_vote_weight=knn_vote_weight
-
+        self.output_dir = os.path.join('figures', knn_vote_weight)
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
 
@@ -113,7 +113,7 @@ class Homework2Experiments(object):
 
     def run(self, knn_neighbors_max):
         logger.info(hr('Beginning Experiments'))
-        self.decision_tree(save_to='figures')
+        self.decision_tree()
         self.knn(max_neighbors=knn_neighbors_max)
 
     """
@@ -137,9 +137,9 @@ class Homework2Experiments(object):
                     open(pickle_path, 'wb'))
     """
 
-    def decision_tree(self, save_to):
+    def decision_tree(self):
         logger.info(hr('Decision Tree', '+'))
-        tree.run(k=5, corpus=self.corpus, save_to=save_to)
+        tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
 
     def knn(self, max_neighbors):
         logger.info(hr('k-Nearest Neighbors', '+'))
@@ -167,18 +167,17 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        output_dir = os.path.join('figures', self.knn_vote_weight)
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self.output_dir, exist_ok=True)
         plot.draw_accuracies(self.experiment, save_to='figures/uniform/')
         plot.draw_fmeasures(self.experiment,
             [('cosine', 'Term Frequency'), ('jaccard', 'TF-IDF')],
-            save_to=output_dir)
+            save_to=self.output_dir)
 
 
-def main(n=100):
+def main(n=20):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR,
                                        knn_vote_weight='uniform')
-    experiments.run(knn_neighbors_max=15)
+    experiments.run(knn_neighbors_max=3)
     experiments.archive()
     experiments.plot()
 
