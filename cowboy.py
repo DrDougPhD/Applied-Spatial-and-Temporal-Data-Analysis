@@ -111,7 +111,7 @@ class Homework2Experiments(object):
     def run(self):
         logger.info(hr('Beginning Experiments'))
         #self.decision_tree()
-        self.knn()
+        self.knn(max_neighbors=15)
 
     """
     def _load_pickle(self):
@@ -135,11 +135,11 @@ class Homework2Experiments(object):
     """
 
     def decision_tree(self):
-        logger.info(hr('Decision Tree', '-'))
+        logger.info(hr('Decision Tree', '+'))
         tree.run(k=5, corpus=self.corpus)
 
-    def knn(self):
-        logger.info(hr('k-Nearest Neighbors', '-'))
+    def knn(self, max_neighbors):
+        logger.info(hr('k-Nearest Neighbors', '+'))
         # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
         experiment = self.experiment = knn.experiment.Experiment(
@@ -153,7 +153,7 @@ class Homework2Experiments(object):
                         '~'))
             for distance_fn in Homework2Experiments.distances:
                 logger.info(hr('{0} distances'.format(distance_fn), "."))
-                experiment.run(xvals=range(1, 3),
+                experiment.run(xvals=range(1, max_neighbors),
                                series=selected_corpus_type,
                                variation=distance_fn)
 
@@ -171,7 +171,7 @@ class Homework2Experiments(object):
             save_to='figures')
 
 
-def main(n=10):
+def main(n=100):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
     experiments.run()
     experiments.archive()
