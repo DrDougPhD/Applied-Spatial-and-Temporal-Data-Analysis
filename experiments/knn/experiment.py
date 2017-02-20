@@ -88,7 +88,7 @@ class Experiment(LoggingObject):
             logger.info('Predicting scores')
             successes = 0
 
-            for m, label in testing:
+            for m, label, article in testing:
                 # logger.debug('-'*80)
                 # logger.debug('Testing matrix:')
                 # logger.debug(m)
@@ -103,6 +103,25 @@ class Experiment(LoggingObject):
 
                 # Let's look at what are the nearest neighbors of this guy
                 distances, indices = clf.kneighbors(m)
+                distances = distances[0]
+                indices = indices[0]
+                logger.debug('-'*30)
+                # logger.debug('Distances:')
+                # logger.debug(distances)
+                # logger.debug('Indices:')
+                # logger.debug(indices)
+                logger.debug('Neighbors of:{0: >15} -- "{1}"'.format(
+                    article.category, article.title,
+                ))
+                for d, i in zip(distances, indices):
+                    # logger.debug('Distance: {}'.format(d))
+                    # logger.debug('Index:    {}'.format(i))
+                    d = float(d)
+                    i = int(i)
+                    neighbor = training.get_article(i)
+                    logger.debug('{0:.9f}: {1: >15} -- "{2}"'.format(
+                        d, neighbor.category, neighbor.title
+                    ))
 
 
             accuracies.append(successes / len(testing.classes))

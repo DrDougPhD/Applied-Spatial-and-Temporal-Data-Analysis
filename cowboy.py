@@ -153,7 +153,7 @@ class Homework2Experiments(object):
                         '~'))
             for distance_fn in Homework2Experiments.distances:
                 logger.info(hr('{0} distances'.format(distance_fn), "."))
-                experiment.run(xvals=range(1, max_neighbors),
+                experiment.run(xvals=range(1, max_neighbors+1),
                                series=selected_corpus_type,
                                variation=distance_fn)
 

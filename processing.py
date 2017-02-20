@@ -146,11 +146,11 @@ class CorpusPartition(object):
         self.features = features
         self.orig_dataset = orig_dataset
 
-        self.backward_indices = {}
-        logger.debug('Partition Index Mapping:')
-        for part_i, actual_i in enumerate(indices):
-            logger.debug('\t{0} -> {1}'.format(part_i, actual_i))
-            self.backward_indices[actual_i] = part_i
+        # for part_i in range(len(self.indices)):
+        #     art, index = self.get_article(part_i)
+        #     logger.debug('{0: <3} --> {1: <3} --> "{2}"'.format(
+        #         part_i, index, art.title
+        #     ))
 
         # logger.debug('Partitioned classes {0}: {1}'.format(
         #     self.classes.shape, self.classes))
@@ -158,13 +158,13 @@ class CorpusPartition(object):
         #     self.matrix.shape, self.matrix.toarray()))
 
     def get_article(self, part_index):
-        dataset_index = self.backward_indices[part_index]
+        dataset_index = self.indices[part_index]
         return self.orig_dataset.corpus[dataset_index]
 
     def __iter__(self):
         num_rows = len(self.classes)
         for i in range(num_rows):
-            yield self.matrix[i].toarray(), self.classes[i]
+            yield self.matrix[i].toarray(), self.classes[i], self.get_article(i)
 
 
 
