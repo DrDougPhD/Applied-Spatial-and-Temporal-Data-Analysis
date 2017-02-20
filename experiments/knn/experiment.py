@@ -164,7 +164,7 @@ class Experiment(LoggingObject):
 
 
         # print some nice strings about the neighbors
-        #neighbors.sort(key=lambda x: x['closest_distance'])
+        neighbors.sort(key=lambda x: x['closest_distance'], reverse=True)
         neighbor_string_info = []
         for article_neighborinos in neighbors:
             printable_string = self.stringify_neighbor_info(article_neighborinos)

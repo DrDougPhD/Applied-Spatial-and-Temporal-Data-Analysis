@@ -87,11 +87,12 @@ class Homework2Experiments(object):
 
     pickle_file_fmt = 'hw2.n{n}.pickle'
 
-    def __init__(self, n, dataset_dir, randomize=True, method='tf'):
+    def __init__(self, n, dataset_dir, knn_vote_weight, randomize=True):
         # load data
         logger.info('Looking for datasets in {}'.format(dataset_dir))
         self.n = n
         self.dataset_dir = dataset_dir
+        self.knn_vote_weight=knn_vote_weight
 
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
@@ -146,7 +147,7 @@ class Homework2Experiments(object):
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
         experiment = self.experiment = knn.experiment.Experiment(
             cross_validation_n=5,
-            vote_weight='uniform',
+            vote_weight=self.knn_vote_weight,
             corpus_series=self.corpus_by_vectorizer)
 
         for corpus_key in self.vectorizers:
@@ -166,16 +167,18 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        os.makedirs('figures/uniform/', exist_ok=True)
+        output_dir = os.path.join('figures', self.knn_vote_weight)
+        os.makedirs(output_dir, exist_ok=True)
         plot.draw_accuracies(self.experiment, save_to='figures/uniform/')
         plot.draw_fmeasures(self.experiment,
             [('cosine', 'Term Frequency'), ('jaccard', 'TF-IDF')],
-            save_to='figures')
+            save_to=output_dir)
 
 
-def main(n=20):
-    experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
-    experiments.run(knn_neighbors_max=3)
+def main(n=100):
+    experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR,
+                                       knn_vote_weight='uniform')
+    experiments.run(knn_neighbors_max=15)
     experiments.archive()
     experiments.plot()
 
