@@ -1,9 +1,12 @@
 import logging
 logger = logging.getLogger('cnn.'+__name__)
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn import metrics
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
 import numpy
 import processing
-import itertools
 
 class LoggingObject(object):
     def __init__(self, name=__name__):
@@ -27,10 +30,12 @@ class Experiment(LoggingObject):
         self.variations = set()
         self.results = {}
 
-
         # corpus datasets are keyed by the vectorizer used - e.g. term
         # frequency, existence, or tfidf
         self.corpus = corpus_series
+        sample_corpus_key = list(corpus_series.keys())[0]
+        sample_corpus = corpus_series[sample_corpus_key]
+        self.classnames = sample_corpus.class_names
 
     def run(self, xvals, series, variation):
         self.series.add(series)
@@ -72,11 +77,10 @@ class Experiment(LoggingObject):
             x, series, variation
         ))
         accuracies = []
+        dataset = self.corpus[series]
         partitioner = processing.CrossValidation(
             k=self.n_fold,
-            dataset=self.corpus[series])
-        prec_and_rec = PrecisionAndRecall(
-            keys_to_names=partitioner.classnames)
+            dataset=dataset)
 
         actual_labels = []
         predicted_labels = []
@@ -103,11 +107,10 @@ class Experiment(LoggingObject):
                 if predicted == label:
                     successes += 1
 
-                actual_labels.append(label)
-                predicted_labels.append(predicted)
                 # Record if this was a true positive or a false negative
                 # for this class.
-                prec_and_rec.record(str(label), str(predicted))
+                actual_labels.append(int(label))
+                predicted_labels.append(int(predicted))
 
                 # Let's look at what are the nearest neighbors of this guy
                 distances, indices = clf.kneighbors(m)
@@ -171,15 +174,41 @@ class Experiment(LoggingObject):
             neighbor_string_info.append(printable_string)
 
         logger.debug('\n'.join(neighbor_string_info))
+        logger.debug('='*80)
+
+        # analyze precision and recall
+        labels = list(range(len(dataset.class_names)))
+        # prec, rec, fscore, support = metrics.precision_recall_fscore_support(
+        #     y_true=actual_labels,
+        #     y_pred=predicted_labels,
+        #     labels=labels,
+        #     average=None,
+        # )
+
+        prec_n_rec = PrecisionAndRecalls(truth=actual_labels,
+                                         predictions=predicted_labels,
+                                         available_labels=labels,
+                                         label_names=dataset.class_names)
+
+        # print_fmt = '{l: >16}: {p:.4f} -- {r:.4f} -- {s:.4f} -- {f:.4f}'
+        # print(
+        #     '{label: >16}: {prec: ^6} -- {rec: ^6} -- {support: ^6} -- {fscore: ^6}\n'.format(
+        #         label='Label',
+        #         prec='Prec',
+        #         rec='Recall',
+        #         support='Supp',
+        #         fscore='FScore'))
+        # for p, r, f, s, l in zip(prec, rec, fscore, support, labels):
+        #     print(print_fmt.format(**locals()))
 
         average_accuracy = numpy.mean(accuracies)
 
         logger.info('Accuracy: {0} -- {1}'.format(average_accuracy,
                                                   accuracies))
         logger.info('Precision and Recall: {}'.format(
-            prec_and_rec.fmeasure()))
+            prec_n_rec)) #prec_and_rec.fmeasure()))
         logger.debug('-' * 120)
-        return average_accuracy, prec_and_rec
+        return average_accuracy, None
 
     def get_results_for(self, series, variation):
         return self.results[series][variation]
@@ -217,122 +246,39 @@ class ExperimentResults(LoggingObject):
         self.pnc = precision_and_recalls
 
 
-class PrecisionAndRecall(LoggingObject):
-    def __init__(self, keys_to_names):
-        int_defdict = lambda: defaultdict(int)
-        self.data = defaultdict(int_defdict)
-        self.observations = []
-        self.labels = []
-        self.label_names=list(keys_to_names)
+class PrecisionAndRecalls(LoggingObject):
+    string_fmt = '{l: >16}: {p:.4f} -- {r:.4f} -- {s:.4f} -- {f:.4f}'
+    def __init__(self, truth, predictions, available_labels,
+                 label_names):
+        super(PrecisionAndRecalls, self).__init__()
+        self.truth = truth
+        self.predictions = predictions
+        self.label_indices = available_labels
+        self.label_names = label_names
 
-    def record(self, actual_class, predicted_class):
-        class_data = self.data[actual_class]
-        if predicted_class not in class_data:
-            class_data[predicted_class] = 0
-
-        class_data[predicted_class] += 1
-        self.observations.append((int(actual_class), int(predicted_class)))
-
-    def true_positives(self, for_):
-        return self.data[for_][for_]
-
-    def false_positives(self, for_):
-        key_data = self.data[for_]
-        fpositives = 0
-        for key in key_data:
-            if key == for_:
-                continue
-            fpositives += key_data[key]
-        return fpositives
-
-    def true_negatives(self, for_):
-        tns = 0
-        # for each class that is not this class...
-        other_classes = set(self.data.keys()) - set(for_)
-        #logger.debug('True Negatives for {0}:'.format(for_))
-        for i in list(other_classes):
-            for j in list(other_classes):
-                #logger.debug('{0} to {1}'.format(i, j))
-                tns += self.data[i][j]
-
-        """
-        for key in self.data:
-            if key == for_:
-                continue
-
-            # count up the number of times that item was not
-            # classed as this class
-            tns += self.true_positives(for_=key)
-        """
-
-        return tns
-
-    def false_negatives(self, for_):
-        fnegs = 0
-        for key in self.data:
-            fnegs += self.data[key][for_]
-        return fnegs
-
-    def precision(self, for_):
-        tp = self.true_positives(for_)
-        fp = self.false_positives(for_)
-        if tp == 0:
-            return 0
-
-        return tp / (tp+fp)
-
-    def recall(self, for_):
-        tp = self.true_positives(for_)
-        fn = self.false_negatives(for_)
-        if tp == 0:
-            return 0
-
-        return tp / (tp+fn)
-
-    def fmeasure(self, for_=None):
-        if for_ is None:
-            fmeasures = {}
-            for k in self.data:
-                fmeasures[self.label_names[int(k)]]\
-                    = self.fmeasure(for_=k)
-            return fmeasures
-        else:
-            p = self.precision(for_)
-            r = self.recall(for_)
-            if p == 0 or r == 0:
-                return 0
-
-            f = 2 * (p*r)/(p+r)
-            return f
-
-    def __str__(self):
-        self.observations.sort(key=lambda x: x[0])
-        output_lines = []
-        max_key_length = len(max(self.data, key=len))
-        for key in sorted(self.data.keys()):
-            output_lines.append(
-                '{key}:\t True Positives: {tp}\n'
-                '{pad} \tFalse Positives: {fp}\n'
-                '{pad} \t True Negatives: {tn}\n'
-                '{pad} \tFalse Negatives: {fn}\n'
-                '{pad} \tPrecision:       {p}\n'
-                '{pad} \tRecall:          {r}\n'
-                '{pad} \tF-Measure:       {fm}\n'
-                '-----------------------------------------'.format(
-                    key=key.rjust(max_key_length+2),
-                    pad=''.rjust(max_key_length+2),
-                    tp=self.true_positives(for_=key),
-                    fp=self.false_positives(for_=key),
-                    tn=self.true_negatives(for_=key),
-                    fn=self.false_negatives(for_=key),
-                    fm=self.fmeasure(for_=key),
-                    p=self.precision(for_=key),
-                    r=self.recall(for_=key)
-                )
+        self.precisions, self.recalls, self.fscores, self.supports\
+            = metrics.precision_recall_fscore_support(
+                y_true=truth,
+                y_pred=predictions,
+                labels=available_labels,
+                average=None,
             )
 
-        output_lines.append('\n'.join([
-            str(o) for o in self.observations
-        ]))
+    def __iter__(self):
+        for tup in zip(self.precisions, self.recalls, self.fscores,
+                       self.supports, self.label_names):
+            yield tup
 
-        return '\n'.join(output_lines)
+    def __str__(self):
+        lines = [
+            ('\n{label: >16}: {prec: ^6} -- {rec: ^6} --'
+             ' {support: ^6} -- {fscore: ^6}\n'.format(
+                label='Label',
+                prec='Prec',
+                rec='Recall',
+                support='Supp',
+                fscore='FScore'))]
+        for p, r, f, s, l in self:
+            lines.append(PrecisionAndRecalls.string_fmt.format(**locals()))
+
+        return '\n'.join(lines)
