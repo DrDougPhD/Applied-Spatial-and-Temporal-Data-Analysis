@@ -25,14 +25,15 @@ star = '*'
 cross_x = 'x'
 diamond = 'd'
 marker_list = [pixel,
-               point,
                circle,
                triangle_down,
                square,
                plus,
                star,
                cross_x,
-               diamond]
+               diamond,
+               point,
+               ]
 marker = itertools.cycle(marker_list)
 
 
@@ -121,6 +122,7 @@ class PlotAccuracyFromK(LoggingObject):
         axes.margins(0, tight=True)
         axes.set_xlim(left=0, auto=True)
         axes.set_ylim(bottom=0, auto=True)
+        axes.set_xlabel('k (for kNN)')
         # axes.set_autoscale_on(True)
 
     def add_line(self, line):
@@ -177,7 +179,8 @@ def draw_accuracies(experiment, save_to):
             l.trigger_confidence_boxes(with_outliers=True)
             subplot.add_line(l)
 
-        legend = axes.legend(loc='upper left', shadow=True)
+        legend = axes.legend(loc='center right', shadow=True,
+                             bbox_to_anchor=(1.33, 0.5))
         # The frame is matplotlib.patches.Rectangle instance surrounding the legend.
         frame = legend.get_frame()
         frame.set_facecolor('0.90')
@@ -229,7 +232,8 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
             m = fmeasure_markers[l]
             line = axes.plot(xvals, yvals, label=l, marker=m)
 
-        axes.set_title(matrix)
+        axes.set_title('{distance} distances between {matrix} vectors'.format(
+            distance=k.title(), matrix=matrix.title()))
         axes.set_xlabel('k (for kNN)')
         axes.set_ylabel('F-Measure')
         axes.set_xlim(left=xvals[0], right=xvals[-1])
