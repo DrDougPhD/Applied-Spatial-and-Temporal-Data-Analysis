@@ -123,31 +123,43 @@ class CrossValidation(object):
                                       classes=self.classes,
                                       matrix=self.matrix,
                                       class_labels=self.dataset.class_names,
-                                      features=self.dataset.features)
+                                      features=self.dataset.features,
+                                      orig_dataset=self.dataset)
             #logger.debug('Tester ===')
             tester = CorpusPartition(indices=self.partition_indices[i],
                                      classes=self.classes,
                                      matrix=self.matrix,
                                      class_labels=self.dataset.class_names,
-                                     features=self.dataset.features)
+                                     features=self.dataset.features,
+                                     orig_dataset=self.dataset)
             yield trainer, tester
 
 
 class CorpusPartition(object):
     # ducked typed object to host the partitions
     def __init__(self, indices, classes, matrix,
-                 class_labels, features):
+                 class_labels, features, orig_dataset):
         self.indices = indices
         self.classes = classes[indices]
         self.matrix = matrix[indices, :]
         self.class_labels = class_labels
         self.features = features
+        self.orig_dataset = orig_dataset
 
+        self.backward_indices = {}
+        logger.debug('Partition Index Mapping:')
+        for part_i, actual_i in enumerate(indices):
+            logger.debug('\t{0} -> {1}'.format(part_i, actual_i))
+            self.backward_indices[actual_i] = part_i
 
         # logger.debug('Partitioned classes {0}: {1}'.format(
         #     self.classes.shape, self.classes))
         # logger.debug('Partitioned matrix {0}:\n{1}'.format(
         #     self.matrix.shape, self.matrix.toarray()))
+
+    def get_article(self, part_index):
+        dataset_index = self.backward_indices[part_index]
+        return self.orig_dataset.corpus[dataset_index]
 
     def __iter__(self):
         num_rows = len(self.classes)
