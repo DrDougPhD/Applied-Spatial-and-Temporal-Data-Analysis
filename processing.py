@@ -201,7 +201,8 @@ class PairwiseSimilarity(object):
         logger.info('{} unique tokens'.format(len(self.features)))
 
         # extract class labels from the articles
-        self.class_names = set([document.category for document in self.corpus])
+        self.class_names = list(set([document.category for document in
+                                     self.corpus]))
         class_to_index = { k: i for i, k in enumerate(self.class_names) }
         self.classes = numpy.array([class_to_index[doc.category]
                                     for doc in self.corpus])

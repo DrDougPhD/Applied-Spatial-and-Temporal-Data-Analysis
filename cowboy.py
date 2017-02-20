@@ -108,10 +108,10 @@ class Homework2Experiments(object):
         }
         self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
-    def run(self):
+    def run(self, knn_neighbors_max):
         logger.info(hr('Beginning Experiments'))
         self.decision_tree(save_to='figures')
-        self.knn(max_neighbors=3)
+        self.knn(max_neighbors=knn_neighbors_max)
 
     """
     def _load_pickle(self):
@@ -173,7 +173,7 @@ class Homework2Experiments(object):
 
 def main(n=20):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
-    experiments.run()
+    experiments.run(knn_neighbors_max=3)
     experiments.archive()
     experiments.plot()
 

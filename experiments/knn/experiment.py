@@ -77,6 +77,11 @@ class Experiment(LoggingObject):
             dataset=self.corpus[series])
         prec_and_rec = PrecisionAndRecall(
             keys_to_names=partitioner.classnames)
+
+        actual_labels = []
+        predicted_labels = []
+        neighbors = []
+
         for training, testing in partitioner:
             self.info('Training KNN Model')
             clf = KNeighborsClassifier(n_neighbors=x,
@@ -93,13 +98,16 @@ class Experiment(LoggingObject):
                 # logger.debug('Testing matrix:')
                 # logger.debug(m)
                 # logger.debug(type(m))
-                predicted = clf.predict(m)
+
+                predicted = int(clf.predict(m))
                 if predicted == label:
                     successes += 1
 
+                actual_labels.append(label)
+                predicted_labels.append(predicted)
                 # Record if this was a true positive or a false negative
                 # for this class.
-                prec_and_rec.record(str(label), str(int(predicted)))
+                prec_and_rec.record(str(label), str(predicted))
 
                 # Let's look at what are the nearest neighbors of this guy
                 distances, indices = clf.kneighbors(m)
@@ -113,6 +121,15 @@ class Experiment(LoggingObject):
                 logger.debug('Neighbors of:{0: >15} -- "{1}"'.format(
                     article.category, article.title,
                 ))
+
+                predicted_class_name = partitioner.classnames[predicted]
+                article_neighbors = []
+                neighbor_entry = {
+                    'article': article,
+                    'predicted_class': predicted_class_name,
+                    'neighbors': article_neighbors,
+                }
+
                 for d, i in zip(distances, indices):
                     # logger.debug('Distance: {}'.format(d))
                     # logger.debug('Index:    {}'.format(i))
@@ -122,10 +139,29 @@ class Experiment(LoggingObject):
                     logger.debug('{0:.9f}: {1: >15} -- "{2}"'.format(
                         d, neighbor.category, neighbor.title
                     ))
+                    article_neighbors.append({
+                        'neighbor': neighbor,
+                        'distance': d,
+                    })
 
+                closest_neighbor_tuple = min(article_neighbors,
+                                             key=lambda x: x['distance'])
+                summed_neighbor_distances = sum([
+                     art['distance'] for art in article_neighbors])
+
+                neighbor_entry['closest_distance']\
+                    = closest_neighbor_tuple['distance']
+                neighbor_entry['summed_distances']\
+                    = summed_neighbor_distances
+                neighbors.append(neighbor_entry)
+
+                logger.debug('  Predicted: {: >15}'.format(predicted_class_name))
 
             accuracies.append(successes / len(testing.classes))
             # accuracy = clf.score(testing.matrix, testing.classes)
+
+        for article_neighborinos in neighbors:
+            printable_string = self.print_neighbor_info(article_neighborinos)
 
         average_accuracy = numpy.mean(accuracies)
 
@@ -138,6 +174,29 @@ class Experiment(LoggingObject):
 
     def get_results_for(self, series, variation):
         return self.results[series][variation]
+
+    def print_neighbor_info(self, neighbor_dict):
+        lines = []
+
+        article = neighbor_dict['article']
+        lines.append('Neighbors of:{0: >15} -- "{1}"'.format(
+            article.category, article.title,
+        ))
+
+        neighbors = neighbor_dict['neighbors']
+        for neighborino in neighbors:
+            neighbor = neighborino['neighbor']
+            d = neighborino['distance']
+            lines.append('{0:.9f}: {1: >15} -- "{2}"'.format(
+                d, neighbor.category, neighbor.title
+            ))
+
+        predicted_class_name = neighbor_dict['predicted_class']
+        lines.append('  Predicted: {: >15}'.format(
+            predicted_class_name))
+
+
+
 
 
 class ExperimentResults(LoggingObject):
