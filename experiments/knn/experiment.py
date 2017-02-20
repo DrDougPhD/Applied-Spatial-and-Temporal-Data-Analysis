@@ -67,6 +67,7 @@ class Experiment(LoggingObject):
             return item
 
     def run_single(self, x, series, variation):
+        self.debug(','*40)
         self.info('k = {0}, series = {1}, variation = {2}'.format(
             x, series, variation
         ))
@@ -99,6 +100,10 @@ class Experiment(LoggingObject):
                 # Record if this was a true positive or a false negative
                 # for this class.
                 prec_and_rec.record(str(label), str(int(predicted)))
+
+                # Let's look at what are the nearest neighbors of this guy
+                distances, indices = clf.kneighbors(m)
+
 
             accuracies.append(successes / len(testing.classes))
             # accuracy = clf.score(testing.matrix, testing.classes)

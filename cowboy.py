@@ -111,7 +111,7 @@ class Homework2Experiments(object):
     def run(self):
         logger.info(hr('Beginning Experiments'))
         self.decision_tree(save_to='figures')
-        self.knn(max_neighbors=15)
+        self.knn(max_neighbors=3)
 
     """
     def _load_pickle(self):
@@ -144,7 +144,7 @@ class Homework2Experiments(object):
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
         experiment = self.experiment = knn.experiment.Experiment(
             cross_validation_n=5,
-            vote_weight=knn_utils.inverse_squared,
+            vote_weight='uniform',
             corpus_series=self.corpus_by_vectorizer)
 
         for corpus_key in self.vectorizers:
@@ -164,14 +164,14 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        os.makedirs('figures', exist_ok=True)
-        plot.draw_accuracies(self.experiment, save_to='figures')
+        os.makedirs('figures/uniform/', exist_ok=True)
+        plot.draw_accuracies(self.experiment, save_to='figures/uniform/')
         plot.draw_fmeasures(self.experiment,
             [('cosine', 'Term Frequency'), ('jaccard', 'TF-IDF')],
             save_to='figures')
 
 
-def main(n=100):
+def main(n=20):
     experiments = Homework2Experiments(n=n, dataset_dir=DATA_DIR)
     experiments.run()
     experiments.archive()
