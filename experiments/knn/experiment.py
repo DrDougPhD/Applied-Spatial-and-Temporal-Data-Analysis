@@ -26,7 +26,6 @@ class Experiment(LoggingObject):
         self.series = set()
         self.variations = set()
         self.results = {}
-        self.precision_and_recalls = {}
 
 
         # corpus datasets are keyed by the vectorizer used - e.g. term
@@ -44,14 +43,17 @@ class Experiment(LoggingObject):
             self.results[series] = variations
 
         average_accuracies = []
+        precision_and_recalls = []
         for x in xvals:
             accuracies, prec_recall = self.run_single(x, series, variation)
             average_accuracies.append(accuracies)
+            precision_and_recalls.append(prec_recall)
 
         self.info('Experiments finished')
         result = ExperimentResults(xvals=numpy.asarray(xvals),
                                    yvals=average_accuracies,
-                                   label=variation_label)
+                                   label=variation_label,
+                                   precision_and_recalls=precision_and_recalls)
 
         self.results[series][variation_label] = result
 
@@ -69,11 +71,11 @@ class Experiment(LoggingObject):
             x, series, variation
         ))
         accuracies = []
-        prec_and_rec = PrecisionAndRecall()
-
         partitioner = processing.CrossValidation(
             k=self.n_fold,
             dataset=self.corpus[series])
+        prec_and_rec = PrecisionAndRecall(
+            keys_to_names=partitioner.classnames)
         for training, testing in partitioner:
             self.info('Training KNN Model')
             clf = KNeighborsClassifier(n_neighbors=x,
@@ -105,7 +107,8 @@ class Experiment(LoggingObject):
 
         logger.info('Accuracy: {0} -- {1}'.format(average_accuracy,
                                                   accuracies))
-        logger.info('Precision and Recall:\n{}'.format(prec_and_rec))
+        logger.info('Precision and Recall: {}'.format(
+            prec_and_rec.fmeasure()))
         logger.debug('-' * 120)
         return average_accuracy, prec_and_rec
 
@@ -114,17 +117,20 @@ class Experiment(LoggingObject):
 
 
 class ExperimentResults(LoggingObject):
-    def __init__(self, xvals, yvals, label):
+    def __init__(self, xvals, yvals, label, precision_and_recalls):
         self.x = xvals
         self.y = yvals
         self.label = label
+        self.pnc = precision_and_recalls
 
 
 class PrecisionAndRecall(LoggingObject):
-    def __init__(self):
+    def __init__(self, keys_to_names):
         int_defdict = lambda: defaultdict(int)
         self.data = defaultdict(int_defdict)
         self.observations = []
+        self.labels = []
+        self.label_names=list(keys_to_names)
 
     def record(self, actual_class, predicted_class):
         class_data = self.data[actual_class]
@@ -150,10 +156,10 @@ class PrecisionAndRecall(LoggingObject):
         tns = 0
         # for each class that is not this class...
         other_classes = set(self.data.keys()) - set(for_)
-        logger.debug('True Negatives for {0}:'.format(for_))
+        #logger.debug('True Negatives for {0}:'.format(for_))
         for i in list(other_classes):
             for j in list(other_classes):
-                logger.debug('{0} to {1}'.format(i, j))
+                #logger.debug('{0} to {1}'.format(i, j))
                 tns += self.data[i][j]
 
         """
@@ -190,14 +196,21 @@ class PrecisionAndRecall(LoggingObject):
 
         return tp / (tp+fn)
 
-    def fmeasure(self, for_):
-        p = self.precision(for_)
-        r = self.recall(for_)
-        if p == 0 or r == 0:
-            return 0
+    def fmeasure(self, for_=None):
+        if for_ is None:
+            fmeasures = {}
+            for k in self.data:
+                fmeasures[self.label_names[int(k)]]\
+                    = self.fmeasure(for_=k)
+            return fmeasures
+        else:
+            p = self.precision(for_)
+            r = self.recall(for_)
+            if p == 0 or r == 0:
+                return 0
 
-        f = 2 * (p*r)/(p+r)
-        return f
+            f = 2 * (p*r)/(p+r)
+            return f
 
     def __str__(self):
         self.observations.sort(key=lambda x: x[0])

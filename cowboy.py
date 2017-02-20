@@ -71,6 +71,7 @@ import experiments.knn.utils as knn_utils
 from experiments.knn import plot
 from scipy.spatial import distance
 from processing import jaccard
+import pickle
 
 class Homework2Experiments(object):
     distances = ['euclidean',
@@ -82,9 +83,14 @@ class Homework2Experiments(object):
                  distance.cosine,
                  distance.jaccard]
 
+    pickle_file_fmt = 'hw2.n{n}.pickle'
+
     def __init__(self, n, dataset_dir, randomize=True, method='tf'):
         # load data
         logger.info('Looking for datasets in {}'.format(dataset_dir))
+        self.n = n
+        self.dataset_dir = dataset_dir
+
         self.articles = dataset.get(n=n, from_=dataset_dir,
                                     randomize=randomize)
 
@@ -104,8 +110,29 @@ class Homework2Experiments(object):
 
     def run(self):
         logger.info(hr('Beginning Experiments'))
-        self.decision_tree()
+        #self.decision_tree()
         self.knn()
+
+    """
+    def _load_pickle(self):
+        pickle_path = os.path.join(
+            self.dataset_dir,
+            self.pickle_file_fmt.format(n=self.n))
+        if os.path.exists(pickle_path):
+            logger.info('Loading from pickle: {}'.format(pickle_path))
+            pkl = pickle.load(open(pickle_path, 'rb'))
+            self.experiment = pkl
+            return True
+
+        return False
+
+    def _save_to_pickel(self):
+        pickle_path = os.path.join(
+            self.dataset_dir,
+            self.pickle_file_fmt.format(n=self.n))
+        pickle.dump(self.experiment,
+                    open(pickle_path, 'wb'))
+    """
 
     def decision_tree(self):
         logger.info(hr('Decision Tree', '-'))
@@ -115,7 +142,7 @@ class Homework2Experiments(object):
         logger.info(hr('k-Nearest Neighbors', '-'))
         # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
-        experiment = knn.experiment.Experiment(
+        experiment = self.experiment = knn.experiment.Experiment(
             cross_validation_n=5,
             vote_weight=knn_utils.inverse_squared,
             corpus_series=self.corpus_by_vectorizer)
@@ -130,8 +157,6 @@ class Homework2Experiments(object):
                                series=selected_corpus_type,
                                variation=distance_fn)
 
-        plot.draw(experiment)
-
     def archive(self):
         # news articles
         # data matrix
@@ -139,7 +164,11 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        pass
+        os.makedirs('figures', exist_ok=True)
+        plot.draw_accuracies(self.experiment, save_to='figures')
+        plot.draw_fmeasures(self.experiment,
+            [('cosine', 'Term Frequency'), ('jaccard', 'TF-IDF')],
+            save_to='figures')
 
 
 def main(n=10):

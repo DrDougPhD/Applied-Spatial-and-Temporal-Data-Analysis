@@ -58,6 +58,7 @@ class CrossValidation(object):
         self.matrix = dataset.matrix
         logger.info('Partitioning corpus into {} partitions'.format(k))
         self.classes = dataset.classes
+        self.classnames = dataset.class_names
         n = len(self.classes)
         attributes = dataset.matrix
         assert n == attributes.shape[0],\
@@ -143,10 +144,10 @@ class CorpusPartition(object):
         self.features = features
 
 
-        logger.debug('Partitioned classes {0}: {1}'.format(
-            self.classes.shape, self.classes))
-        logger.debug('Partitioned matrix {0}:\n{1}'.format(
-            self.matrix.shape, self.matrix.toarray()))
+        # logger.debug('Partitioned classes {0}: {1}'.format(
+        #     self.classes.shape, self.classes))
+        # logger.debug('Partitioned matrix {0}:\n{1}'.format(
+        #     self.matrix.shape, self.matrix.toarray()))
 
     def __iter__(self):
         num_rows = len(self.classes)

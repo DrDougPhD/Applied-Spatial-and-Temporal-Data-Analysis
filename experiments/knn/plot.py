@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
+import os
 import matplotlib.transforms as mtransforms
 import matplotlib.text as mtext
 
@@ -85,7 +86,6 @@ class AccuracyLine(LoggingObject):
         return v
 
 
-
 class PlotAccuracyFromK(LoggingObject):
     def __init__(self, axes, label):
         super(PlotAccuracyFromK, self).__init__()
@@ -130,33 +130,7 @@ class PlotAccuracyFromK(LoggingObject):
         pass
 
 
-class ExperimentDummy(LoggingObject):
-    def __init__(self, vectorizer, distance):
-        self.vectorizer = vectorizer
-        self.distance = distance
-
-        self.x = np.arange(50)
-        self.y = np.random.rand(50).T
-        self.label = distance
-
-    def get_results_for(self, vectorizer, distance):
-        self.x = np.arange(50)
-        self.y = np.random.rand(50).T
-        self.vectorizer = vectorizer
-        self.distance = distance
-        return self
-
-    def get_vectorizer_type(self):
-        return self.vectorizer
-
-    def __str__(self):
-        return (
-            'X: {x}\n'
-            'Y: {y}'.format(x=self.x, y=self.y)
-        )
-
-
-def draw(experiment):
+def draw_accuracies(experiment, save_to):
     logger.info(hr('Plotting Results'))
     fig, verticle_axes = plt.subplots(len(experiment.series),
                                       sharex=True,
@@ -170,21 +144,80 @@ def draw(experiment):
         for distance_metric in experiment.variations:
             logger.info('Distance metrix: {}'.format(distance_metric))
             l = AccuracyLine(experiment.get_results_for(
-                series=vectorizer_type,
-                variation=distance_metric))
+                    series=vectorizer_type,
+                    variation=distance_metric))
             l.trigger_confidence_boxes(with_outliers=True)
             subplot.add_line(l)
 
     plt.tight_layout(h_pad=1.0)
     plt.subplots_adjust(right=0.87)
-    plt.show()
+    plt.savefig(os.path.join(save_to, 'accuracies.pdf'),
+                bbox_inches='tight')
+
+
+def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
+    logger.debug(hr('Drawing F-Measures Plot'))
+    def get_fmeasures(results):
+        precs_n_recs = results.pnc
+
+        # just grab the label names from the first one
+        labels = precs_n_recs[0].label_names
+
+        logger.debug('Precision and Recall items: {}'.format(len(precs_n_recs)))
+
+        return [f.fmeasure() for f in precs_n_recs], labels
+
+
+    fig, ax = plt.subplots(len(best_metric_for_matrix), sharex=True)
+
+    results = experiment.results
+    for axes, (k, matrix) in zip(ax, best_metric_for_matrix):
+
+        results_for_matrix_type = results[matrix]
+        results_for_distance_metric = results_for_matrix_type[k]
+        xvals = results_for_distance_metric.x
+
+        fmeasures, labels = get_fmeasures(results_for_distance_metric)
+        logger.debug('Just extracted fmeasures. What does it look like?')
+        logger.debug(fmeasures)
+        for l in labels:
+            yvals = [pnc[l] for pnc in fmeasures]
+            line = axes.plot(xvals, yvals, label=l)
+
+        axes.set_title(matrix)
+        axes.set_xlabel('k (for kNN)')
+        axes.set_ylabel('F-Measure')
+        legend = axes.legend(loc='upper left', shadow=True)
+        # The frame is matplotlib.patches.Rectangle instance surrounding the legend.
+        frame = legend.get_frame()
+        frame.set_facecolor('0.90')
+        # Set the fontsize
+        for label in legend.get_texts():
+            label.set_fontsize('large')
+
+        for label in legend.get_lines():
+            label.set_linewidth(1.5)  # the legend line width
+
+    """
+
+    fig, ax = plt.subplot(len(plotnames), sharex=True)
+    for i, axes in enumerate(ax):
+        for linename in linenames_per_plot:
+            line = axes.plot(None, None, label=linename)
+        axes.set_title(subplots[i])
+    """
+    plt.tight_layout(h_pad=1.0)
+    plt.subplots_adjust(right=0.87)
+    plt.savefig(os.path.join(save_to, 'fmeasures.pdf'),
+                bbox_inches='tight')
+
+    # f, axarr = plt.subplots(2, sharex=True)
+    # axarr[0].plot(x, y)
+    # axarr[0].set_title('Sharing X axis')
+    # axarr[1].scatter(x, y)
 
 
 if __name__ == '__main__':
-    experiment = ExperimentDummy('Term Frequency', 'cosine')
-    draw(experiment)
-
-
     # fig, verticle_axes = plt.subplots(3, sharex=True)
     # cosine = AccuracyLine(experiment.get_results_for(
     #     vectorizer='Term Frequency',
