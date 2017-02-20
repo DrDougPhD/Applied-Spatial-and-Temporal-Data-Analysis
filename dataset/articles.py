@@ -83,7 +83,9 @@ class ArticleSelector(object):
         self.accessors = [ArticleSelector.article_accessor[size](datasets[k])
                           for k, size in file_sizes]
 
-    def get(self, count, randomize=True, archive_to=SELECTED_ARTICLE_ARCHIVE):
+    def get(self, count, randomize=True,
+            archive_to=SELECTED_ARTICLE_ARCHIVE,
+            equal_dist=True):
         # evenly distribute articles selected from each located dataset
         articles = []
         for selector in self.accessors:
@@ -91,6 +93,54 @@ class ArticleSelector(object):
             articles.extend(subset)
             assert len(articles) > 0, 'No articles found for {}'.format(
                 selector.__class__.__name__)
+
+        if equal_dist:
+            logger.debug('#' * 100)
+            logger.debug('Old dataset size: {}'.format(len(articles)))
+            # partition articles by class
+            def category(filename):
+                c = filename.split('-')[0]
+                return c.split('_')[1]
+
+            categories = set([category(p.filename)
+                              for p in articles])
+
+            logger.debug('Categories: {}'.format(categories))
+            partitions = {c: [] for c in categories}
+            for f in articles:
+                category_of_art = category(f.filename)
+                partitions[category_of_art].append(f)
+
+            min_articles = float('inf')
+            for c in partitions:
+                article_count = len(partitions[c])
+                logger.debug('\t{0: >15}:\t{1}'.format(c, article_count))
+                min_articles = min(article_count, min_articles)
+
+            logger.debug('Smallest category has {} articles.'
+                         ' Truncating other categories to this size.'.format(
+                min_articles
+            ))
+
+            # strip away articles from classes that have more than others
+            for c in partitions:
+                articles = partitions[c]
+                if len(articles) == min_articles:
+                    continue
+
+                logger.debug('Truncating {0: >15}: {1} to {2}'.format(
+                    c, len(articles), min_articles
+                ))
+                partitions[c] = random.sample(articles, min_articles)
+
+            # concatenate back into available dataset
+            arts = []
+            for c in partitions:
+                arts.extend(partitions[c])
+
+            articles = arts
+            logger.debug('New dataset size: {}'.format(len(articles)))
+            logger.debug('#' * 100)
 
         # shuffle and truncate set to the specified size
         if randomize:
