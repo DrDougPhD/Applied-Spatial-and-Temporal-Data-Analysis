@@ -7,19 +7,7 @@ from sklearn.metrics import precision_score
 from sklearn.metrics import recall_score
 import numpy
 import processing
-
-
-import logging
-logger = logging.getLogger('cnn.'+__name__)
-class LoggingObject(object):
-    def __init__(self, name=__name__):
-        self.logger = logging.getLogger(name)
-
-    def debug(self, msg):
-        logger.debug(msg)
-
-    def info(self, msg):
-        logger.info(msg)
+from experiments import LoggingObject
 
 from collections import defaultdict
 class Experiment(LoggingObject):
