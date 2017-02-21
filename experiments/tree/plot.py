@@ -32,19 +32,19 @@ def prec_n_rec(data):
     ax[0].invert_xaxis()
     ax[0].invert_yaxis()
 
-    for axes, splitting_method in zip(ax, data):
-        axes.set_title(splitting_method.title())
+    # each subplot corresponds to a node splitting method
+    for axes, splitting_method_data in zip(ax, data):
+        axes.set_title(splitting_method_data.title())
         axes.set_ylabel('Data Class')
         axes.set_xlabel('Performance Metric')
 
-        performance_data = data[splitting_method]
         # for each class of the data, make a group of bars corresponding to
         # accuracy, precision, recall, f-measure
-        # for perf_metric_type in data:
-        #     # [ accuracy1, accuracy2, ... ]
-        #     indices, perf_metrics, style = perf_metric_type.as_tuple()
-        #     axes.barh(indices, perf_metrics, align='center',
-        #               color='green', ecolor='black')
+        for perf_metric_type in splitting_method_data.by_metric_type():
+            # [ accuracy1, accuracy2, ... ]
+            indices, perf_metrics, style = perf_metric_type
+            axes.barh(indices, perf_metrics, align='center',
+                      **style)
 
         # Set the tickmarks on the y-axis to correspond to the groups and the
         #  location where the tick should go.
@@ -72,15 +72,16 @@ class PlottableExperimentPerformance(LoggingObject):
         self.node_splitting_methods = list(results.keys())
 
         # transform the results for easy plotting
-        self.data = self._transform(results)
+        self.data = tx_results = {
+            k: PlottableDataFromSplittingType(results[k],
+                                              splitting_method_name=k)
+            for k in self.node_splitting_methods
+        }
 
         # get the class names from one of the results
         rep_data = results[self.node_splitting_methods[0]]
         self.bar_group_names = ['Overall']
         self.bar_group_names.extend([c.title() for c in rep_data.class_names])
-
-    def _transform(self, results):
-        return results
 
     def __len__(self):
         """
@@ -90,16 +91,13 @@ class PlottableExperimentPerformance(LoggingObject):
         """
         return len(self.node_splitting_methods)
 
-    def __getitem__(self, item_key):
-        return self.data[item_key]
-
     def __iter__(self):
         """
         Iterate through the methods used to split nodes in the decision tree
         :return: name of splitting method (e.g. 'gini', 'entropy')
         """
         for k in self.node_splitting_methods:
-            yield k
+            yield self.data[k]
 
     def get_labels(self):
         """
@@ -113,7 +111,66 @@ class PlottableExperimentPerformance(LoggingObject):
         return label_indices, self.bar_group_names
 
 
+from collections import defaultdict
+import itertools
+class PlottableDataFromSplittingType(LoggingObject):
+    hatches = itertools.cycle('// * O \ | + x o .'.split())
+    colors = itertools.cycle([
+        'green', 'blue', 'red', 'cyan', 'magenta', 'yellow', 'black', 'white'
+    ])
+    style_for = {}
 
+    def __init__(self, results, splitting_method_name):
+        super(PlottableDataFromSplittingType, self).__init__()
+        self.splitting_method_name = splitting_method_name
+
+        self.metric_names = None
+        self.performance_metrics_split_by_type = defaultdict(list)
+        for class_name in results.data:
+            results_by_class = results.data[class_name]
+            if not self.metric_names:
+                # build up the metric names (e.g. 'accuracy') on the fly
+                self.metric_names = list(results_by_class.keys())
+
+            for metric in self.metric_names:
+                self.performance_metrics_split_by_type[metric].append(
+                    results_by_class[metric]
+                )
+            self.performance_metrics_split_by_type['class_names'].append(
+                class_name)
+        logger.debug('Transformed results:')
+        logger.debug(self.performance_metrics_split_by_type)
+
+        for n in self.metric_names:
+            if n not in self.style_for:
+                PlottableDataFromSplittingType.style_for[n] = {
+                    'hatch': next(PlottableDataFromSplittingType.hatches),
+                    'color': next(PlottableDataFromSplittingType.colors),
+                    'height': PlottableExperimentPerformance.bar_width,
+                }
+
+
+    def by_metric_type(self):
+        self.debug('Accessing result data by the performance metric type')
+        offset = PlottableExperimentPerformance.bar_width
+        for i, metric_name in enumerate(self.metric_names, start=1):
+            values = self.performance_metrics_split_by_type[metric_name]
+            indices = numpy.arange(len(values)) + offset*i
+
+            logger.debug('Indices for {} bars'.format(metric_name))
+            logger.debug(indices)
+
+            style = self.style_for[metric_name]
+            self.debug('Style of bar: {}'.format(style))
+
+            yield indices, values, style
+
+
+    def title(self):
+        return self.splitting_method_name.title()
+
+
+import random
 class ExperimentPerformance(LoggingObject):
     def __init__(self):
         super(ExperimentPerformance, self).__init__()
@@ -123,6 +180,14 @@ class ExperimentPerformance(LoggingObject):
         self.fmeasure = None
 
         self.class_names = ['crime', 'living', 'entertainment', 'politics']
+        self.data = {
+            k: {
+                metric: random.random() for metric in ['accuracy',
+                                                       'precision',
+                                                       'recall',
+                                                       'f-score']
+            } for k in self.class_names
+        }
 
 
 if __name__ == '__main__':
