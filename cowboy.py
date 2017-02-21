@@ -38,29 +38,29 @@ import pydotplus
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         'data', 'downloads')
 
-def cowboy():
+#def cowboy():
     # data preprocessing
-    features = [[0, 0], [1, 1]]
-    classes = [0, 1]
-    clf = tree.DecisionTreeClassifier()
-    clf = clf.fit(features, classes)
-
-    # data processing
-    data = [[2., 2.]]
-    actual_class = 1
-    predicted_class = int(clf.predict(data))
-
-    print(predicted_class)
-
-
-    dot_data = tree.export_graphviz(clf, out_file=None,
-                                    feature_names=None,
-                                    class_names=None,
-                                    filled=True,
-                                    rounded=True,
-                                    special_characters=True)
-    graph = pydotplus.graph_from_dot_data(dot_data)
-    graph.write_pdf(os.path.join(DATA_DIR, 'decision_tree.pdf'))
+    # features = [[0, 0], [1, 1]]
+    # classes = [0, 1]
+    # clf = tree.DecisionTreeClassifier()
+    # clf = clf.fit(features, classes)
+    #
+    # # data processing
+    # data = [[2., 2.]]
+    # actual_class = 1
+    # predicted_class = int(clf.predict(data))
+    #
+    # print(predicted_class)
+    #
+    #
+    # dot_data = tree.export_graphviz(clf, out_file=None,
+    #                                 feature_names=None,
+    #                                 class_names=None,
+    #                                 filled=True,
+    #                                 rounded=True,
+    #                                 special_characters=True)
+    # graph = pydotplus.graph_from_dot_data(dot_data)
+    # graph.write_pdf(os.path.join(DATA_DIR, 'decision_tree.pdf'))
 
 
 import dataset
@@ -112,9 +112,9 @@ class Homework2Experiments(object):
         }
         self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
-    def run(self, knn_neighbors_max):
+    def run(self, knn_neighbors_max, dec_tree_max_leafs):
         logger.info(hr('Beginning Experiments'))
-        self.decision_tree()
+        self.decision_tree(max_leafs=dec_tree_max_leafs)
         self.knn(max_neighbors=knn_neighbors_max)
 
     """
@@ -138,7 +138,33 @@ class Homework2Experiments(object):
                     open(pickle_path, 'wb'))
     """
 
-    def decision_tree(self):
+    def decision_tree(self, max_leafs):
+        experiment = self.experiment = tree.experiment.Experiment(
+            cross_validation_n=5,
+            corpus_series=self.corpus_by_vectorizer)
+
+        # Show accuracy against limiting the number of leaves
+        for vector_type_key in self.vectorizers:
+            vector_type = self.vectorizers[vector_type_key]
+            single_plot = {}
+            for criterion in ['gini', 'entropy']:
+                x_vals = range(len(self.corpus.class_names), max_leafs)
+                y_vals = []
+                for x in x_vals:
+                    y = experiment.run(
+                        series='Tree Depth against Accuracy',
+                        vector_type=vector_type,
+                        splitting_criterion=criterion,
+                        x=x,
+                    )
+                    y_vals.append(y)
+                single_plot[criterion] = (x_vals, y_vals)
+
+        # Create heat plot to show how accuracy is effected by both the
+        # maximum number of features and the tree's depth / num of leaves
+
+
+
         logger.info(hr('Decision Tree', '+'))
         tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
 
@@ -168,7 +194,7 @@ class Homework2Experiments(object):
         pass
 
     def plot(self):
-        #plot.draw_accuracies(self.experiment, save_to=self.output_dir)
+        plot.draw_accuracies(self.experiment, save_to=self.output_dir)
         plot.draw_fmeasures(self.experiment,
             [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
             save_to=self.output_dir)
@@ -176,15 +202,17 @@ class Homework2Experiments(object):
 
 def main():
     configuration = {
-        'n': 20,
-        'k': 3,
-        'knn_voting_weight': 'distance',
+        'n': 100,
+        'k': 10,
+        'knn_voting_weight': 'uniform',
+        'dectree_max_leafs': 300
     }
     experiments = Homework2Experiments(
         n=configuration['n'],
         dataset_dir=DATA_DIR,
         knn_vote_weight=configuration['knn_voting_weight'])
-    experiments.run(knn_neighbors_max=configuration['k'])
+    experiments.run(knn_neighbors_max=configuration['k'],
+                    dec_tree_max_leafs=configuration['dectree_max_leafs'])
     experiments.archive()
     experiments.plot()
 

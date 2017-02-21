@@ -1,3 +1,5 @@
+from . import experiment
+
 import logging
 logger = logging.getLogger('cnn.'+__name__)
 from sklearn import tree
