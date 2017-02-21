@@ -28,26 +28,7 @@ def prec_n_rec(data):
     ))
     fig, ax = plt.subplots(ncols=num_subplots)
 
-
-    # flip the x-axis of the left subplot
     ax[0].invert_xaxis()
-
-
-    # apply labels appropriately
-    tickmark_locations, tick_labels = data.get_labels()
-    ax[0].set_yticks(tickmark_locations)
-    ax[0].set_yticklabels(tick_labels)
-
-    # hide tickmarks on the left-hand-side axis of right subplot
-    ax[-1].axis('off')
-
-    # apply tickmarks to the right-side of the left subplot
-    right = ax[-1].twinx()
-    right.set_yticks(tickmark_locations)
-    right.set_yticklabels(tick_labels)
-    right.invert_yaxis()
-
-
 
     # each subplot corresponds to a node splitting method
     for axes, splitting_method_data in zip(ax, data):
@@ -68,12 +49,29 @@ def prec_n_rec(data):
             axes.barh(indices, perf_metrics, align='center',
                       **style)
 
-        axes.invert_yaxis()
+        #axes.invert_yaxis()
         #
         # for data_by_class in data:
         #     y_indices, perf_metrics, y_labels, y_design\
         #         = data_by_class.as_tuple()
 
+    # flip the x-axis of the left subplot
+    #ax[0].invert_xaxis()
+
+    # apply labels appropriately
+    tickmark_locations, tick_labels = data.get_labels()
+    #ax[0].set_yticks(tickmark_locations)
+    #ax[0].set_yticklabels(tick_labels)
+    #ax[0].invert_yaxis()
+
+    # hide tickmarks on the left-hand-side axis of right subplot
+    #ax[-1].set_yticks([])
+
+    # apply tickmarks to the right-side of the left subplot
+    #right = ax[-1].twinx()
+    #right.set_yticks(tickmark_locations)
+    #right.set_yticklabels(tick_labels)
+    #right.invert_yaxis()
 
 
     plt.tight_layout(h_pad=1.0)
