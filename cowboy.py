@@ -112,10 +112,12 @@ class Homework2Experiments(object):
         }
         self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
+        self.experiment = {}
+
     def run(self, knn_neighbors_max, dec_tree_max_leafs):
         logger.info(hr('Beginning Experiments'))
         self.decision_tree(max_leafs=dec_tree_max_leafs)
-        self.knn(max_neighbors=knn_neighbors_max)
+        #self.knn(max_neighbors=knn_neighbors_max)
 
     """
     def _load_pickle(self):
@@ -139,40 +141,53 @@ class Homework2Experiments(object):
     """
 
     def decision_tree(self, max_leafs):
-        experiment = self.experiment = tree.experiment.Experiment(
+        logger.info(hr('Decision Tree', '+'))
+        experiment = self.experiment['tree'] = tree.experiment.Experiment(
             cross_validation_n=5,
             corpus_series=self.corpus_by_vectorizer)
 
+        # Which method, gini or entropy, produces the most accurate results?
+        # What is the precision, recall, and f-measure of these experiments?
+
+
         # Show accuracy against limiting the number of leaves
+        logger.info(hr('Tree Depth vs. Accuracy'))
         for vector_type_key in self.vectorizers:
             vector_type = self.vectorizers[vector_type_key]
+
+            logger.info(hr(vector_type.title(), '.'))
+
             single_plot = {}
             for criterion in ['gini', 'entropy']:
+                logger.info('Decision Tree: {0} splitter, {1} vectors'.format(
+                    criterion.title(), vector_type,
+                ))
                 x_vals = range(len(self.corpus.class_names), max_leafs)
                 y_vals = []
-                for x in x_vals:
-                    y = experiment.run(
+                for i, x in enumerate(x_vals):
+                    logger.info('Experiment #{0} -- x = {1}'.format(i+1, x))
+                    y = experiment.accuracy(
                         series='Tree Depth against Accuracy',
                         vector_type=vector_type,
                         splitting_criterion=criterion,
                         x=x,
                     )
+                    logger.info('-'*50)
                     y_vals.append(y)
                 single_plot[criterion] = (x_vals, y_vals)
+                logger.info([(x, y) for x, y in zip(x_vals, y_vals)])
+                logger.info('~' * 60)
 
         # Create heat plot to show how accuracy is effected by both the
         # maximum number of features and the tree's depth / num of leaves
 
-
-
-        logger.info(hr('Decision Tree', '+'))
-        tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
+        #tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
 
     def knn(self, max_neighbors):
         logger.info(hr('k-Nearest Neighbors', '+'))
         # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
         #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
-        experiment = self.experiment = knn.experiment.Experiment(
+        experiment = self.experiment['knn'] = knn.experiment.Experiment(
             cross_validation_n=5,
             vote_weight=self.knn_vote_weight,
             corpus_series=self.corpus_by_vectorizer)
@@ -191,21 +206,22 @@ class Homework2Experiments(object):
         # news articles
         # data matrix
         # classification results
-        pass
+        return
 
     def plot(self):
-        plot.draw_accuracies(self.experiment, save_to=self.output_dir)
-        plot.draw_fmeasures(self.experiment,
-            [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
-            save_to=self.output_dir)
+        #plot.draw_accuracies(self.experiment['knn'], save_to=self.output_dir)
+        #plot.draw_fmeasures(self.experiment['knn'],
+        #    [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
+        #    save_to=self.output_dir)
+        return
 
 
 def main():
     configuration = {
-        'n': 100,
-        'k': 10,
+        'n': 20,
+        'k': 3,
         'knn_voting_weight': 'uniform',
-        'dectree_max_leafs': 300
+        'dectree_max_leafs': 10
     }
     experiments = Homework2Experiments(
         n=configuration['n'],
