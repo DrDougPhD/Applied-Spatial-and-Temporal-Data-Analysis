@@ -26,11 +26,25 @@ def prec_n_rec(data):
     logger.debug('Creating {} subplots for Prec. and Rec. graphs'.format(
         num_subplots
     ))
-    fig, ax = plt.subplots(ncols=num_subplots, sharey=True)
+    fig, ax = plt.subplots(ncols=num_subplots)
+
 
     # flip the x-axis of the left subplot
     ax[0].invert_xaxis()
-    ax[0].invert_yaxis()
+
+
+    # apply labels appropriately
+    tickmark_locations, tick_labels = data.get_labels()
+    ax[0].set_yticks(tickmark_locations)
+    ax[0].set_yticklabels(tick_labels)
+
+    # apply tickmarks to the right-side of the left subplot
+    right = ax[-1].twinx()
+    right.set_yticks(tickmark_locations)
+    right.set_yticklabels(tick_labels)
+
+
+
 
     # each subplot corresponds to a node splitting method
     for axes, splitting_method_data in zip(ax, data):
@@ -51,11 +65,7 @@ def prec_n_rec(data):
             axes.barh(indices, perf_metrics, align='center',
                       **style)
 
-        # Set the tickmarks on the y-axis to correspond to the groups and the
-        #  location where the tick should go.
-        tickmark_locations, tick_labels = data.get_labels()
-        axes.set_yticks(tickmark_locations)
-        axes.set_yticklabels(tick_labels)
+        axes.invert_yaxis()
         #
         # for data_by_class in data:
         #     y_indices, perf_metrics, y_labels, y_design\
@@ -168,6 +178,7 @@ class PlottableDataFromSplittingType(LoggingObject):
             self.debug('Style of bar: {}'.format(style))
 
             yield indices, values, style, metric_name
+            break
 
 
     def title(self):
