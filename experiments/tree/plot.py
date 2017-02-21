@@ -38,11 +38,14 @@ def prec_n_rec(data):
     ax[0].set_yticks(tickmark_locations)
     ax[0].set_yticklabels(tick_labels)
 
+    # hide tickmarks on the left-hand-side axis of right subplot
+    ax[-1].axis('off')
+
     # apply tickmarks to the right-side of the left subplot
     right = ax[-1].twinx()
     right.set_yticks(tickmark_locations)
     right.set_yticklabels(tick_labels)
-
+    right.invert_yaxis()
 
 
 
@@ -163,7 +166,6 @@ class PlottableDataFromSplittingType(LoggingObject):
                     'height': PlottableExperimentPerformance.bar_width,
                 }
 
-
     def by_metric_type(self):
         self.debug('Accessing result data by the performance metric type')
         offset = PlottableExperimentPerformance.bar_width
@@ -178,8 +180,6 @@ class PlottableDataFromSplittingType(LoggingObject):
             self.debug('Style of bar: {}'.format(style))
 
             yield indices, values, style, metric_name
-            break
-
 
     def title(self):
         return self.splitting_method_name.title()
