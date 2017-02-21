@@ -34,6 +34,8 @@ def prec_n_rec(data):
 
     # each subplot corresponds to a node splitting method
     for axes, splitting_method_data in zip(ax, data):
+        logger.debug(hr(splitting_method_data.title()))
+
         axes.set_title(splitting_method_data.title())
         axes.set_ylabel('Data Class')
         axes.set_xlabel('Performance Metric')
@@ -41,8 +43,11 @@ def prec_n_rec(data):
         # for each class of the data, make a group of bars corresponding to
         # accuracy, precision, recall, f-measure
         for perf_metric_type in splitting_method_data.by_metric_type():
+
             # [ accuracy1, accuracy2, ... ]
-            indices, perf_metrics, style = perf_metric_type
+            indices, perf_metrics, style, name = perf_metric_type
+            logger.debug(hr(name, '+'))
+
             axes.barh(indices, perf_metrics, align='center',
                       **style)
 
@@ -80,8 +85,7 @@ class PlottableExperimentPerformance(LoggingObject):
 
         # get the class names from one of the results
         rep_data = results[self.node_splitting_methods[0]]
-        self.bar_group_names = ['Overall']
-        self.bar_group_names.extend([c.title() for c in rep_data.class_names])
+        self.bar_group_names = [c.title() for c in rep_data.class_names]
 
     def __len__(self):
         """
@@ -145,7 +149,7 @@ class PlottableDataFromSplittingType(LoggingObject):
             if n not in self.style_for:
                 PlottableDataFromSplittingType.style_for[n] = {
                     'hatch': next(PlottableDataFromSplittingType.hatches),
-                    'color': next(PlottableDataFromSplittingType.colors),
+                    #'color': next(PlottableDataFromSplittingType.colors),
                     'height': PlottableExperimentPerformance.bar_width,
                 }
 
@@ -163,7 +167,7 @@ class PlottableDataFromSplittingType(LoggingObject):
             style = self.style_for[metric_name]
             self.debug('Style of bar: {}'.format(style))
 
-            yield indices, values, style
+            yield indices, values, style, metric_name
 
 
     def title(self):
@@ -179,7 +183,8 @@ class ExperimentPerformance(LoggingObject):
         self.recall = None
         self.fmeasure = None
 
-        self.class_names = ['crime', 'living', 'entertainment', 'politics']
+        self.class_names = ['overall', 'crime', 'living', 'entertainment',
+                            'politics']
         self.data = {
             k: {
                 metric: random.random() for metric in ['accuracy',
