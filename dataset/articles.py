@@ -134,6 +134,7 @@ class ArticleSelector(object):
             logger.debug('{} files copied'.format(len(selected_articles)))
 
         self._check_category_diversity(selected_articles)
+        random.shuffle(selected_articles)
         return selected_articles
 
     def _check_category_diversity(self, selected_articles):
