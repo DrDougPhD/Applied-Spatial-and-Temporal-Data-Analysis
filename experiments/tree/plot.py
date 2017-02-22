@@ -31,10 +31,7 @@ from sklearn import metrics
 def prec_n_rec(results, class_labels, save_to=None):
     bar_width = 0.22
     hatches = itertools.cycle('// * O \ | + x o .'.split())
-    colors = itertools.cycle([
-        'green', 'blue', 'red', 'cyan', 'magenta', 'yellow', 'black', 'white'
-    ])
-    style = {}
+    hatch = {}
 
     logger.debug(results.keys())
     for vector_type in results:
@@ -141,16 +138,14 @@ def prec_n_rec(results, class_labels, save_to=None):
                     *indices_for_metric)))
                 logger.debug('Values:   {}'.format(fmt.format(
                     *metric_values[i])))
-                if metric not in style:
-                    style[metric] = {
-                        'hatch': next(hatches),
-                        'height': bar_width,
-                    }
+                if metric not in hatch:
+                    hatch[metric] = next(hatches)
                 bars = axes.barh(indices_for_metric,
                                  width=metric_values[i],
                                  label=metric,
+                                 height=bar_width,
                                  align='center',
-                                 **style[metric])
+                                 hatch=hatch[metric])
                 if metric not in bar_handles:
                     bar_handles[metric] = bars[0]
 
@@ -182,7 +177,7 @@ def prec_n_rec(results, class_labels, save_to=None):
             plt.show()
         else:
             plt.savefig(os.path.join(save_to,
-                                     '{}.prec_n_rec.pdf'.format(vector_type)))
+                                     '{}.prec_n_rec.svg'.format(vector_type)))
 
 
     """
