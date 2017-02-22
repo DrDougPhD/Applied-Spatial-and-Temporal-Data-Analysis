@@ -315,10 +315,19 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
                 n['neighbors'][j]['distance'],
                 art.title))
 
-    fig, ax = plt.subplots(2, 3)
-    gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
+    #fig, ax = plt.subplots(2, 3)
 
-    fig.set_size_inches(12, 12)
+    fig = plt.figure(figsize=(12, 12))
+    gs = gridspec.GridSpec(2, 3, width_ratios=[3, 1, 1])
+    closest_neighborhood_heatmap = plt.subplot(gs[0])
+    closest_neighborhood_distances = plt.subplot(gs[1])
+    closest_neighborhood_max_shared_feat = plt.subplot(gs[2])
+
+    furthest_neighborhood_heatmap = plt.subplot(gs[3])
+    furthest_neighborhood_distances = plt.subplot(gs[4])
+    furthest_neighborhood_max_shared_feat = plt.subplot(gs[5])
+
+    """
     #for i in [0, -1]:
     for i in range(1):
         neighborhood = neighborinos[i]
@@ -383,9 +392,9 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
         # top_axis.set_xticks(unique_feature_indices)
         # top_axis.set_xticklabels(feature_names[unique_feature_indices],
         #                          rotation='vertical')
-
+    """
     plt.subplots_adjust(left=0.35)
-    plt.title('Heatmap of Shared Features')
+    plt.suptitle('Heatmap of Shared Features')
     plt.show()
 
 
