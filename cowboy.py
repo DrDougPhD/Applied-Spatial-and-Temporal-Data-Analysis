@@ -66,6 +66,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
 import dataset
 import preprocess
 from experiments import tree
+from experiments.tree import plot as tree_plots
 from experiments import knn
 import experiments.knn.utils as knn_utils
 from experiments.knn import plot
@@ -85,7 +86,7 @@ class Homework2Experiments(object):
          distance.cosine
     ]
 
-    pickle_file_fmt = 'hw2.n{n}.pickle'
+    pickle_file_fmt = 'hw2.{}.pickle'
 
     def __init__(self, n, dataset_dir, knn_vote_weight, randomize=True):
         # load data
@@ -119,37 +120,53 @@ class Homework2Experiments(object):
         self.decision_tree(max_leafs=dec_tree_max_leafs)
         #self.knn(max_neighbors=knn_neighbors_max)
 
-    """
-    def _load_pickle(self):
+    def _load_pickle(self, filename):
         pickle_path = os.path.join(
-            self.dataset_dir,
-            self.pickle_file_fmt.format(n=self.n))
+            self.output_dir,
+            self.pickle_file_fmt.format(filename))
         if os.path.exists(pickle_path):
             logger.info('Loading from pickle: {}'.format(pickle_path))
             pkl = pickle.load(open(pickle_path, 'rb'))
-            self.experiment = pkl
-            return True
+            return pkl
 
         return False
 
-    def _save_to_pickel(self):
+    def _save_to_pickel(self, object, filename):
         pickle_path = os.path.join(
-            self.dataset_dir,
-            self.pickle_file_fmt.format(n=self.n))
-        pickle.dump(self.experiment,
-                    open(pickle_path, 'wb'))
-    """
+            self.output_dir,
+            self.pickle_file_fmt.format(filename))
+        pickle.dump(object, open(pickle_path, 'wb'))
+
 
     def decision_tree(self, max_leafs):
         logger.info(hr('Decision Tree', '+'))
         experiment = self.experiment['tree'] = tree.experiment.Experiment(
             cross_validation_n=5,
-            corpus_series=self.corpus_by_vectorizer)
+            corpus_series=self.corpus_by_vectorizer,
+            save_to=self.output_dir)
 
         # Which method, gini or entropy, produces the most accurate results?
         # What is the precision, recall, and f-measure of these experiments?
 
+        pkl_filename = 'dectree_{}'.format(self.n)
+        results = self._load_pickle(pkl_filename)
+        if not results:
+            available_splitting_criterion = ['gini', 'entropy']
+            results = {}
+            for vector_type in self.corpus_by_vectorizer:
+                results_for_matrix_type = {}
+                for criterion in available_splitting_criterion:
+                    exp_results = experiment.criterion_based_accuracy(
+                        criterion=criterion, vector_type=vector_type)
+                    results_for_matrix_type[criterion] = exp_results
+                results[vector_type] = results_for_matrix_type
 
+            self._save_to_pickel(results, pkl_filename)
+
+        tree_plots.prec_n_rec(results, class_labels=self.corpus.class_names,
+                              save_to=self.output_dir)
+
+        """
         # Show accuracy against limiting the number of leaves
         logger.info(hr('Tree Depth vs. Accuracy'))
         for vector_type_key in self.vectorizers:
@@ -182,6 +199,7 @@ class Homework2Experiments(object):
         # maximum number of features and the tree's depth / num of leaves
 
         #tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
+        """
 
     def knn(self, max_neighbors):
         logger.info(hr('k-Nearest Neighbors', '+'))
