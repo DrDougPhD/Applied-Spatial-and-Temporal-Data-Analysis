@@ -26,7 +26,8 @@ def setup_logger(name):
     return logger
 logger = setup_logger('cnn')
 
-def prec_n_rec(data):
+def prec_n_rec(results, title):
+    data = PlottableExperimentPerformance(results)
     num_subplots = len(data)
     logger.debug('Creating {} subplots for Prec. and Rec. graphs'.format(
         num_subplots
@@ -89,8 +90,9 @@ def prec_n_rec(data):
     #right.set_yticklabels(tick_labels)
     #right.invert_yaxis()
 
-
-    plt.tight_layout(h_pad=1.0)
+    fig.suptitle(title)
+    #plt.tight_layout()
+    plt.subplots_adjust(left=0.2, right=0.8)
     plt.show()
 
 import numpy
@@ -202,11 +204,6 @@ class PlottableDataFromSplittingType(LoggingObject):
 class ExperimentPerformance(LoggingObject):
     def __init__(self):
         super(ExperimentPerformance, self).__init__()
-        self.accuracy = None
-        self.precision = None
-        self.recall = None
-        self.fmeasure = None
-
         self.class_names = ['overall', 'crime', 'living', 'entertainment',
                             'politics']
         self.data = {
@@ -227,5 +224,4 @@ if __name__ == '__main__':
         'entropy': entropy_results,
         'gini': gini_results
     }
-    plottable_results = PlottableExperimentPerformance(results)
-    prec_n_rec(plottable_results)
+    prec_n_rec(results, 'Term Frequency')
