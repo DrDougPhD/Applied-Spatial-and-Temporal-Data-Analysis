@@ -8,6 +8,7 @@ import os
 import matplotlib.transforms as mtransforms
 import matplotlib.text as mtext
 from matplotlib import cm
+from matplotlib import gridspec
 
 from matplotlib.axes import Axes
 from matplotlib.ticker import IndexLocator
@@ -274,7 +275,7 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
     # axarr[1].scatter(x, y)
 
 
-def neighbor_heatmap(neighbors, save_to):
+def neighbor_heatmap(neighbors, feature_names, save_to):
     # only interested in the neighbors for TDIDF, Cosine
     logger.info('######## Neighbor Heatmap')
     neighborinos = neighbors['tfidf']['cosine'][-1]
@@ -314,8 +315,11 @@ def neighbor_heatmap(neighbors, save_to):
                 n['neighbors'][j]['distance'],
                 art.title))
 
-    fig, ax = plt.subplots(3)
-    fig.set_size_inches(12, 16)
+    fig, ax = plt.subplots(2, 3)
+    gs = gridspec.GridSpec(1, 3, width_ratios=[3, 1, 1])
+
+    fig.set_size_inches(12, 12)
+    #for i in [0, -1]:
     for i in range(1):
         neighborhood = neighborinos[i]
         article = neighborhood['article']
@@ -327,6 +331,9 @@ def neighbor_heatmap(neighbors, save_to):
             ([article.vector], [*neighbor_vectors]),
             axis=0
         )
+
+        # Shuffle the matrix so that prominent features are better visible.
+
         article_labels = [
             '{title}\nCategory: {category}'.format(
                 title=article.title,
@@ -337,15 +344,48 @@ def neighbor_heatmap(neighbors, save_to):
                 category=art['neighbor'].category.title())
             for art in neighbors_of_article])
 
-        y_incides = range(neighbors_as_matrix.shape[0])
-        axes = ax[i]
-        c = axes.pcolor(neighbors_as_matrix, cmap=cm.gray_r)
-        axes.grid(axis='y')
-        axes.set_yticks(y_incides)
-        axes.set_yticklabels(article_labels, verticalalignment='bottom')
-        plt.colorbar(mappable=c, ax=ax[0])
+        heatmap, distances, max_common_feat = ax[i]
+        heatmap.invert_yaxis()
+        c = heatmap.pcolor(neighbors_as_matrix > 0, cmap=cm.gray_r)
+        heatmap.grid(axis='y')
 
-    plt.title('Color Map of Shared Features')
+        y_incides = range(neighbors_as_matrix.shape[0])
+        heatmap.set_yticks(y_incides)
+        heatmap.set_yticklabels(article_labels, verticalalignment='top',
+                             size='small')
+
+        #plt.colorbar(mappable=c, ax=ax[0])
+
+        # Determine the common labels between the target article and each
+        # neighbor
+        # unique_feature_indices = set()
+        # existence_in_article = article.vector > 0.1
+        # for neighbor in neighbors_of_article:
+        #     existence_in_neighbor = neighbor['neighbor'].vector > 0
+        #     shared_existence = numpy.logical_and(existence_in_article,
+        #                                          existence_in_neighbor)
+        #
+        #     indices = numpy.arange(len(shared_existence))
+        #     existence_indices = indices[shared_existence]
+        #     logger.debug('Shared indices between article and neighbor:')
+        #     logger.debug(existence_indices)
+        #     unique_feature_indices.update(existence_indices)
+        #
+        # logger.debug('Shared indices with at least one neighbor:')
+        # unique_feature_indices = numpy.array(sorted(unique_feature_indices))
+        # logger.debug(unique_feature_indices)
+        #
+        # feature_names = numpy.array(feature_names, dtype=numpy.unicode_)
+        # logger.debug(feature_names[unique_feature_indices])
+        #
+        # top_axis = axes.twiny()
+        # top_axis.invert_xaxis()
+        # top_axis.set_xticks(unique_feature_indices)
+        # top_axis.set_xticklabels(feature_names[unique_feature_indices],
+        #                          rotation='vertical')
+
+    plt.subplots_adjust(left=0.35)
+    plt.title('Heatmap of Shared Features')
     plt.show()
 
 
