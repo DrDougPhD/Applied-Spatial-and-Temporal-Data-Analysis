@@ -1,5 +1,8 @@
 import os
 import logging
+import pprint
+
+
 def setup_logger(name):
     # create file handler which logs even debug messages
     # todo: place them in a log directory, or add the time to the log's
@@ -143,28 +146,42 @@ class Homework2Experiments(object):
         experiment = self.experiment['tree'] = tree.experiment.Experiment(
             cross_validation_n=5,
             corpus_series=self.corpus_by_vectorizer,
-            save_to=self.output_dir)
+            save_to=self.output_dir,
+            criterion_options=['gini', 'entropy'])
 
         # Which method, gini or entropy, produces the most accurate results?
         # What is the precision, recall, and f-measure of these experiments?
 
-        pkl_filename = 'dectree_{}'.format(self.n)
-        results = self._load_pickle(pkl_filename)
-        if not results:
-            available_splitting_criterion = ['gini', 'entropy']
-            results = {}
-            for vector_type in self.corpus_by_vectorizer:
-                results_for_matrix_type = {}
-                for criterion in available_splitting_criterion:
-                    exp_results = experiment.criterion_based_accuracy(
-                        criterion=criterion, vector_type=vector_type)
-                    results_for_matrix_type[criterion] = exp_results
-                results[vector_type] = results_for_matrix_type
+        # prec_n_rec_pkl_filename = 'dectree_{}'.format(self.n)
+        # prec_n_rec_results = self._load_pickle(prec_n_rec_pkl_filename)
+        # if not prec_n_rec_results:
+        #     prec_n_rec_results = {}
+        #     for vector_type in self.corpus_by_vectorizer:
+        #         results_for_matrix_type = {}
+        #         for criterion in experiment.criterion_options:
+        #             exp_results = \
+        #                 experiment.criterion_based_accuracy(
+        #                 criterion=criterion, vector_type=vector_type)
+        #             results_for_matrix_type[criterion] = exp_results
+        #         prec_n_rec_results[vector_type] = results_for_matrix_type
+        #     self._save_to_pickel(prec_n_rec_results, prec_n_rec_pkl_filename)
+        #
+        # tree_plots.prec_n_rec(prec_n_rec_results, class_labels=self.corpus.class_names,
+        #                       save_to=self.output_dir)
 
-            self._save_to_pickel(results, pkl_filename)
+        # Which articles were harder to classify?
+        decision_path_pkl_filename = 'decpaths_{}'.format(self.n)
+        decision_paths = self._load_pickle(decision_path_pkl_filename)
+        logger.info(hr('Decision Path Lengths'))
+        if not decision_paths:
+            decision_paths = experiment.decision_path_lengths(
+                classnames=self.corpus.class_names)
+            self._save_to_pickel(decision_paths, decision_path_pkl_filename)
+        logger.debug(hr('Decision Length Experiments Complete'))
+        logger.debug('Results:')
+        logger.debug(pprint.pformat(decision_paths))
+        #tree_plots.decision_paths(decision_paths)
 
-        tree_plots.prec_n_rec(results, class_labels=self.corpus.class_names,
-                              save_to=self.output_dir)
 
         """
         # Show accuracy against limiting the number of leaves
@@ -236,7 +253,7 @@ class Homework2Experiments(object):
 
 def main():
     configuration = {
-        'n': 20,
+        'n': 100,
         'k': 3,
         'knn_voting_weight': 'uniform',
         'dectree_max_leafs': 10
