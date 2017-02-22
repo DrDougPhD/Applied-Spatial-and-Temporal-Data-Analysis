@@ -1,9 +1,13 @@
+import pprint
+
+import numpy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as lines
 import os
 import matplotlib.transforms as mtransforms
 import matplotlib.text as mtext
+from matplotlib import cm
 
 from matplotlib.axes import Axes
 try:
@@ -268,7 +272,36 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
     # axarr[1].scatter(x, y)
 
 
+def neighbor_heatmap(neighbors, save_to):
+    # only interested in the neighbors for TDIDF, Cosine
+    logger.info('######## Neighbor Heatmap')
+    neighborinos = neighbors['tfidf']['cosine'][-1]
+    logger.debug('First of the neighborinos: {} items'.format(len(neighborinos[0])))
+    logger.debug(neighborinos[0])
+    logger.debug('#'*80)
+    logger.debug('Last of the neighborinos: {} items'.format(len(neighborinos[-1])))
+    logger.debug(neighborinos[-1])
+    logger.debug('#'*80)
+    logger.debug('Second of the neighborinos: {} items'.format(len(neighborinos[1])))
+    logger.debug(neighborinos[1])
+
+
+    #logger.debug(pprint.pformat(neighborinos))
+
+    """
+    Z = numpy.random.rand(6, 1000)
+
+    fig, ax = plt.subplots(4)
+    c = ax.pcolor(Z, cmap=cm.gray_r)
+    plt.colorbar(mappable=c)
+    plt.title('default: no edges')
+
+    plt.show()
+    """
+
+
 if __name__ == '__main__':
+    neighbor_heatmap(None, None)
     # fig, verticle_axes = plt.subplots(3, sharex=True)
     # cosine = AccuracyLine(experiment.get_results_for(
     #     vectorizer='Term Frequency',

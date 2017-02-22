@@ -11,11 +11,12 @@ from experiments import LoggingObject
 
 from collections import defaultdict
 class Experiment(LoggingObject):
-    def __init__(self, cross_validation_n, vote_weight, corpus_series):
+    def __init__(self, cross_validation_n, vote_weight, corpus_series, save_to):
         super(Experiment, self).__init__('cnn.' + __name__)
         print('cnn.' + __name__)
         self.n_fold = cross_validation_n
         self.voting_weight = vote_weight
+        self.save_to = save_to
 
         self.series = set()
         self.variations = set()
@@ -40,10 +41,13 @@ class Experiment(LoggingObject):
 
         average_accuracies = []
         precision_and_recalls = []
+        neighbor_lists = []
         for x in xvals:
-            accuracies, prec_recall = self.run_single(x, series, variation)
+            accuracies, prec_recall, neighbors = self.run_single(
+                x, series, variation)
             average_accuracies.append(accuracies)
             precision_and_recalls.append(prec_recall)
+            neighbor_lists.append(neighbors)
 
         self.info('Experiments finished')
         result = ExperimentResults(xvals=numpy.asarray(xvals),
@@ -52,6 +56,8 @@ class Experiment(LoggingObject):
                                    precision_and_recalls=precision_and_recalls)
 
         self.results[series][variation_label] = result
+
+        return neighbor_lists
 
     def _str_or_fn_name(self, item):
         if not isinstance(item, str):
@@ -158,14 +164,15 @@ class Experiment(LoggingObject):
 
 
         # print some nice strings about the neighbors
-        neighbors.sort(key=lambda x: x['closest_distance'], reverse=True)
+        neighbors.sort(key=lambda x: x['closest_distance'])
         neighbor_string_info = []
         for article_neighborinos in neighbors:
             printable_string = self.stringify_neighbor_info(article_neighborinos)
             neighbor_string_info.append(printable_string)
 
-        logger.debug('\n'.join(neighbor_string_info))
-        logger.debug('='*80)
+        #logger.debug('\n'.join(neighbor_string_info))
+        #logger.debug('='*80)
+
 
         # analyze precision and recall
         labels = list(range(len(dataset.class_names)))
@@ -199,7 +206,7 @@ class Experiment(LoggingObject):
         logger.info('Precision and Recall: {}'.format(
             prec_n_rec)) #prec_and_rec.fmeasure()))
         logger.debug('-' * 120)
-        return average_accuracy, prec_n_rec
+        return average_accuracy, prec_n_rec, neighbors
 
     def get_results_for(self, series, variation):
         return self.results[series][variation]

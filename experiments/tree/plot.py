@@ -204,7 +204,7 @@ def path_lengths(data, save_to):
                 align='center',
                 ecolor='black')
 
-        #axes.set_title(class_label.title())
+        axes.set_title(class_label.title())
         axes.set_yticks(indices)
         axes.set_yticklabels(bar_labels)
 
@@ -215,7 +215,7 @@ def path_lengths(data, save_to):
     last_axes.set_frame_on(False)
     last_axes.axes.get_yaxis().set_visible(False)
     last_axes.axes.get_xaxis().set_visible(False)
-    plt.suptitle('Decision Tree Path Lengths')
+    #plt.suptitle('Decision Tree Path Lengths')
 
     if save_to is None:
         plt.show()

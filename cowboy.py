@@ -2,6 +2,8 @@ import os
 import logging
 import pprint
 
+from collections import defaultdict
+
 
 def setup_logger(name):
     # create file handler which logs even debug messages
@@ -99,21 +101,29 @@ class Homework2Experiments(object):
         self.knn_vote_weight=knn_vote_weight
         self.output_dir = os.path.join('figures', knn_vote_weight)
         os.makedirs(self.output_dir, exist_ok=True)
-        self.articles = dataset.get(n=n, from_=dataset_dir,
-                                    randomize=randomize)
 
         # preprocess
         self.vectorizers = {
             'tf': 'Term Frequency',
-            #'existence': 'Existence',
+            # 'existence': 'Existence',
             'tfidf': 'TF-IDF'
         }
-        self.corpus_by_vectorizer = {
-            self.vectorizers[k]: preprocess.execute(corpus=self.articles,
-                                               exclude_stopwords=True,
-                                               method=k)
-            for k in self.vectorizers
-        }
+
+        corpus_pickle = 'corpus.{}'.format(n)
+        corpus_by_vectorizer = self._load_pickle(corpus_pickle)
+        if not corpus_by_vectorizer:
+            self.articles = dataset.get(n=n, from_=dataset_dir,
+                                        randomize=randomize)
+
+            corpus_by_vectorizer = {
+                self.vectorizers[k]: preprocess.execute(corpus=self.articles,
+                                                   exclude_stopwords=True,
+                                                   method=k)
+                for k in self.vectorizers
+            }
+            self._save_to_pickel(corpus_by_vectorizer, corpus_pickle)
+        self.corpus_by_vectorizer = corpus_by_vectorizer
+
         self.corpus = self.corpus_by_vectorizer['Term Frequency']
 
         self.experiment = {}
@@ -121,7 +131,7 @@ class Homework2Experiments(object):
     def run(self, knn_neighbors_max, dec_tree_max_leafs):
         logger.info(hr('Beginning Experiments'))
         self.decision_tree(max_leafs=dec_tree_max_leafs)
-        #self.knn(max_neighbors=knn_neighbors_max)
+        self.knn(max_neighbors=knn_neighbors_max)
 
     def _load_pickle(self, filename):
         pickle_path = os.path.join(
@@ -149,28 +159,29 @@ class Homework2Experiments(object):
         experiment = self.experiment['tree'] = tree.experiment.Experiment(
             cross_validation_n=5,
             corpus_series=self.corpus_by_vectorizer,
-            save_to=self.output_dir,
+            save_to=output_path,
             criterion_options=['gini', 'entropy'])
 
         # Which method, gini or entropy, produces the most accurate results?
         # What is the precision, recall, and f-measure of these experiments?
 
-        # prec_n_rec_pkl_filename = 'dectree_{}'.format(self.n)
-        # prec_n_rec_results = self._load_pickle(prec_n_rec_pkl_filename)
-        # if not prec_n_rec_results:
-        #     prec_n_rec_results = {}
-        #     for vector_type in self.corpus_by_vectorizer:
-        #         results_for_matrix_type = {}
-        #         for criterion in experiment.criterion_options:
-        #             exp_results = \
-        #                 experiment.criterion_based_accuracy(
-        #                 criterion=criterion, vector_type=vector_type)
-        #             results_for_matrix_type[criterion] = exp_results
-        #         prec_n_rec_results[vector_type] = results_for_matrix_type
-        #     self._save_to_pickel(prec_n_rec_results, prec_n_rec_pkl_filename)
-        #
-        # tree_plots.prec_n_rec(prec_n_rec_results, class_labels=self.corpus.class_names,
-        #                       save_to=self.output_dir)
+        prec_n_rec_pkl_filename = 'dectree_{}'.format(self.n)
+        prec_n_rec_results = self._load_pickle(prec_n_rec_pkl_filename)
+        if not prec_n_rec_results:
+            prec_n_rec_results = {}
+            for vector_type in self.corpus_by_vectorizer:
+                results_for_matrix_type = {}
+                for criterion in experiment.criterion_options:
+                    exp_results = \
+                        experiment.criterion_based_accuracy(
+                        criterion=criterion, vector_type=vector_type)
+                    results_for_matrix_type[criterion] = exp_results
+                prec_n_rec_results[vector_type] = results_for_matrix_type
+            self._save_to_pickel(prec_n_rec_results, prec_n_rec_pkl_filename)
+
+        tree_plots.prec_n_rec(prec_n_rec_results,
+                              class_labels=self.corpus.class_names,
+                              save_to=output_path)
 
         # Which articles were harder to classify?
         decision_path_pkl_filename = 'decpaths_{}'.format(self.n)
@@ -222,23 +233,57 @@ class Homework2Experiments(object):
         """
 
     def knn(self, max_neighbors):
-        logger.info(hr('k-Nearest Neighbors', '+'))
-        # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
-        #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
-        experiment = self.experiment['knn'] = knn.experiment.Experiment(
-            cross_validation_n=5,
-            vote_weight=self.knn_vote_weight,
-            corpus_series=self.corpus_by_vectorizer)
+        output_path = os.path.join('results', 'knn')
+        os.makedirs(output_path, exist_ok=True)
 
-        for corpus_key in self.vectorizers:
-            selected_corpus_type = self.vectorizers[corpus_key]
-            logger.info(hr('{0} article matrices'.format(selected_corpus_type),
-                        '~'))
-            for distance_fn in Homework2Experiments.distances:
-                logger.info(hr('{0} distances'.format(distance_fn), "."))
-                experiment.run(xvals=range(1, max_neighbors+1),
-                               series=selected_corpus_type,
-                               variation=distance_fn)
+        logger.info(hr('k-Nearest Neighbors', '+'))
+        filename = 'neighbors.knn.{0}of{1}'.format(
+            max_neighbors, self.n)
+        neighbors = self._load_pickle(filename)
+        if not neighbors:
+            # knn.run(k_neighbors=5, k_fold=5, corpus=self.corpus,
+            #         distance_fn=distance.cosine, vote_weights=knn.inverse_squared)
+            experiment = self.experiment['knn'] = knn.experiment.Experiment(
+                cross_validation_n=5,
+                vote_weight=self.knn_vote_weight,
+                corpus_series=self.corpus_by_vectorizer,
+                save_to=output_path)
+
+            neighbors = defaultdict(dict)
+            for corpus_key in self.vectorizers:
+                selected_corpus_type = self.vectorizers[corpus_key]
+                logger.info(hr('{0} article matrices'.format(selected_corpus_type),
+                            '~'))
+
+                neighbors_for_vector_type = neighbors[corpus_key]
+                for distance_fn in Homework2Experiments.distances:
+                    if isinstance(distance_fn, str):
+                        distance_key = distance_fn
+                    else:
+                        distance_key = distance_fn.__name__
+
+                    if distance_key not in neighbors_for_vector_type:
+                        neighbors_for_vector_type[distance_key] = {}
+
+                    logger.info(hr('{0} distances'.format(distance_fn), "."))
+                    neighbors_from_exp = experiment.run(
+                        xvals=range(1, max_neighbors+1),
+                        series=selected_corpus_type,
+                        variation=distance_fn)
+
+                    neighbors_for_vector_type[distance_key] = neighbors_from_exp
+                    print('#'*80)
+                    print(neighbors_for_vector_type.keys())
+                neighbors[corpus_key].update(neighbors_for_vector_type)
+                print('#' * 100)
+                print(neighbors.keys())
+            plot.draw_accuracies(self.experiment['knn'], save_to=output_path)
+            plot.draw_fmeasures(self.experiment['knn'],
+               [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
+               save_to=output_path)
+            self._save_to_pickel(neighbors, filename)
+
+        plot.neighbor_heatmap(neighbors, save_to=output_path)
 
     def archive(self):
         # news articles
@@ -247,17 +292,13 @@ class Homework2Experiments(object):
         return
 
     def plot(self):
-        #plot.draw_accuracies(self.experiment['knn'], save_to=self.output_dir)
-        #plot.draw_fmeasures(self.experiment['knn'],
-        #    [('cosine', 'Term Frequency'), ('euclidean', 'TF-IDF')],
-        #    save_to=self.output_dir)
         return
 
 
 def main():
     configuration = {
         'n': 100,
-        'k': 3,
+        'k': 10,
         'knn_voting_weight': 'uniform',
         'dectree_max_leafs': 10
     }
