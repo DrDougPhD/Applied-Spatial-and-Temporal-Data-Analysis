@@ -3,6 +3,11 @@ import matplotlib.pyplot as plt
 from experiments import LoggingObject
 from lib.lineheaderpadded import hr
 import logging
+import random
+
+random.seed(0)
+
+
 def setup_logger(name):
     # create console handler with a higher log level
     ch = logging.StreamHandler()
@@ -35,7 +40,7 @@ def prec_n_rec(data):
         logger.debug(hr(splitting_method_data.title()))
 
         axes.set_title(splitting_method_data.title())
-        axes.set_ylabel('Data Class')
+        #axes.set_ylabel('Data Class')
         axes.set_xlabel('Performance Metric')
 
         # for each class of the data, make a group of bars corresponding to
@@ -49,7 +54,7 @@ def prec_n_rec(data):
             axes.barh(indices, perf_metrics, align='center',
                       **style)
 
-        #axes.invert_yaxis()
+        axes.invert_yaxis()
         #
         # for data_by_class in data:
         #     y_indices, perf_metrics, y_labels, y_design\
@@ -60,12 +65,12 @@ def prec_n_rec(data):
 
     # apply labels appropriately
     tickmark_locations, tick_labels = data.get_labels()
-    #ax[0].set_yticks(tickmark_locations)
-    #ax[0].set_yticklabels(tick_labels)
+    ax[0].set_yticks(tickmark_locations)
+    ax[0].set_yticklabels(tick_labels)
     #ax[0].invert_yaxis()
 
     # hide tickmarks on the left-hand-side axis of right subplot
-    #ax[-1].set_yticks([])
+    ax[-1].set_yticks([])
 
     # apply tickmarks to the right-side of the left subplot
     #right = ax[-1].twinx()
@@ -119,8 +124,8 @@ class PlottableExperimentPerformance(LoggingObject):
         Get axis labels, regardless of the axes / splitting type being used
         :return:
         """
-        label_indices = numpy.arange(6)\
-                      + (2*PlottableExperimentPerformance.bar_width)
+        label_indices = numpy.arange(len(self.bar_group_names))\
+                      + (2.5*PlottableExperimentPerformance.bar_width)
         self.debug('Tick labels:    {}'.format(self.bar_group_names))
         self.debug('Tick labels at: {}'.format(label_indices))
         return label_indices, self.bar_group_names
@@ -183,7 +188,6 @@ class PlottableDataFromSplittingType(LoggingObject):
         return self.splitting_method_name.title()
 
 
-import random
 class ExperimentPerformance(LoggingObject):
     def __init__(self):
         super(ExperimentPerformance, self).__init__()
