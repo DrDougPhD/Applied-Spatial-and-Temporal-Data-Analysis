@@ -142,6 +142,9 @@ class Homework2Experiments(object):
 
 
     def decision_tree(self, max_leafs):
+        output_path = os.path.join('results', 'decision_tree')
+        os.makedirs(output_path, exist_ok=True)
+
         logger.info(hr('Decision Tree', '+'))
         experiment = self.experiment['tree'] = tree.experiment.Experiment(
             cross_validation_n=5,
@@ -177,10 +180,10 @@ class Homework2Experiments(object):
             decision_paths = experiment.decision_path_lengths(
                 classnames=self.corpus.class_names)
             self._save_to_pickel(decision_paths, decision_path_pkl_filename)
-        logger.debug(hr('Decision Length Experiments Complete'))
-        logger.debug('Results:')
-        logger.debug(pprint.pformat(decision_paths))
-        #tree_plots.decision_paths(decision_paths)
+        #logger.debug(hr('Decision Length Experiments Complete'))
+        #logger.debug('Results:')
+        #logger.debug(pprint.pformat(decision_paths))
+        tree_plots.path_lengths(decision_paths, save_to=output_path)
 
 
         """

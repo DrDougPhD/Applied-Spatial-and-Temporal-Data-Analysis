@@ -1,37 +1,20 @@
 import matplotlib.pyplot as plt
 from experiments import LoggingObject
 from lib.lineheaderpadded import hr
-import logging
+import itertools
 import random
 import os
 random.seed(0)
-#
-#
-# def setup_logger(name):
-#     # create console handler with a higher log level
-#     ch = logging.StreamHandler()
-#
-#     ch.setLevel(logging.DEBUG)
-#
-#     # create formatter and add it to the handlers
-#     ch.setFormatter(logging.Formatter(
-#         "%(levelname)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %("
-#         "message)s"
-#     ))
-#     # add the handlers to the logger
-#     logger = logging.getLogger(name)
-#     logger.setLevel(logging.DEBUG)
-#     logger.addHandler(ch)
-#     return logger
-# logger = setup_logger('cnn')
+
 import logging
 logger = logging.getLogger('cnn.'+__name__)
+
+hatches = itertools.cycle('// * O \ | + x o .'.split())
+hatch = {}
 
 from sklearn import metrics
 def prec_n_rec(results, class_labels, save_to=None):
     bar_width = 0.22
-    hatches = itertools.cycle('// * O \ | + x o .'.split())
-    hatch = {}
 
     logger.debug(results.keys())
     for vector_type in results:
@@ -180,77 +163,66 @@ def prec_n_rec(results, class_labels, save_to=None):
                                      '{}.prec_n_rec.svg'.format(vector_type)))
 
 
-    """
-    logger.debug('Creating {} subplots for Prec. and Rec. graphs'.format(
-        num_subplots
-    ))
-    fig, ax = plt.subplots(ncols=num_subplots)
 
-    ax[0].invert_xaxis()
-    bar_handles = {}
+def path_lengths(data, save_to):
+    logger.debug(hr('Path Depths per Class'))
+    fig, ax = plt.subplots(nrows=4, ncols=2, sharex=True)
+    fig.set_size_inches((10, 12))
+    ax.shape = (1, 8)
+    ax = ax[0]
+    for i, class_label in enumerate(data):
+        if class_label not in hatch:
+            hatch[class_label] = next(hatches)
 
-    # each subplot corresponds to a node splitting method
-    for axes, splitting_method_data in zip(ax, data):
-        logger.debug(hr(splitting_method_data.title()))
+        data_for_class = data[class_label]
 
-        axes.set_title(splitting_method_data.title())
-        #axes.set_ylabel('Data Class')
-        axes.set_xlabel('Performance Metric')
+        bar_labels = []
+        max_lengths = []
+        min_lengths = []
+        average_lengths = []
+        for vector_type in data_for_class:
+            data_class_vector_type = data_for_class[vector_type]
+            for criterion in data_class_vector_type:
+                bar_labels.append('{vector}\n{criterion}'.format(
+                    vector=vector_type,
+                    criterion=criterion.title()
+                ))
 
-        # for each class of the data, make a group of bars corresponding to
-        # accuracy, precision, recall, f-measure
-        for perf_metric_type in splitting_method_data.by_metric_type():
+                underlying_data = data_class_vector_type[criterion]
+                max_length = max(underlying_data)
+                min_length = min(underlying_data)
+                average_length = numpy.mean(underlying_data)
+                max_lengths.append(max_length)
+                min_lengths.append(min_length)
+                average_lengths.append(average_length)
 
-            # [ accuracy1, accuracy2, ... ]
-            indices, perf_metrics, style, name = perf_metric_type
-            logger.debug(hr(name, '+'))
+        indices = range(len(bar_labels))
+        axes = ax[i]
+        axes.grid(True, axis='x', zorder=2)
+        axes.barh(indices, average_lengths,
+                xerr=[min_lengths, max_lengths],
+                align='center',
+                ecolor='black')
 
-            bars = axes.barh(indices, perf_metrics, align='center',
-                             **style)
-            logger.debug('Bar object: {}'.format([b for b in bars]))
-            if name not in bar_handles:
-                bar_handles[name] = bars[0]
+        #axes.set_title(class_label.title())
+        axes.set_yticks(indices)
+        axes.set_yticklabels(bar_labels)
 
-        axes.invert_yaxis()
-        #
-        # for data_by_class in data:
-        #     y_indices, perf_metrics, y_labels, y_design\
-        #         = data_by_class.as_tuple()
+        plt.tight_layout(pad=1.8, h_pad=3)
 
-    # flip the x-axis of the left subplot
-    #ax[0].invert_xaxis()
+    last_axes = ax[-1]
+    last_axes.grid(False)
+    last_axes.set_frame_on(False)
+    last_axes.axes.get_yaxis().set_visible(False)
+    last_axes.axes.get_xaxis().set_visible(False)
+    plt.suptitle('Decision Tree Path Lengths')
 
-    # apply labels appropriately
-    tickmark_locations, tick_labels = data.get_labels()
-    ax[0].set_yticks(tickmark_locations)
-    ax[0].set_yticklabels(tick_labels)
-    #ax[0].invert_yaxis()
-
-    # hide tickmarks on the left-hand-side axis of right subplot
-    right_axis = ax[-1]
-    right_axis.set_yticks([])
-
-    logger.debug('Items in the bar_handles list:\n{}'.format(bar_handles))
-    bar_labels = [l.title() for l in bar_handles.keys()]
-    bar_objects = [bar_handles[l] for l in bar_handles]
-    ax[-1].legend(bar_objects, bar_labels,
-                  loc='upper right', bbox_to_anchor=(1.7, 1.))
-
-    # apply tickmarks to the right-side of the left subplot
-    #right = ax[-1].twinx()
-    #right.set_yticks(tickmark_locations)
-    #right.set_yticklabels(tick_labels)
-    #right.invert_yaxis()
-
-    fig.suptitle(variation.title())
-    #plt.tight_layout()
-    plt.subplots_adjust(left=0.2, right=0.8)
     if save_to is None:
         plt.show()
     else:
         plt.savefig(os.path.join(save_to,
-                                 '{}.prec_n_rec.pdf'.format(variation)))
-    """
+                                 'path_depths.svg'.format(vector_type)))
+
 
 import numpy
 class PlottableExperimentPerformance(LoggingObject):
@@ -302,7 +274,6 @@ class PlottableExperimentPerformance(LoggingObject):
 
 
 from collections import defaultdict
-import itertools
 class PlottableDataFromSplittingType(LoggingObject):
     hatches = itertools.cycle('// * O \ | + x o .'.split())
     colors = itertools.cycle([
@@ -356,24 +327,3 @@ class PlottableDataFromSplittingType(LoggingObject):
 
     def title(self):
         return self.splitting_method_name.title()
-
-
-class ExperimentPerformance(LoggingObject):
-    def __init__(self):
-        super(ExperimentPerformance, self).__init__()
-        self.class_names = ['overall', 'crime', 'living', 'entertainment',
-                            'politics']
-        self.data = {
-            k: {
-                metric: random.random() for metric in ['accuracy',
-                                                       'precision',
-                                                       'recall',
-                                                       'f-score']
-            } for k in self.class_names
-        }
-
-
-if __name__ == '__main__':
-    import pickle
-    results = pickle.load(open('figures/uniform/hw2.dectree_20.pickle', 'rb'))
-    prec_n_rec(results, 'Term Frequency')

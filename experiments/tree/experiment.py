@@ -1,4 +1,5 @@
 #from experiments import LoggingObject
+from collections import defaultdict
 from sklearn import tree
 import pydotplus
 import os
@@ -7,15 +8,20 @@ import numpy
 #from experiments import PrecisionAndRecalls
 from sklearn import metrics
 
+from lib.lineheaderpadded import hr
+
 import logging
 logger = logging.getLogger('cnn.'+__name__)
+import pprint
 
 class Experiment(object):
-    def __init__(self, cross_validation_n, corpus_series, save_to):
+    def __init__(self, cross_validation_n, corpus_series, criterion_options,
+                 save_to):
         super(Experiment, self).__init__()
         self.n = cross_validation_n
         self.datasets = corpus_series
         self.save_to = save_to
+        self.criterion_options = criterion_options
 
     def export(self, clf, feature_names, class_names, name):
         dot_data = tree.export_graphviz(clf, out_file=None,
@@ -63,6 +69,46 @@ class Experiment(object):
         predicted_labels = numpy.array(predicted_labels)
         actual_labels = numpy.array(actual_labels)
         return {'predicted': predicted_labels, 'actual': actual_labels}
+
+    def decision_path_lengths(self, classnames):
+        logger.info(hr('Decision Paths', '+'))
+        results = defaultdict(dict)
+        for vector_type in self.datasets:
+            logger.info(hr(vector_type, '~'))
+
+            results_for_vector_type = defaultdict(dict)
+            dataset = self.datasets[vector_type]
+            for criterion in self.criterion_options:
+                logger.info(hr(criterion, '.'))
+
+                partitioner = processing.CrossValidation(k=self.n,
+                                                         dataset=dataset)
+                path_lengths_by_label = defaultdict(list)
+                for training, testing in partitioner:
+                    clf = tree.DecisionTreeClassifier()
+                    clf.fit(training.matrix, training.classes)
+
+                    for label, article in zip(testing.classes, testing.matrix):
+                        path = clf.decision_path(article)
+                        path_length = numpy.sum(path.toarray())
+                        path_lengths_by_label[classnames[label]].append(
+                            path_length)
+                for k in path_lengths_by_label:
+                    results_by_class_label = results[k]
+                    if vector_type not in results_by_class_label:
+                        results_by_class_label[vector_type] = defaultdict(dict)
+
+                    results_by_class_label[vector_type][criterion] = \
+                        path_lengths_by_label[k]
+
+                    path_lengths = path_lengths_by_label[k]
+                    logger.debug('Path statistics for {}'.format(k))
+                    logger.debug('Min path length: {}'.format(min(path_lengths)))
+                    logger.debug('Max path length: {}'.format(max(path_lengths)))
+                    logger.debug('Avg path length: {}'.format(numpy.mean(path_lengths)))
+
+        return results
+
 
 
 # class ExperimentPerformance(LoggingObject):
