@@ -44,9 +44,12 @@ def prec_n_rec(results, class_labels, save_to=None):
 
         num_subplots = len(results)
         fig, ax = plt.subplots(ncols=num_subplots)
+        ax[0].grid(True, axis='x', zorder=2)
+        ax[1].grid(True, axis='x', zorder=2)
 
         ax[0].invert_xaxis()
         bar_handles = {}
+        metric_names = ['Accuracy', 'Precision', 'Recall', 'F-Score']
 
         for i, splitting_method in enumerate(results_for_vector_type):
             logger.info(hr(splitting_method, '~'))
@@ -71,27 +74,26 @@ def prec_n_rec(results, class_labels, save_to=None):
             precs, recs, fscores, supports = vals
             accuracies = []
             for cls in range(len(class_labels)):
-                logger.debug('Truths:      {}'.format(truths))
-                logger.debug('Predictions: {}'.format(predictions))
-
                 instances_of_class = (truths == cls)
-                logger.debug('Instances of "{}"'.format(class_labels[cls]))
-                logger.debug(instances_of_class)
-
                 true_positives = (truths == predictions)
-                logger.debug('True positives:')
-                logger.debug(true_positives)
-
                 true_positives_for_class = numpy.logical_and(true_positives,
                                                              instances_of_class)
-                logger.debug('True positives for class:')
-                logger.debug(true_positives_for_class)
-
                 accuracy = numpy.sum(true_positives_for_class) / numpy.sum(
                     instances_of_class
                 )
-                logger.debug('Accuracy: {}'.format(accuracy))
                 accuracies.append(accuracy)
+
+                #
+                # logger.debug('Truths:      {}'.format(truths))
+                # logger.debug('Predictions: {}'.format(predictions))
+                # logger.debug('Instances of "{}"'.format(class_labels[cls]))
+                # logger.debug(instances_of_class)
+                # logger.debug('True positives:')
+                # logger.debug(true_positives)
+                # logger.debug('True positives for class:')
+                # logger.debug(true_positives_for_class)
+                # logger.debug('Accuracy: {}'.format(accuracy))
+
 
                 # true_positives = (predictions == truths)
                 # true_positives_count = numpy.sum(true_positives)
@@ -109,16 +111,14 @@ def prec_n_rec(results, class_labels, save_to=None):
                 # logger.debug(true_pos_for_class_count)
 
             accuracies = numpy.array(accuracies)
-            logger.debug('Precisions and Recalls:::')
-            logger.debug('Accuracies:  {}'.format(accuracies))
-            logger.debug('Precision:   {}'.format(precs))
-            logger.debug('Recall:      {}'.format(recs))
-            logger.debug('F-Score:     {}'.format(fscores))
-            logger.debug('Support:     {}'.format(supports))
+            # logger.debug('Precisions and Recalls:::')
+            # logger.debug('Accuracies:  {}'.format(list(accuracies)))
+            # logger.debug('Precision:   {}'.format(list(precs)))
+            # logger.debug('Recall:      {}'.format(list(recs)))
+            # logger.debug('F-Score:     {}'.format(list(fscores)))
+            # logger.debug('Support:     {}'.format(list(supports)))
 
-            metric_names = ['Accuracy', 'Precision', 'Recall', 'F-Score',
-                            'Support']
-            metric_values = [accuracies, precs, recs, fscores, supports]
+            metric_values = [accuracies, precs, recs, fscores]
 
             # Begin plotting
             axes = ax[i]
@@ -128,18 +128,61 @@ def prec_n_rec(results, class_labels, save_to=None):
 
             indices = numpy.arange(start=0, stop=len(class_labels))
             for i, metric in enumerate(metric_names):
+                logger.debug('#'*80)
+                logger.debug('Plotting for {}'.format(metric))
+                indices_for_metric = indices+(i*bar_width)
+                fmt = '{0:.11f} -- {1:.11f} -- {2:.11f} -- {3:.11f} -- {4:.11f} ' \
+                      '-- {5:.11f} -- {6:.11f}'
+                header_fmt = '{0: ^13} -- {1: ^13} -- {2: ^13} -- {3: ^13} -- ' \
+                             '{4: ^13} -- {5: ^13} -- {6: ^13}'
+                logger.debug('Classes:  {}'.format(header_fmt.format(
+                    *class_labels)))
+                logger.debug('Indices:  {}'.format(fmt.format(
+                    *indices_for_metric)))
+                logger.debug('Values:   {}'.format(fmt.format(
+                    *metric_values[i])))
                 if metric not in style:
                     style[metric] = {
                         'hatch': next(hatches),
                         'height': bar_width,
                     }
-                bars = axes.barh(indices+(i*bar_width),
+                bars = axes.barh(indices_for_metric,
                                  width=metric_values[i],
                                  label=metric,
                                  align='center',
                                  **style[metric])
                 if metric not in bar_handles:
                     bar_handles[metric] = bars[0]
+
+        tickmark_locations = indices + bar_width*1.5
+        ax[0].set_yticks(tickmark_locations)
+        ax[0].set_yticklabels(class_labels)
+        # ax[0].invert_yaxis()
+
+        # hide tickmarks on the left-hand-side axis of right subplot
+        right_axis = ax[-1]
+        right_axis.set_yticks([])
+
+        bar_labels = [l.title() for l in bar_handles.keys()]
+        bar_objects = [bar_handles[l] for l in bar_handles]
+        ax[-1].legend(bar_objects, bar_labels,
+                      loc='upper right', bbox_to_anchor=(1.75, 1.))
+
+        # apply tickmarks to the right-side of the left subplot
+        # right = ax[-1].twinx()
+        # right.set_yticks(tickmark_locations)
+        # right.set_yticklabels(tick_labels)
+        # right.invert_yaxis()
+
+        fig.suptitle('Decision Tree Performance on {} vectors'.format(
+            vector_type.title()))
+        # plt.tight_layout()
+        plt.subplots_adjust(left=0.2, right=0.8)
+        if save_to is None:
+            plt.show()
+        else:
+            plt.savefig(os.path.join(save_to,
+                                     '{}.prec_n_rec.pdf'.format(vector_type)))
 
 
     """
