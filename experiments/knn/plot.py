@@ -10,6 +10,8 @@ import matplotlib.text as mtext
 from matplotlib import cm
 
 from matplotlib.axes import Axes
+from matplotlib.ticker import IndexLocator
+
 try:
     from lib.lineheaderpadded import hr
 except:
@@ -276,28 +278,75 @@ def neighbor_heatmap(neighbors, save_to):
     # only interested in the neighbors for TDIDF, Cosine
     logger.info('######## Neighbor Heatmap')
     neighborinos = neighbors['tfidf']['cosine'][-1]
-    logger.debug('First of the neighborinos: {} items'.format(len(neighborinos[0])))
-    logger.debug(neighborinos[0])
-    logger.debug('#'*80)
-    logger.debug('Last of the neighborinos: {} items'.format(len(neighborinos[-1])))
-    logger.debug(neighborinos[-1])
-    logger.debug('#'*80)
-    logger.debug('Second of the neighborinos: {} items'.format(len(neighborinos[1])))
-    logger.debug(neighborinos[1])
+    logger.debug('First of the neighborinos')
 
+    neighborhood = neighborinos[0]
+    article = neighborhood['article']
 
-    #logger.debug(pprint.pformat(neighborinos))
+    neighbors_of_article = neighborhood['neighbors']
+    neighbor_vectors = [a['neighbor'].vector for a in neighbors_of_article]
 
-    """
-    Z = numpy.random.rand(6, 1000)
+    neighbors_as_matrix = numpy.concatenate(
+        ([article.vector], [*neighbor_vectors]),
+        axis=0
+    )
 
-    fig, ax = plt.subplots(4)
-    c = ax.pcolor(Z, cmap=cm.gray_r)
-    plt.colorbar(mappable=c)
-    plt.title('default: no edges')
+    articles_considered = []
+    for n in neighborinos:
+        article = n['article']
+        logger.debug(hr('Neighbor listing'))
+        logger.debug(article.title)
 
+        if article.title in articles_considered:
+            logger.debug('Skipping "{}"'.format(article.title))
+            continue
+        else:
+            # if we come across an article that is closest to the main article,
+            # then we might come across that article as the main article soon
+            # afterwards.
+            articles_considered.append(n['neighbors'][0]['neighbor'].title)
+
+        neighboring_articles = map(lambda x: x['neighbor'],
+                                   n['neighbors'])
+
+        for j, art in enumerate(neighboring_articles):
+            logger.debug(' --> {0: .4f}   {1}'.format(
+                n['neighbors'][j]['distance'],
+                art.title))
+
+    fig, ax = plt.subplots(3)
+    fig.set_size_inches(12, 16)
+    for i in range(1):
+        neighborhood = neighborinos[i]
+        article = neighborhood['article']
+
+        neighbors_of_article = neighborhood['neighbors']
+        neighbor_vectors = [a['neighbor'].vector for a in neighbors_of_article]
+
+        neighbors_as_matrix = numpy.concatenate(
+            ([article.vector], [*neighbor_vectors]),
+            axis=0
+        )
+        article_labels = [
+            '{title}\nCategory: {category}'.format(
+                title=article.title,
+                category=article.category.title())]
+        article_labels.extend([
+            '{title}\nCategory: {category}'.format(
+                title=art['neighbor'].title,
+                category=art['neighbor'].category.title())
+            for art in neighbors_of_article])
+
+        y_incides = range(neighbors_as_matrix.shape[0])
+        axes = ax[i]
+        c = axes.pcolor(neighbors_as_matrix, cmap=cm.gray_r)
+        axes.grid(axis='y')
+        axes.set_yticks(y_incides)
+        axes.set_yticklabels(article_labels, verticalalignment='bottom')
+        plt.colorbar(mappable=c, ax=ax[0])
+
+    plt.title('Color Map of Shared Features')
     plt.show()
-    """
 
 
 if __name__ == '__main__':
