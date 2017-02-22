@@ -34,6 +34,7 @@ def prec_n_rec(data):
     fig, ax = plt.subplots(ncols=num_subplots)
 
     ax[0].invert_xaxis()
+    bar_handles = {}
 
     # each subplot corresponds to a node splitting method
     for axes, splitting_method_data in zip(ax, data):
@@ -51,8 +52,11 @@ def prec_n_rec(data):
             indices, perf_metrics, style, name = perf_metric_type
             logger.debug(hr(name, '+'))
 
-            axes.barh(indices, perf_metrics, align='center',
-                      **style)
+            bars = axes.barh(indices, perf_metrics, align='center',
+                             **style)
+            logger.debug('Bar object: {}'.format([b for b in bars]))
+            if name not in bar_handles:
+                bar_handles[name] = bars[0]
 
         axes.invert_yaxis()
         #
@@ -70,7 +74,14 @@ def prec_n_rec(data):
     #ax[0].invert_yaxis()
 
     # hide tickmarks on the left-hand-side axis of right subplot
-    ax[-1].set_yticks([])
+    right_axis = ax[-1]
+    right_axis.set_yticks([])
+
+    logger.debug('Items in the bar_handles list:\n{}'.format(bar_handles))
+    bar_labels = [l.title() for l in bar_handles.keys()]
+    bar_objects = [bar_handles[l] for l in bar_handles]
+    ax[-1].legend(bar_objects, bar_labels,
+                  loc='upper right')
 
     # apply tickmarks to the right-side of the left subplot
     #right = ax[-1].twinx()
