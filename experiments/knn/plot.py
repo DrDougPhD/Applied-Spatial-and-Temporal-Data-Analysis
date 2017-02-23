@@ -317,31 +317,25 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
 
     #fig, ax = plt.subplots(2, 3)
 
-    fig = plt.figure(figsize=(12, 12))
-    gs = gridspec.GridSpec(2, 3, width_ratios=[3, 1, 1])
-    closest_neighborhood_heatmap = plt.subplot(gs[0])
-    closest_neighborhood_distances = plt.subplot(gs[1])
-    closest_neighborhood_max_shared_feat = plt.subplot(gs[2])
+    # for i in [0, -1]:
+    def heatmap_n_stuff(i, heatmap, distances, max_common_feat):
+        heatmap.set_title('Common Feature Occurrences')
+        #distances.set_title('Distance to\nNeighbors')
+        max_common_feat.set_title('Most\nCommon\nFeature')
 
-    furthest_neighborhood_heatmap = plt.subplot(gs[3])
-    furthest_neighborhood_distances = plt.subplot(gs[4])
-    furthest_neighborhood_max_shared_feat = plt.subplot(gs[5])
+        heatmap.invert_yaxis()
 
-    """
-    #for i in [0, -1]:
-    for i in range(1):
         neighborhood = neighborinos[i]
-        article = neighborhood['article']
 
         neighbors_of_article = neighborhood['neighbors']
-        neighbor_vectors = [a['neighbor'].vector for a in neighbors_of_article]
+        neighbor_vectors = [a['neighbor'].vector for a in
+                            neighbors_of_article]
 
+        article = neighborhood['article']
         neighbors_as_matrix = numpy.concatenate(
             ([article.vector], [*neighbor_vectors]),
             axis=0
         )
-
-        # Shuffle the matrix so that prominent features are better visible.
 
         article_labels = [
             '{title}\nCategory: {category}'.format(
@@ -349,21 +343,32 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
                 category=article.category.title())]
         article_labels.extend([
             '{title}\nCategory: {category}'.format(
-                title=art['neighbor'].title,
-                category=art['neighbor'].category.title())
+              title=art['neighbor'].title,
+              category=art[
+                  'neighbor'].category.title())
             for art in neighbors_of_article])
 
-        heatmap, distances, max_common_feat = ax[i]
-        heatmap.invert_yaxis()
         c = heatmap.pcolor(neighbors_as_matrix > 0, cmap=cm.gray_r)
+
         heatmap.grid(axis='y')
 
         y_incides = range(neighbors_as_matrix.shape[0])
         heatmap.set_yticks(y_incides)
         heatmap.set_yticklabels(article_labels, verticalalignment='top',
-                             size='small')
+                                size='small')
 
-        #plt.colorbar(mappable=c, ax=ax[0])
+        # create the subplot for the distances
+        neighbor_distances = [0,
+            *[art['distance'] for art in neighbors_of_article]]
+        indices = numpy.arange(len(neighbor_distances))
+
+        distances.invert_yaxis()
+        distances.set_xlabel('Neighbor\nDistances')
+        bars = distances.barh(indices,
+                              width=neighbor_distances,
+                              align='center')
+
+        # plt.colorbar(mappable=c, ax=ax[0])
 
         # Determine the common labels between the target article and each
         # neighbor
@@ -392,7 +397,19 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
         # top_axis.set_xticks(unique_feature_indices)
         # top_axis.set_xticklabels(feature_names[unique_feature_indices],
         #                          rotation='vertical')
-    """
+
+    fig = plt.figure(figsize=(12, 12))
+    gs = gridspec.GridSpec(2, 3, width_ratios=[3, 1, 1])
+    heatmap_n_stuff(i=0, heatmap=plt.subplot(gs[0]),
+                    distances=plt.subplot(gs[1]),
+                    max_common_feat=plt.subplot(gs[2]))
+
+    furthest_neighborhood_heatmap = plt.subplot(gs[3])
+    furthest_neighborhood_distances = plt.subplot(gs[4])
+    furthest_neighborhood_max_shared_feat = plt.subplot(gs[5])
+
+
+
     plt.subplots_adjust(left=0.35)
     plt.suptitle('Heatmap of Shared Features')
     plt.show()
