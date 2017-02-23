@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
-from experiments import LoggingObject
+from experiments import LoggingObject, color, colors, hatch, hatches
 from lib.lineheaderpadded import hr
-import itertools
 import random
 import os
 random.seed(0)
@@ -9,8 +8,6 @@ random.seed(0)
 import logging
 logger = logging.getLogger('cnn.'+__name__)
 
-hatches = itertools.cycle('// * O \ | + x o .'.split())
-hatch = {}
 
 from sklearn import metrics
 def prec_n_rec(results, class_labels, save_to=None):
@@ -62,6 +59,8 @@ def prec_n_rec(results, class_labels, save_to=None):
                     instances_of_class
                 )
                 accuracies.append(accuracy)
+                if class_labels[cls] not in color:
+                    color[class_labels[cls]] = next(colors)
 
                 #
                 # logger.debug('Truths:      {}'.format(truths))
@@ -123,12 +122,17 @@ def prec_n_rec(results, class_labels, save_to=None):
                     *metric_values[i])))
                 if metric not in hatch:
                     hatch[metric] = next(hatches)
+
                 bars = axes.barh(indices_for_metric,
                                  width=metric_values[i],
                                  label=metric,
                                  height=bar_width,
                                  align='center',
                                  hatch=hatch[metric])
+                for cls, bar in zip(class_labels, bars):
+                    logger.debug(color.keys())
+                    bar.set_color(color[cls])
+
                 if metric not in bar_handles:
                     bar_handles[metric] = bars[0]
 
@@ -168,12 +172,15 @@ def prec_n_rec(results, class_labels, save_to=None):
 def path_lengths(data, save_to):
     logger.debug(hr('Path Depths per Class'))
     fig, ax = plt.subplots(nrows=4, ncols=2, sharex=True)
+    fig.suptitle('Classifier Path Lengths by Article Class')
     fig.set_size_inches((10, 12))
     ax.shape = (1, 8)
     ax = ax[0]
     for i, class_label in enumerate(data):
         if class_label not in hatch:
             hatch[class_label] = next(hatches)
+        if class_label not in color:
+            color[class_label] = next(colors)
 
         data_for_class = data[class_label]
 
@@ -199,11 +206,13 @@ def path_lengths(data, save_to):
 
         indices = range(len(bar_labels))
         axes = ax[i]
+        axes.set_xlabel('Avg/Min/Max Path Length')
         axes.grid(True, axis='x', zorder=2)
         axes.barh(indices, average_lengths,
-                xerr=[min_lengths, max_lengths],
-                align='center',
-                ecolor='black')
+                  xerr=[min_lengths, max_lengths],
+                  align='center',
+                  ecolor='black',
+                  color=color[class_label])
 
         axes.set_title(class_label.title())
         axes.set_yticks(indices)
@@ -217,6 +226,8 @@ def path_lengths(data, save_to):
     last_axes.axes.get_yaxis().set_visible(False)
     last_axes.axes.get_xaxis().set_visible(False)
     #plt.suptitle('Decision Tree Path Lengths')
+
+    plt.tight_layout(pad=3.5)
 
     if save_to is None:
         plt.show()
@@ -276,11 +287,6 @@ class PlottableExperimentPerformance(LoggingObject):
 
 from collections import defaultdict
 class PlottableDataFromSplittingType(LoggingObject):
-    hatches = itertools.cycle('// * O \ | + x o .'.split())
-    colors = itertools.cycle([
-        'green', 'blue', 'red', 'cyan', 'magenta', 'yellow', 'black', 'white'
-    ])
-    style_for = {}
 
     def __init__(self, results, splitting_method_name):
         super(PlottableDataFromSplittingType, self).__init__()
@@ -304,9 +310,9 @@ class PlottableDataFromSplittingType(LoggingObject):
         logger.debug(self.performance_metrics_split_by_type)
 
         for n in self.metric_names:
-            if n not in self.style_for:
+            if n not in hatch:
                 PlottableDataFromSplittingType.style_for[n] = {
-                    'hatch': next(PlottableDataFromSplittingType.hatches),
+                    'hatch': next(hatches),
                     #'color': next(PlottableDataFromSplittingType.colors),
                     'height': PlottableExperimentPerformance.bar_width,
                 }

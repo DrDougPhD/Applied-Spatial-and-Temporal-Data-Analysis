@@ -21,6 +21,7 @@ except:
 import logging
 logger = logging.getLogger('cnn.'+__name__)
 
+from experiments import LoggingObject, color, colors, hatch, hatches
 import itertools
 pixel = ','
 point = '.'
@@ -276,9 +277,13 @@ def draw_fmeasures(experiment, best_metric_for_matrix, save_to):
 
 
 def neighbor_heatmap(neighbors, feature_names, save_to):
+    #save_to = None
     # only interested in the neighbors for TDIDF, Cosine
     logger.info('######## Neighbor Heatmap')
-    neighborinos = neighbors['tfidf']['cosine'][-1]
+    if len(neighbors['tfidf']['cosine']) > 5:
+        neighborinos = neighbors['tfidf']['cosine'][4]
+    else:
+        neighborinos = neighbors['tfidf']['cosine'][-1]
     logger.debug('First of the neighborinos')
 
     neighborhood = neighborinos[0]
@@ -349,6 +354,7 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
             for art in neighbors_of_article])
 
         c = heatmap.pcolor(neighbors_as_matrix > 0, cmap=cm.gray_r)
+        #fig.colorbar(mappable=c, ax=heatmap)
 
         heatmap.grid(axis='y')
 
@@ -362,9 +368,9 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
             *[art['distance'] for art in neighbors_of_article]])
         indices = numpy.arange(len(neighbor_distances))
 
-        distances.set_title('Similarities')
+        distances.set_title('Distances')
         bars = distances.barh(indices+0.5,
-                              width=1-neighbor_distances,
+                              width=neighbor_distances,
                               #edgecolor='black'
                               align='center')
         distances.set_ylim((0, len(neighbor_distances)))
@@ -439,9 +445,11 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
                     max_common_feat=plt.subplot(gs[5]))
 
     plt.subplots_adjust(left=0.35)
+    #plt.tight_layout(pad=2)
+
     plt.suptitle('Heatmap of Shared Features')
     if save_to:
-        plt.savefig(os.path.join(save_to, 'knn_heatmaps.pdf'),
+        plt.savefig(os.path.join(save_to, 'knn_heatmaps.png'),
                     bbox_inches='tight')
     else:
         plt.show()
