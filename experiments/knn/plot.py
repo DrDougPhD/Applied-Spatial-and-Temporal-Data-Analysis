@@ -286,17 +286,20 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
         neighborinos = neighbors['tfidf']['cosine'][-1]
     logger.debug('First of the neighborinos')
 
-    neighborhood = neighborinos[0]
-    article = neighborhood['article']
+    neighborinos.sort(key=lambda x: x['summed_distances'])
 
-    neighbors_of_article = neighborhood['neighbors']
-    neighbor_vectors = [a['neighbor'].vector for a in neighbors_of_article]
+    # neighborhood = neighborinos[0]
+    # article = neighborhood['article']
+    #
+    # neighbors_of_article = neighborhood['neighbors']
+    # neighbor_vectors = [a['neighbor'].vector for a in neighbors_of_article]
+    #
+    # neighbors_as_matrix = numpy.concatenate(
+    #     ([article.vector], [*neighbor_vectors]),
+    #     axis=0
+    # )
 
-    neighbors_as_matrix = numpy.concatenate(
-        ([article.vector], [*neighbor_vectors]),
-        axis=0
-    )
-
+    # Print article neighbors to console
     articles_considered = []
     for n in neighborinos:
         article = n['article']

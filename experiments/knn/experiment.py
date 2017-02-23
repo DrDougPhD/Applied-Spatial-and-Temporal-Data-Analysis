@@ -164,14 +164,14 @@ class Experiment(LoggingObject):
 
 
         # print some nice strings about the neighbors
-        neighbors.sort(key=lambda x: x['closest_distance'])
-        neighbor_string_info = []
-        for article_neighborinos in neighbors:
-            printable_string = self.stringify_neighbor_info(article_neighborinos)
-            neighbor_string_info.append(printable_string)
+        neighbors.sort(key=lambda x: x['summed_distances'])
 
-        #logger.debug('\n'.join(neighbor_string_info))
-        #logger.debug('='*80)
+        # neighbor_string_info = []
+        # for article_neighborinos in neighbors:
+        #     printable_string = self.stringify_neighbor_info(article_neighborinos)
+        #     neighbor_string_info.append(printable_string)
+        # logger.debug('\n'.join(neighbor_string_info))
+        # logger.debug('='*80)
 
 
         # analyze precision and recall
