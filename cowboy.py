@@ -93,7 +93,8 @@ class Homework2Experiments(object):
 
     pickle_file_fmt = 'hw2.{}.pickle'
 
-    def __init__(self, n, dataset_dir, knn_vote_weight, randomize=True):
+    def __init__(self, n, dataset_dir, knn_vote_weight, pickling,
+                 randomize=True):
         # load data
         logger.info('Looking for datasets in {}'.format(dataset_dir))
         self.n = n
@@ -101,6 +102,8 @@ class Homework2Experiments(object):
         self.knn_vote_weight=knn_vote_weight
         self.output_dir = os.path.join('figures', knn_vote_weight)
         os.makedirs(self.output_dir, exist_ok=True)
+
+        self.pickling = pickling
 
         # preprocess
         self.vectorizers = {
@@ -134,6 +137,9 @@ class Homework2Experiments(object):
         self.knn(max_neighbors=knn_neighbors_max)
 
     def _load_pickle(self, filename):
+        if not self.pickling:
+            return False
+
         pickle_path = os.path.join(
             self.output_dir,
             self.pickle_file_fmt.format(filename))
@@ -283,7 +289,9 @@ class Homework2Experiments(object):
                save_to=output_path)
             self._save_to_pickel(neighbors, filename)
 
-        plot.neighbor_heatmap(neighbors, save_to=output_path)
+        plot.neighbor_heatmap(neighbors,
+                              feature_names=self.corpus.features,
+                              save_to=output_path)
 
     def archive(self):
         # news articles
@@ -300,12 +308,14 @@ def main():
         'n': 100,
         'k': 10,
         'knn_voting_weight': 'uniform',
-        'dectree_max_leafs': 10
+        'dectree_max_leafs': 10,
+        'enable_pickling': False,
     }
     experiments = Homework2Experiments(
         n=configuration['n'],
         dataset_dir=DATA_DIR,
-        knn_vote_weight=configuration['knn_voting_weight'])
+        knn_vote_weight=configuration['knn_voting_weight'],
+        pickling=configuration['enable_pickling'])
     experiments.run(knn_neighbors_max=configuration['k'],
                     dec_tree_max_leafs=configuration['dectree_max_leafs'])
     experiments.archive()

@@ -159,8 +159,9 @@ def prec_n_rec(results, class_labels, save_to=None):
         if save_to is None:
             plt.show()
         else:
-            plt.savefig(os.path.join(save_to,
-                                     '{}.prec_n_rec.svg'.format(vector_type)))
+            plt.savefig(os.path.join(
+                save_to,
+                '{}.prec_n_rec.svg'.format(vector_type)))
 
 
 

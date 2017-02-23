@@ -440,7 +440,11 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
 
     plt.subplots_adjust(left=0.35)
     plt.suptitle('Heatmap of Shared Features')
-    plt.show()
+    if save_to:
+        plt.savefig(os.path.join(save_to, 'knn_heatmaps.pdf'),
+                    bbox_inches='tight')
+    else:
+        plt.show()
 
 
 if __name__ == '__main__':
