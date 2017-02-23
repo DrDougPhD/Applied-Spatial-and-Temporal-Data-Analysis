@@ -319,7 +319,7 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
 
     # for i in [0, -1]:
     def heatmap_n_stuff(i, heatmap, distances, max_common_feat):
-        heatmap.set_title('Common Feature Occurrences')
+        heatmap.set_title('Feature Occurrences')
         #distances.set_title('Distance to\nNeighbors')
         max_common_feat.set_title('Most\nCommon\nFeature')
 
@@ -434,11 +434,9 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
                     distances=plt.subplot(gs[1]),
                     max_common_feat=plt.subplot(gs[2]))
 
-    furthest_neighborhood_heatmap = plt.subplot(gs[3])
-    furthest_neighborhood_distances = plt.subplot(gs[4])
-    furthest_neighborhood_max_shared_feat = plt.subplot(gs[5])
-
-
+    heatmap_n_stuff(i=-1, heatmap=plt.subplot(gs[3]),
+                    distances=plt.subplot(gs[4]),
+                    max_common_feat=plt.subplot(gs[5]))
 
     plt.subplots_adjust(left=0.35)
     plt.suptitle('Heatmap of Shared Features')
