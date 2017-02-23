@@ -358,29 +358,59 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
                                 size='small')
 
         # create the subplot for the distances
-        neighbor_distances = [0,
-            *[art['distance'] for art in neighbors_of_article]]
+        neighbor_distances = numpy.array([0,
+            *[art['distance'] for art in neighbors_of_article]])
         indices = numpy.arange(len(neighbor_distances))
 
-        distances.invert_yaxis()
-        distances.set_xlabel('Neighbor\nDistances')
-        bars = distances.barh(indices,
-                              width=neighbor_distances,
+        distances.set_title('Similarities')
+        bars = distances.barh(indices+0.5,
+                              width=1-neighbor_distances,
+                              #edgecolor='black'
                               align='center')
+        distances.set_ylim((0, len(neighbor_distances)))
+        distances.set_yticks([])
+        distances.set_xlim((0, 1))
+        distances.invert_yaxis()
+
 
         # plt.colorbar(mappable=c, ax=ax[0])
 
         # Determine the common labels between the target article and each
         # neighbor
-        # unique_feature_indices = set()
-        # existence_in_article = article.vector > 0.1
-        # for neighbor in neighbors_of_article:
-        #     existence_in_neighbor = neighbor['neighbor'].vector > 0
-        #     shared_existence = numpy.logical_and(existence_in_article,
-        #                                          existence_in_neighbor)
-        #
-        #     indices = numpy.arange(len(shared_existence))
-        #     existence_indices = indices[shared_existence]
+        max_common_feat.set_xlabel('Max.\nShared\nFeature')
+        max_common_feat.set_ylim((0, len(neighbors_of_article)))
+
+        unique_feature_indices = set()
+        existence_in_article = article.vector > 0
+        most_common_features = []
+        for index, neighbor in enumerate(neighbors_of_article):
+            existence_in_neighbor = neighbor['neighbor'].vector > 0
+            shared_existence = numpy.logical_and(existence_in_article,
+                                                 existence_in_neighbor)
+
+            indices = numpy.arange(len(shared_existence))
+            existence_indices = indices[shared_existence]
+
+            # find the feature that has the greatest summed value
+            summed_feature_values = (
+                article.vector+neighbor['neighbor'].vector)[existence_indices]
+            v, i = max(zip(summed_feature_values, existence_indices),
+                       key=lambda x: x[0])
+            max_feat = feature_names[i]
+            logger.debug(neighbor['neighbor'].title)
+            logger.debug('{0: ^15} -- {1: .5f} -- {2: .5f}'.format(
+                max_feat, article.vector[i], neighbor['neighbor'].vector[i]
+            ))
+
+            most_common_features.append(max_feat)
+            max_common_feat.text(x=0.5, y=index+0.5, s=max_feat,
+                                 horizontalalignment='center')
+
+        max_common_feat.invert_yaxis()
+        max_common_feat.axis('off')
+
+
+
         #     logger.debug('Shared indices between article and neighbor:')
         #     logger.debug(existence_indices)
         #     unique_feature_indices.update(existence_indices)
