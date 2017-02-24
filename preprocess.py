@@ -5,12 +5,13 @@ from processing import PairwiseSimilarity
 
 STOP_WORDS = ENGLISH_STOP_WORDS.union(
     'new says time just like told cnn according did make way really'
-    ' dont going know said'.split())
+    ' dont going know said to before according her out might ago'
+    ' subject had'.split())
 logger = logging.getLogger('cnn.'+__name__)
 
 
 def execute(corpus, exclude_stopwords, method):
-    if exclude_stopwords:
+    if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
     else:

@@ -69,6 +69,10 @@ def decompress(file, to, dataset_dir):
             os.path.basename(file)))
         return
 
+    logger.debug('No uncompressed datasets found in {}. Decompressing.'.format(
+        to
+    ))
+
     extractor = os.path.join(dataset_dir, EXTRACTOR_SCRIPT)
     if not os.path.isfile(extractor):
         raise Exception('No archive extractor script found at {path}.\n'
