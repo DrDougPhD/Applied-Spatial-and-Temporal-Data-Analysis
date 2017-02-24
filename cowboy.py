@@ -4,6 +4,12 @@ import pprint
 
 from collections import defaultdict
 
+import numpy
+from matplotlib import pyplot
+from sklearn.manifold import Isomap
+
+import experiments
+
 
 def setup_logger(name):
     # create file handler which logs even debug messages
@@ -142,11 +148,38 @@ class Homework3Experiments(object):
 
         logger.info(hr('Dimensionality Reduction', '+'))
 
+        dataset = self.corpus.matrix.toarray()
+        labels = self.corpus.classes
+
+        # check if pickle of transformed data exists
         pkl_filename = 'dim_reduction_{}'.format(self.n)
         reduced = self._load_pickle(pkl_filename)
+
         if not reduced:
-            reduced = range(5)
+            # map the dataset to 2 dimensions
+            lower_dimension_mapper = Isomap(n_neighbors=5,
+                                            n_components=2)
+            lower_dimension_mapper.fit(X=dataset, y=labels)
+            reduced = lower_dimension_mapper.transform(X=dataset)
             self._save_to_pickel(reduced, pkl_filename)
+
+        # quick printing of reduced dataset
+        logger.debug('Transformed dataset:')
+        logger.debug(reduced)
+        logger.debug('X[0]: {}'.format(reduced[0]))
+        logger.debug('y:    {}'.format(reduced[1]))
+
+        # plot the reduced dimension
+        # create a color mapping of the labels
+        #colors_mapping = defaultdict(lambda: next(experiments.colors))
+        # colors_mapping = defaultdict(lambda: numpy.random.rand(3,1))
+        colors_available = experiments.get_cmap(len(self.corpus.class_names))
+        colors = numpy.array([colors_available(cls) for cls in labels])
+
+        pyplot.scatter(x=reduced[:, 0], y=reduced[:, 1],
+                       c=colors)
+
+        pyplot.show()
 
     def archive(self):
         # news articles
@@ -162,7 +195,7 @@ def main():
     experiments = Homework3Experiments(
         n=10,
         dataset_dir=DATA_DIR,
-        pickling=True)
+        pickling=False)
     experiments.dimensionality_reduction()
     experiments.archive()
     experiments.plot()
