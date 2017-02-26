@@ -5,8 +5,14 @@ import pprint
 from collections import defaultdict
 
 import numpy
+from matplotlib import patches
 from matplotlib import pyplot
+from sklearn.cluster import FeatureAgglomeration
+from sklearn.decomposition import SparsePCA
 from sklearn.manifold import Isomap
+from sklearn.manifold import LocallyLinearEmbedding
+from sklearn.manifold import SpectralEmbedding
+from sklearn.random_projection import SparseRandomProjection
 
 import experiments
 
@@ -150,6 +156,14 @@ class Homework3Experiments(object):
 
         dataset = self.corpus.matrix.toarray()
         labels = self.corpus.classes
+        classnames = self.corpus.class_names
+        masks = {cls_idx: labels == cls_idx
+                 for cls_idx in range(len(classnames))}
+        for mask_key in masks:
+            logger.debug('{classname: >15}: {count} articles'.format(
+                classname=classnames[mask_key],
+                count=numpy.sum(masks[mask_key])
+            ))
 
         # check if pickle of transformed data exists
         pkl_filename = 'dim_reduction_{}'.format(self.n)
@@ -157,28 +171,140 @@ class Homework3Experiments(object):
 
         if not reduced:
             # map the dataset to 2 dimensions
-            lower_dimension_mapper = Isomap(n_neighbors=5,
-                                            n_components=2)
-            lower_dimension_mapper.fit(X=dataset, y=labels)
-            reduced = lower_dimension_mapper.transform(X=dataset)
-            self._save_to_pickel(reduced, pkl_filename)
+            reduced = {}
 
-        # quick printing of reduced dataset
-        logger.debug('Transformed dataset:')
-        logger.debug(reduced)
-        logger.debug('X[0]: {}'.format(reduced[0]))
-        logger.debug('y:    {}'.format(reduced[1]))
+            # Isomap
+            key = 'Isometric Mapping'
+            logger.debug(hr(key, '.'))
+
+            mapper = Isomap(n_neighbors=5,
+                            n_components=2)
+            reduced[key] = mapper.fit_transform(X=dataset, y=labels)
+            # quick printing of reduced dataset
+            logger.debug('Transformed dataset:')
+            logger.debug(reduced[key])
+            logger.debug('X[0]: {}'.format(reduced[key][0]))
+            logger.debug('y:    {}'.format(reduced[key][1]))
+
+
+            # Local linear embedding (LLE)
+            key = 'Locally linear embedding'
+            logger.debug(hr(key, '.'))
+
+            mapper = LocallyLinearEmbedding(n_neighbors=5,
+                                            n_components=2)
+            reduced[key] = mapper.fit_transform(X=dataset, y=labels)
+            # quick printing of reduced dataset
+            logger.debug('Transformed dataset:')
+            logger.debug(reduced[key])
+            logger.debug('X[0]: {}'.format(reduced[key][0]))
+            logger.debug('y:    {}'.format(reduced[key][1]))
+
+
+            try:
+                # Spectral Embedding
+                key = 'Spectral Embedding'
+                logger.debug(hr(key, '.'))
+
+                mapper = SpectralEmbedding(n_neighbors=5,
+                                              n_components=2,
+                                              eigen_solver='amg')
+                reduced[key] = mapper.fit_transform(X=dataset)
+                # quick printing of reduced dataset
+                logger.debug('Transformed dataset:')
+                logger.debug(reduced[key])
+                logger.debug('X[0]: {}'.format(reduced[key][0]))
+                logger.debug('y:    {}'.format(reduced[key][1]))
+            except:
+                pass
+
+
+            # Principal Component Analysis
+            key = 'Principal Component Analysis'
+            logger.debug(hr(key, '.'))
+
+            mapper = SparsePCA(n_components=2)
+            reduced[key] = mapper.fit_transform(X=dataset)
+            # quick printing of reduced dataset
+            logger.debug('Transformed dataset:')
+            logger.debug(reduced[key])
+            logger.debug('X[0]: {}'.format(reduced[key][0]))
+            logger.debug('y:    {}'.format(reduced[key][1]))
+
+
+            # Random Projections
+            key = 'Random Projections'
+            logger.debug(hr(key, '.'))
+
+            mapper = SparseRandomProjection(n_components=2)
+            reduced[key] = mapper.fit_transform(X=dataset)
+            # quick printing of reduced dataset
+            logger.debug('Transformed dataset:')
+            logger.debug(reduced[key])
+            logger.debug('X[0]: {}'.format(reduced[key][0]))
+            logger.debug('y:    {}'.format(reduced[key][1]))
+
+
+            # Feature Agglomeration
+            key = 'Featue Agglomeration'
+            logger.debug(hr(key, '.'))
+
+            mapper = FeatureAgglomeration(
+                n_clusters=len(classnames))
+            reduced[key] = mapper.fit_transform(X=dataset)
+            # quick printing of reduced dataset
+            logger.debug('Transformed dataset:')
+            logger.debug(reduced[key])
+            logger.debug('X[0]: {}'.format(reduced[key][0]))
+            logger.debug('y:    {}'.format(reduced[key][1]))
+
+
+            self._save_to_pickel(reduced, pkl_filename)
 
         # plot the reduced dimension
         # create a color mapping of the labels
-        #colors_mapping = defaultdict(lambda: next(experiments.colors))
+        # colors_mapping = defaultdict(lambda: next(experiments.colors))
         # colors_mapping = defaultdict(lambda: numpy.random.rand(3,1))
-        colors_available = experiments.get_cmap(len(self.corpus.class_names))
-        colors = numpy.array([colors_available(cls) for cls in labels])
 
-        pyplot.scatter(x=reduced[:, 0], y=reduced[:, 1],
-                       c=colors)
 
+
+
+        markers_available = {}
+        colors_available = experiments.get_cmap(len(classnames)+4)
+        colors_assigned = {}
+        for cls in labels:
+            markers_available[cls] = next(experiments.markers)
+            colors_assigned[cls] = colors_available(cls)
+
+        markers = numpy.array([markers_available[cls] for cls in labels])
+        colors = numpy.array([colors_assigned[cls] for cls in labels])
+
+        # for each mapping, create a subplot and plot the results
+        fig, ax = pyplot.subplots(nrows=3, ncols=2)
+        ax.shape = (6,1)
+        fig.set_size_inches((10, 20))
+        legend_handles = []
+        for key, axes in zip(reduced, ax[:,0]):
+            for cls_idx in masks:
+                class_mask = masks[cls_idx]
+                dots = axes.scatter(x=reduced[key][:, 0][class_mask],
+                                    y=reduced[key][:, 1][class_mask],
+                                    c=colors[cls_idx],
+                                    marker=markers[cls_idx])
+                legend_handles.append(dots)
+
+            axes.set_title(key)
+            axes.grid(True)
+
+
+        # legend_handles = [
+        #     patches.Patch(color=colors_available(cls),
+        #                   label=classnames[cls],
+        #                   marker=markers[cls])
+        #     for cls in range(len(classnames))]
+        pyplot.legend(handles=legend_handles,
+                      loc='upper left')
+        pyplot.tight_layout(h_pad=4)
         pyplot.show()
 
     def archive(self):
@@ -193,9 +319,9 @@ class Homework3Experiments(object):
 
 def main():
     experiments = Homework3Experiments(
-        n=10,
+        n=100,
         dataset_dir=DATA_DIR,
-        pickling=False)
+        pickling=True)
     experiments.dimensionality_reduction()
     experiments.archive()
     experiments.plot()
