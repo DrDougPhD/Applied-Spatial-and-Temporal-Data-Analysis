@@ -460,7 +460,10 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
 
 def neighborhood_radii(neighbors, save_to=None):
     logger.info(hr('Neighborhood Radii'))
-    neighborinos = neighbors['tfidf']['cosine'][5]
+    if len(neighbors['tfidf']['cosine']) > 6:
+        neighborinos = neighbors['tfidf']['cosine'][5]
+    else:
+        neighborinos = neighbors['tfidf']['cosine'][-1]
 
     #neighborinos.sort(key=lambda x: x['summed_distances'], reverse=True)
     fig = plt.figure()
@@ -514,7 +517,7 @@ def neighborhood_radii(neighbors, save_to=None):
 
     logger.info(neighbors.keys())
     logger.info(neighbors['tfidf'].keys())
-    scatterplot_average_distance(neighbors['tfidf']['euclidean'][5], 5)
+    #scatterplot_average_distance(neighbors['tfidf']['euclidean'][5], 5)
     #scatterplot_average_distance(neighbors['tfidf']['cosine'][5], 5)
     #scatterplot_average_distance(neighbors['tf']['cosine'][5], 5)
     #scatterplot_average_distance(neighbors['tf']['euclidean'][5], 5)

@@ -27,7 +27,7 @@ The results from each experiment were averaged through 5-fold cross validation,
 This was repeated five times for all combinations of testing and training partition assignment.
 The \texttt{scikit-learn} Python library was used to calculate the precision, recall, and f-scores of each classification task.
 
-\section{Performance of Decision Trees}
+\section{Performance of Decision Trees} \label{sec:tree}
 
 The \texttt{DecisionTreeClassifier} of the \texttt{scikit-learn} Python library was used to perform the experiments on decision tree supervised classification.
 This package creates binary-splitting decision trees using either the Gini index or information entropy gain as the criteria for performing node splits.
@@ -80,18 +80,18 @@ Its accuracy, precision, and recall did not exceed 17\%.
 
 Decision trees trained on tf-idf representations of the dataset performed slightly lower than those trained on term frequency representations.
 Across all article categories, accuracy and recall did not exceed 50\%.
-Politics achieved the highest precision at 58\% under Gini-splitting trees, and health articles obtained an accuracy and recall of $\approx$50\% and a precision of $\approx$57\%.
+Politics achieved the highest precision at 58\% under Gini-splitting trees, whereas health articles consistenty obtained an accuracy and recall of $\approx$50\% and a precision of $\approx$57\% regardless of the splitting criteria.
 With the exception of health articles under an entropy-splitting tree, recalls did not exceed 40\%.
 Finally, travel and living articles were classified with the worst performance overall, with those on a Gini-splitting tree performing worse than random guessing.
 
 
-\section{Discussion on k-NN Classification}
+\section{Discussion on k-NN Classification} \label{sec:knn}
 
 The \texttt{KNeighborsClassifier} of the \texttt{scikit-learn} Python library was used to perform the experiments on $k$-Nearest Neighbors ($k$-NN) supervised classification.
 This package measures the distance of an article to be classified against the set of articles with known classes, and predicts the article's class based on its $k$-nearest neighbors.
 The distance metric and neighbor voting weights are configurable.
-For this analyses, voting was uniformly weighted among all $k$ neighbors.
-The distance metric was chosen between the Jaccard distance (using the \texttt{jaccard} function defined in the \texttt{scipy.spatial.distance} module), cosine distance (\texttt{cosine} from \texttt{scipy.spatial.distance}), and Euclidean distance (defined in \texttt{scikit-learn} for \texttt{KNeighborsClassifier}).
+For this analyses, voting was varied between uniformly weighted and distance weighted among all $k$ neighbors.
+For calculating the distance between two neighbors, the Jaccard distance (using the \texttt{jaccard} function defined in the \texttt{scipy.spatial.distance} module), cosine distance (\texttt{cosine} from \texttt{scipy.spatial.distance}), and Euclidean distance (defined in \texttt{scikit-learn} were chosen for \texttt{KNeighborsClassifier}).
 The vectors to be trained and tested on were either term frequency vectors representing the articles or tf-idf vectors.
 
 \begin{figure}[h!] \label{fig:perf_knn}
@@ -100,41 +100,70 @@ The vectors to be trained and tested on were either term frequency vectors repre
 	  \centering
 	  \includegraphics[width=\linewidth]{figures/knn/accuracies}
 	  \caption{Accuracies obtained by varying the $k$ for $k$-NN\\
-	   classification between different vector types and\\
-	    different distance metrics.}
+	   uniform classification between different vector \\ types and different distance metrics.}
 	  \label{fig:knn_accuracies}
 	\end{subfigure}%
 	\begin{subfigure}{.5\textwidth}
 	  \centering
 	  \includegraphics[width=\linewidth]{figures/knn/fmeasures}
 	  \caption{F-measures obtained by varying the $k$ for $k$-NN\\
-	   classification between different vector types and different distance metrics, differentiated by the categories to be classified.}
+	   uniform classification between different vector types and different distance metrics, differentiated by the categories to be classified.}
 	  \label{fig:knn_fmeasures}
 	\end{subfigure}
-	\caption{Accuracies and F-measures obtained from the $k$-NN series of experiments.}
+	\caption{Accuracies and F-measures obtained from the $k$-NN uniform voting weight series of experiments.}
 \end{figure}
 
-Figures 3a and 3b illustrate the performance changes under varying values of $k$.
-The goal of this experiment was to identify the \emph{optimal} $k$ value for performing supervised classifications (Figure 3a), as well as observe the f-measures for each particular article category (Figure 3b).
+Figures 3a and 3b illustrate the performance changes under varying values of $k$ when uniform voting is chosen for neighbor classification.
+Figures 4a and 4b illustrate the same, but with distance-weighted voting.
+The goal of this experiment was to identify the \emph{optimal} $k$ value for performing supervised classifications (Figure 3a, 4a), as well as observe the f-measures for each particular article category (Figure 3b, 4b).
+
+\begin{figure}[h!] \label{fig:perf_knn_distance}
+	\centering
+	\begin{subfigure}{.5\textwidth}
+	  \centering
+	  \includegraphics[width=\linewidth]{figures/knn/distance_voting/accuracies}
+	  \caption{Accuracies obtained by varying the $k$ for $k$-NN\\
+	   distance-weighted classification between different \\
+	   vector types and different distance metrics.}
+	  \label{fig:knn_accuracies}
+	\end{subfigure}%
+	\begin{subfigure}{.5\textwidth}
+	  \centering
+	  \includegraphics[width=\linewidth]{figures/knn/distance_voting/fmeasures}
+	  \caption{F-measures obtained by varying the $k$ for $k$-NN\\
+	   distance-weighted classification between different vector types and different distance metrics, differentiated by the categories to be classified.}
+	  \label{fig:knn_fmeasures}
+	\end{subfigure}
+	\caption{Accuracies and F-measures obtained from the $k$-NN distance-weighted voting series of experiments.}
+\end{figure}
 
 In the previous report, it was found that the cosine similarity between term frequency vectors performed the best over the Jaccard similarity and Euclidean distance, with Euclidean performing the poorest.
-This is corroborated in the bottom plot of Figure 3a.
-However, the top plot indicates that transforming a term frequency vector into a tfidf vector brings Euclidean distance almost equal to that of cosine distance.
+This is corroborated in the bottom plot of Figure 3a and 4a.
+However, the top plots indicate that transforming a term frequency vector into a tf-idf vector brings Euclidean distance almost equal to that of cosine distance.
 The Jaccard distance performs the poorest when used between tf-idf vectors, though this is attributed to it not being suitable for real-valued vectors.
 
-By varying the value of $k$, the best performance is achieved at $k=5$ and $7$ for tf-idf vectors, with performance dipping slightly at $8 \le k \le 10$.
-For term frequency vectors, the best performance seems to come at $k=4$, with performance dropping from either side.
+\subsection{Optimal $k$}
+
+By varying the value of $k$, the best performance is achieved at $k=5$ and $8$ for tf-idf vectors, with performance dipping slightly at $8 \le k \le 10$ when considering uniform voting weights.
+For term frequency vectors, the best performance seems to come at $k=4$ for any configuration.
 Intuitively, this suggests that $k<4$ is susceptible to noise and poor correlations between feature occurrences in nearby articles.
-For $k>4$, the drop of performance in using the cosine distance indicates that articles are being incorrectly classified by further-away neighbors of different classes.
+For $k>4$, the drop of performance of term frequency vectors that some articles are being incorrectly classified by further-away neighbors of different classes.
+This behavior is more pronounced when uniform weights were used for classifying a given article, as the accuracies illustrated in Figure 4a appear to remain consistent or growing for $k>4$.
 
-Looking at Figure 3b, the f-measures for each classification is plotted against the changes to $k$.
-Overall, entertainment and living articles receive the worst classifications in both their term frequency and tf-idf representations, implying they have lower precision and recalls, with living articles being the worst of the two.
-Crime articles, on the other hand, are consistently classified correctly.
-For low $k$ values, the tfidf representation of technology articles achieves better classifications over others, and the term frequency representation of crime articles show similar performance.
+\subsection{Impact of $k$ on F-measures}
 
-For term frequency vectors, when $k$ increases towards 10, articles from entertainment, health, living, and travel begin to suffer, whereas crime remains somewhat consistent.
-This seems to indicate that crime articles may form a somewhat exclusive cluster in the term frequency space for its representative features.
-For tf-idf vectors, the recorded f-measures remains somewhat stable as $k$ increases, potentially implying that each class of articles might form their own clusters with little diversity in the tf-idf space.
+Looking at Figure 3b and 4b, the f-measures for each classification is plotted against the changes to $k$.
+Overall, travel, entertainment, and living articles receive the worst classifications in both their term frequency and tf-idf representations, implying they have lower precision and recalls.
+Politic, crime, and technology articles show consistently high f-measures through each configuration of the experiments.
+
+For $k\ge7$, the precisions and recalls of most categories begin to drop, which impacts the accuracies illustrated in Figures 3a and 4a.
+Articles from entertainment, health, living, and travel begin to suffer noticeably.
+Classification on crime articles, on the other hand, appears to steadily improve with increasing values of $k$ under distance-weighted voting.
+Politics, crime, health, and tech appear to have the highest f-measures at higher values of $k$.
+
+For low $k$ values, the tf-idf representation of technology and politics articles achieves better classifications over others.
+Crime starts off with poor performance under distance-weighted voting, but achieves good initial performance under uniform-weighted voting.
+
 
 \begin{figure}[h!] \label{fig:heatmap_neighborhoods}
   \centering
@@ -142,8 +171,8 @@ For tf-idf vectors, the recorded f-measures remains somewhat stable as $k$ incre
   \caption{}
 \end{figure}
 
-Figure 4 presents an illustration of the feature occurrences between two articles and the articles within their nearest neighbors.
-This figure was created from the experment on 5-nearest neighbors using cosine distance between tf-idf vectors, of which Figure 3 indicates this configuration achieved the very good performance.
+Figure 5 presents an illustration of the feature occurrences between two articles and the articles within their nearest neighbors.
+This figure was created from the experment on 5-nearest neighbors using Euclidean distance between tf-idf vectors, of which Figure 3 indicates this configuration achieved the very good performance.
 For each figure, the first article represents the article to be classified, with the remaining five articles being within each article's $k$-neighborhood.
 
 The top figure shows the article with the most densely populated neighborhood - i.e. the article with $k$ neighbors whose summed distances is minimum across all other articles.
@@ -159,6 +188,18 @@ The other neighbors appear to only share terms that are somewhat weak in terms o
 As a final comment, it should be observed that both articles would be incorrectly classified using a uniform voting strategy amoung the k neighbors.
 However, a correct classification is obtained using a distance-weighted voting strategy.
 This might hint towards the benefit of using a distance-weighted voting strategy for sparse-populated neighborhoods, as there might be more noise in a sparse tf-idf vector space than in densely populated ones.
+
+\section{Conclusion}
+
+Based on the analyses of Section \ref{sec:tree} and \ref{sec:knn}, the best performance is achieved by applying $k$-NN classification on tf-idf representations of an article dataset, where the distance between articles is measured either through cosine or Euclidean distance.
+Although the sample size of articles is small, the preliminary experiments hint that an assignment of $k \in [ 5, 7 ]$ brings about the best accuracy of approximately 73\%.
+Some article categories are better classified when $k \in [5,7]$, whereas others receive better classification for $k \in [3,4]$.
+This might suggest that, at classification time, the categories of an article's neighbor should dictate how many neighbors should vote.
+For instance, if most of the neighbors are political, then $k$ should be set somewhere in $[5,7]$.
+Alternatively, if most of the neighbors are living articles, it may be beneficial to only consider the 4 nearest neighbors.
+
+When considering decision trees, any configuration has shown to perform poorly, never exceeding an accuracy of 60\%, with some categories performing worse than random guessing.
+This suggests that, if decisions trees are to be used, some further preprocessing may be necessary to achieve higher accuracies in classification.
 
 \bibliography{bibliography}{}
 \bibliographystyle{plain}

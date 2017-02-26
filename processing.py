@@ -144,7 +144,7 @@ class CorpusPartition(object):
         self.matrix = matrix[indices, :]
         self.class_labels = class_labels
         self.features = features
-        self.orig_dataset = orig_dataset
+        self.orig_dataset = orig_dataset #[orig_dataset[i] for i in indices]
 
         # for part_i in range(len(self.indices)):
         #     art, index = self.get_article(part_i)

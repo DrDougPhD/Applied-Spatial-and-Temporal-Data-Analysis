@@ -70,29 +70,63 @@ class Experiment(object):
         actual_labels = numpy.array(actual_labels)
         return {'predicted': predicted_labels, 'actual': actual_labels}
 
-    def decision_path_lengths(self, classnames):
+    def decision_path_lengths(self, classnames, save_to):
         logger.info(hr('Decision Paths', '+'))
         results = defaultdict(dict)
+        classification_results = []
+        archive_file = {}
+
         for vector_type in self.datasets:
+            archive_file[vector_type] = {}
             logger.info(hr(vector_type, '~'))
 
             results_for_vector_type = defaultdict(dict)
             dataset = self.datasets[vector_type]
             for criterion in self.criterion_options:
+
+                tree_path_file = open(os.path.join(
+                    save_to, 'decision_tree.{0}'
+                             '.{1}.article_classification_path.csv'.format(
+                        vector_type, criterion
+                    )), 'w'
+                )
+                archive_file[vector_type][criterion] = tree_path_file
+                tree_path_file.write(
+                    'article,category,predicted,tree_path\n')
+
                 logger.info(hr(criterion, '.'))
 
                 partitioner = processing.CrossValidation(k=self.n,
                                                          dataset=dataset)
                 path_lengths_by_label = defaultdict(list)
-                for training, testing in partitioner:
+                logger.info(hr('Decision Tree Testing', '#'))
+                for i, (training, testing) in enumerate(partitioner):
+                    archive_file[vector_type][criterion].write(
+                        '# cross fold no. {}\n'.format(i+1))
                     clf = tree.DecisionTreeClassifier()
                     clf.fit(training.matrix, training.classes)
 
-                    for label, article in zip(testing.classes, testing.matrix):
-                        path = clf.decision_path(article)
+                    for vector, label, article in testing:
+                        path = clf.decision_path(vector)
+                        predicted = clf.predict(vector)
+                        archive_file[vector_type][criterion].write(
+                            '{article_no},{category},{predicted},'
+                            '{tree_path}\n'.format(
+                                article_no=article.filename,
+                                category=label,
+                                predicted=int(predicted),
+                                tree_path=_convert_tree_path_to_list(path),
+                            )
+                        )
+
                         path_length = numpy.sum(path.toarray())
                         path_lengths_by_label[classnames[label]].append(
                             path_length)
+
+                    # cross-fold break
+                    classification_results.append(
+                        (vector_type, criterion, None))
+
                 for k in path_lengths_by_label:
                     results_by_class_label = results[k]
                     if vector_type not in results_by_class_label:
@@ -106,6 +140,18 @@ class Experiment(object):
                     logger.debug('Min path length: {}'.format(min(path_lengths)))
                     logger.debug('Max path length: {}'.format(max(path_lengths)))
                     logger.debug('Avg path length: {}'.format(numpy.mean(path_lengths)))
+
+        # save to file of format:
+        # article_no article_class_no predicted_class_no decision_tree_path
+        # for classification_result in classification_results:
+        #     output_file = archive_file[classification_result[0]]\
+        #                               [classification_result[1]]
+        #     if classification_result[2] is None:
+        #
+        #
+        # with open(os.path.join(
+        #           save_to, 'decision_tree_predicted_class_and_tree_path')) as f:
+
 
         return results
 
@@ -156,3 +202,15 @@ class Experiment(object):
 #         #     } for k in self.class_names
 #         # }
 #
+
+def _convert_tree_path_to_list(path):
+    logger.debug(hr('Converting path to ->', '.'))
+    adjacency_list = path.toarray()[0]
+    logger.debug(adjacency_list)
+    pretty_list = []
+    for i, visited in enumerate(adjacency_list):
+        if visited == 1:
+            pretty_list.append(str(i))
+    pretty_path = '->'.join(pretty_list)
+    logger.debug(pretty_path)
+    return pretty_path
