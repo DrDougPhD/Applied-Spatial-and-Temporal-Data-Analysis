@@ -133,7 +133,7 @@ class Homework2Experiments(object):
 
     def run(self, knn_neighbors_max, dec_tree_max_leafs):
         logger.info(hr('Beginning Experiments'))
-        self.decision_tree(max_leafs=dec_tree_max_leafs)
+        #self.decision_tree(max_leafs=dec_tree_max_leafs)
         self.knn(max_neighbors=knn_neighbors_max)
 
     def _load_pickle(self, filename):
@@ -239,7 +239,7 @@ class Homework2Experiments(object):
         """
 
     def knn(self, max_neighbors):
-        output_path = os.path.join('results', 'knn')
+        output_path = os.path.join('results', 'knn', 'distance_voting')
         os.makedirs(output_path, exist_ok=True)
 
         logger.info(hr('k-Nearest Neighbors', '+'))
@@ -289,9 +289,11 @@ class Homework2Experiments(object):
                save_to=output_path)
             self._save_to_pickel(neighbors, filename)
 
-        plot.neighbor_heatmap(neighbors,
-                              feature_names=self.corpus.features,
-                              save_to=output_path)
+        # plot.neighbor_heatmap(neighbors,
+        #                       feature_names=self.corpus.features,
+        #                       save_to=output_path)
+
+        plot.neighborhood_radii(neighbors, save_to=output_path)
 
     def archive(self):
         # news articles
@@ -307,7 +309,7 @@ def main():
     configuration = {
         'n': 100,
         'k': 10,
-        'knn_voting_weight': 'uniform',
+        'knn_voting_weight': 'distance',
         'dectree_max_leafs': 10,
         'enable_pickling': False,
     }

@@ -458,59 +458,69 @@ def neighbor_heatmap(neighbors, feature_names, save_to):
         plt.show()
 
 
+def neighborhood_radii(neighbors, save_to=None):
+    logger.info(hr('Neighborhood Radii'))
+    neighborinos = neighbors['tfidf']['cosine'][5]
+
+    #neighborinos.sort(key=lambda x: x['summed_distances'], reverse=True)
+    fig = plt.figure()
+    ax = plt.subplot()
+
+    scatter_colors = {}
+    class_colors = {}
+    colors_from_which_to_choose = itertools.cycle('rgbcmykw')
+
+    def scatterplot_average_distance(neighborinos, k):
+        neighborinos.sort(key=lambda x: x['summed_distances'])
+
+        num_neighbors_with_same_class = []
+        for x, neighborhood in enumerate(neighborinos):
+            article_class = neighborhood['article'].category
+            if article_class not in class_colors:
+                class_colors[article_class] = next(colors_from_which_to_choose)
+
+            common_category_neighbors = 0
+            for neighbor in neighborhood['neighbors']:
+                if neighbor['neighbor'].category == article_class:
+                    common_category_neighbors += 1
+
+            #num_neighbors_with_same_class.append(common_category_neighbors)
+            ax.scatter(x, common_category_neighbors, color=class_colors[article_class])
+
+        # ax.scatter(range(len(neighborinos)),
+        #            num_neighbors_with_same_class)
+
+        ## normalized summed distances
+        # scatter_colors[k] = next(colors)
+        #
+        # min_distance = min(neighborinos,
+        #                    key=lambda x: x['summed_distances'])[
+        #     'summed_distances']
+        # max_distance = max(neighborinos,
+        #                    key=lambda x: x['summed_distances'])[
+        #     'summed_distances']
+        # normalized_distances = [
+        #     (x['summed_distances'] - min_distance)/(max_distance-min_distance)
+        #     for x in neighborinos
+        # ]
+        # ax.scatter(range(len(neighborinos)), normalized_distances)
+
+
+        # for x, neighborhood in enumerate(neighborinos):
+        #     average_distance = sum([
+        #         n['distance'] for n in neighborhood['neighbors']
+        #     ]) / len(neighborhood['neighbors'])
+        #     ax.scatter(x, average_distance, color=scatter_colors[k])
+
+    logger.info(neighbors.keys())
+    logger.info(neighbors['tfidf'].keys())
+    scatterplot_average_distance(neighbors['tfidf']['euclidean'][5], 5)
+    #scatterplot_average_distance(neighbors['tfidf']['cosine'][5], 5)
+    #scatterplot_average_distance(neighbors['tf']['cosine'][5], 5)
+    #scatterplot_average_distance(neighbors['tf']['euclidean'][5], 5)
+
+    #plt.show()
+
+
 if __name__ == '__main__':
-    neighbor_heatmap(None, None)
-    # fig, verticle_axes = plt.subplots(3, sharex=True)
-    # cosine = AccuracyLine(experiment.get_results_for(
-    #     vectorizer='Term Frequency',
-    #     distance='cosine'))
-    # cosine.trigger_confidence_boxes(with_outliers=True)
-    #
-    # jaccard = AccuracyLine(experiment.get_results_for(
-    #     vectorizer='Term Frequency',
-    #     distance='jaccard'))
-    # jaccard.trigger_confidence_boxes(with_outliers=True)
-    #
-    # euclidean = AccuracyLine(experiment.get_results_for(
-    #     vectorizer='Term Frequency',
-    #     distance='euclidean'))
-    # euclidean.trigger_confidence_boxes(with_outliers=True)
-    #
-    # term_freq_subplot = PlotAccuracyFromK(
-    #     verticle_axes[0],
-    #     label=experiment.get_vectorizer_type())
-    # lines = [cosine, jaccard, euclidean]
-    # for l in lines:
-    #     term_freq_subplot.add_line(l)
-
-
-    # term_freq_subplot = PlotAccuracyFromK(
-    #     verticle_axes[0],
-    #   label=experiment.get_vectorizer_type())
-
-    """
-    term_freq_subplot.add_verticle_line_at_optimal()
-    term_freq_subplot.add_verticle_line_at(x=3)
-    """
-
-    """
-    #fig, (ax1, ax2, ax3) = plt.subplots(3)
-
-    #fig = plt.figure()
-    fig = ExperimentFigure()
-    axes = AccuracyAxes(fig=fig, )
-    fig.add_vertical_axes(axes)
-    #axes.set_figure(fig=fig)
-
-    x = np.arange(20)
-    y = np.random.rand(20).T
-    #x, y = np.random.rand(2, 20)
-    print('X: {}'.format(x))
-    print('Y: {}'.format(y))
-    line = OptimalKNNbyDistanceMetric(x, y, mfc='red', ms=12, label='line label')
-    #line.text.set_text('line label')
-    line.text.set_color('red')
-    line.text.set_fontsize(16)
-
-    axes.add_line(line)
-    """
+    pass
