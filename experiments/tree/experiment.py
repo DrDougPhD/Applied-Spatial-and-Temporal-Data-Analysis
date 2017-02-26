@@ -42,9 +42,6 @@ class Experiment(object):
         graph.write_pdf(os.path.join(self.save_to,
                                      'decision_tree.{}.pdf'.format(name)))
 
-    def accuracy(self, series, vector_type, splitting_criterion, x):
-        return 4
-
     def criterion_based_accuracy(self, criterion, vector_type):
         accuracies = []
         predicted_labels = []

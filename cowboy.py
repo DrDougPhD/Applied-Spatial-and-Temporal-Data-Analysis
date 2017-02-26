@@ -203,42 +203,6 @@ class Homework2Experiments(object):
         #logger.debug(pprint.pformat(decision_paths))
         tree_plots.path_lengths(decision_paths, save_to=output_path)
 
-
-        """
-        # Show accuracy against limiting the number of leaves
-        logger.info(hr('Tree Depth vs. Accuracy'))
-        for vector_type_key in self.vectorizers:
-            vector_type = self.vectorizers[vector_type_key]
-
-            logger.info(hr(vector_type.title(), '.'))
-
-            single_plot = {}
-            for criterion in ['gini', 'entropy']:
-                logger.info('Decision Tree: {0} splitter, {1} vectors'.format(
-                    criterion.title(), vector_type,
-                ))
-                x_vals = range(len(self.corpus.class_names), max_leafs)
-                y_vals = []
-                for i, x in enumerate(x_vals):
-                    logger.info('Experiment #{0} -- x = {1}'.format(i+1, x))
-                    y = experiment.accuracy(
-                        series='Tree Depth against Accuracy',
-                        vector_type=vector_type,
-                        splitting_criterion=criterion,
-                        x=x,
-                    )
-                    logger.info('-'*50)
-                    y_vals.append(y)
-                single_plot[criterion] = (x_vals, y_vals)
-                logger.info([(x, y) for x, y in zip(x_vals, y_vals)])
-                logger.info('~' * 60)
-
-        # Create heat plot to show how accuracy is effected by both the
-        # maximum number of features and the tree's depth / num of leaves
-
-        #tree.run(k=5, corpus=self.corpus, save_to=self.output_dir)
-        """
-
     def knn(self, max_neighbors):
         output_path = os.path.join('results', 'knn', 'distance_voting')
         os.makedirs(output_path, exist_ok=True)
@@ -295,10 +259,14 @@ class Homework2Experiments(object):
                               save_to=output_path)
 
         plot.neighborhood_radii(neighbors, save_to=output_path)
+        experiment.export_neighbor_file()
 
     def archive(self):
         # news articles
         # data matrix
+
+
+
         # classification results
         return
 

@@ -1,15 +1,16 @@
 import logging
+
+from lib.lineheaderpadded import hr
+
 logger = logging.getLogger('cnn.'+__name__)
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import metrics
-from sklearn.metrics import f1_score
-from sklearn.metrics import precision_score
-from sklearn.metrics import recall_score
+import os
 import numpy
 import processing
 from experiments import LoggingObject
 
-from collections import defaultdict
+
 class Experiment(LoggingObject):
     def __init__(self, cross_validation_n, vote_weight, corpus_series, save_to):
         super(Experiment, self).__init__('cnn.' + __name__)
@@ -232,7 +233,42 @@ class Experiment(LoggingObject):
             predicted_class_name))
         return '\n'.join(lines)
 
+    def export_neighbor_file(self):
+        logger.debug(hr('Exporting Neighbor File', '#'))
+        num_neighbors = len(self.corpus['TF-IDF'].classes)
+        for vector_type in ['Term Frequency', 'TF-IDF']:
+            logger.debug(hr(vector_type, '='))
+            for variation in ['euclidean', 'cosine']:
+                logger.debug(hr(variation, '='))
+                with open(os.path.join(self.save_to, 'distances.{0}.{'
+                                                     '1}.csv'.format(
+                    vector_type, variation)),
+                          'w') as f:
+                    logger.debug('Fitting KNN classifier')
+                    clf = KNeighborsClassifier(n_neighbors=num_neighbors,
+                                               algorithm='brute',
+                                               metric=variation,
+                                               weights=self.voting_weight)
+                    clf.fit(self.corpus[vector_type].matrix.toarray(),
+                            self.corpus[vector_type].classes)
+                    logger.debug('Iterating over articles')
+                    for article in self.corpus[vector_type].corpus:
+                        logger.debug('\t{}'.format(article.filename))
+                        distances, indices = clf.kneighbors(
+                            article.vector.reshape(1, -1))
+                        distances = distances[0]
+                        indices = indices[0]
 
+                        for d, i in zip(distances, indices):
+                            neighbor = self.corpus[vector_type].corpus[i]
+                            f.write('{filename},{category},{neighbor},'
+                                    '{distance},{neighbor_class}\n'.format(
+                                filename=article.filename,
+                                category=article.category,
+                                neighbor=neighbor.filename,
+                                distance=d,
+                                neighbor_class=neighbor.category,
+                            ))
 
 
 
