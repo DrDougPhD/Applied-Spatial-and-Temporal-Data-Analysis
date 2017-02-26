@@ -30,9 +30,17 @@ class Experiment(object):
                                         filled=True,
                                         rounded=True,
                                         special_characters=True)
+        tree.export_graphviz(clf, out_file=os.path.join(
+                                      self.save_to,
+                                      'decision_tree.{}.dot'.format(name)),
+                             feature_names=feature_names,
+                             class_names=class_names,
+                             filled=True,
+                             rounded=True,
+                             special_characters=True)
         graph = pydotplus.graph_from_dot_data(dot_data)
         graph.write_pdf(os.path.join(self.save_to,
-                                     '{}.decision_tree.pdf'.format(name)))
+                                     'decision_tree.{}.pdf'.format(name)))
 
     def accuracy(self, series, vector_type, splitting_criterion, x):
         return 4
@@ -60,7 +68,9 @@ class Experiment(object):
 
             self.export(clf, feature_names=list(dataset.features),
                         class_names=list(dataset.class_names),
-                        name=vector_type)
+                        name='{0}.{1}.crossfold_{2}'.format(
+                            vector_type, criterion, i+1
+                        ))
 
         average_accuracy = numpy.mean(accuracies)
         logger.info('Accuracy: {0} -- {1}'.format(average_accuracy,
