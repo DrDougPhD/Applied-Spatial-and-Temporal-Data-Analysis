@@ -135,3 +135,25 @@ def get_cmap(N):
 
 colors = itertools.cycle(get_colours(15))
 color = {}
+
+
+pixel = ','
+point = '.'
+circle = 'o'
+triangle_down = 'v'
+square = 's'
+plus = '+'
+star = '*'
+cross_x = 'x'
+diamond = 'd'
+marker_list = [pixel,
+               circle,
+               triangle_down,
+               square,
+               plus,
+               star,
+               cross_x,
+               diamond,
+               point,
+               ]
+markers = itertools.cycle(marker_list)
