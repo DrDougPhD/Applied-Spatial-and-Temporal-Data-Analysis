@@ -52,18 +52,26 @@ def nCr(n, r):
 
 
 class CrossValidation(object):
-    def __init__(self, k, dataset):
+    def __init__(self, k, dataset, columns=None):
         self.k = k
         self.dataset = dataset
-        self.matrix = dataset.matrix
+        if columns:
+            self.matrix = dataset.matrix[:, columns]
+            self.feature_names = numpy.array(dataset.features,
+                                             dtype=numpy.str_)[columns]
+        else:
+            self.matrix = dataset.matrix
+            self.feature_names = numpy.array(dataset.features,
+                                             dtype=numpy.str_)
 
-        self.feature_names = numpy.array(dataset.features,
-                                         dtype=numpy.str_)
+
+        logger.debug('Relevant features:')
+        logger.debug(self.feature_names)
         logger.info('Partitioning corpus into {} partitions'.format(k))
         self.classes = dataset.classes
         self.classnames = dataset.class_names
         n = len(self.classes)
-        attributes = dataset.matrix
+        attributes = self.matrix
         assert n == attributes.shape[0],\
                'Dimensions of labels ({0}) does not match matrix ({1})'.format(
                    n, attributes.shape

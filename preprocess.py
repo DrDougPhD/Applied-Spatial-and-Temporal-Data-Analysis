@@ -12,7 +12,7 @@ STOP_WORDS = ENGLISH_STOP_WORDS.union(
 logger = logging.getLogger('cnn.'+__name__)
 
 
-def execute(corpus, exclude_stopwords, method, save_csv_to, mrmr):
+def execute(corpus, exclude_stopwords, method, save_csv_to):
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
@@ -23,9 +23,9 @@ def execute(corpus, exclude_stopwords, method, save_csv_to, mrmr):
     similarity_calculator = PairwiseSimilarity(corpus=corpus,
                                                method=method,
                                                stopwords=stopwords)
-    maximum_relevant_feature_indices = _load_mrmr(
-        mrmr, similarity_calculator.features)
-    similarity_calculator.filter_features(maximum_relevant_feature_indices)
+    # maximum_relevant_feature_indices = _load_mrmr(
+    #     mrmr, similarity_calculator.features)
+    # similarity_calculator.filter_features(maximum_relevant_feature_indices)
 
     to_csv(similarity_calculator, save_csv_to)
     return similarity_calculator

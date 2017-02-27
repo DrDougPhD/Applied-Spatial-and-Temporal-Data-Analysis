@@ -126,8 +126,7 @@ class Homework2Experiments(object):
                     corpus=self.articles,
                     exclude_stopwords=True,
                     method=k,
-                    save_csv_to=self.output_dir,
-                    mrmr=os.path.join('data', 'mrmr.features.txt'))
+                    save_csv_to=self.output_dir)
                 for k in self.vectorizers
             }
             self._save_to_pickel(corpus_by_vectorizer, corpus_pickle)
@@ -175,7 +174,8 @@ class Homework2Experiments(object):
             cross_validation_n=5,
             corpus_series=self.corpus_by_vectorizer,
             save_to=output_path,
-            criterion_options=['gini', 'entropy'])
+            criterion_options=['gini', 'entropy'],
+            mrmr_file=os.path.join('data', 'mrmr.features.txt'))
 
         # Which method, gini or entropy, produces the most accurate results?
         # What is the precision, recall, and f-measure of these experiments?

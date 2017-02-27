@@ -16,7 +16,7 @@ import pprint
 
 class Experiment(object):
     def __init__(self, cross_validation_n, corpus_series, criterion_options,
-                 save_to):
+                 save_to, mrmr_file):
         super(Experiment, self).__init__()
 
         logger.debug('Relevant attributes:')
@@ -26,7 +26,11 @@ class Experiment(object):
 
         self.n = cross_validation_n
         self.datasets = corpus_series
+        self.mrmr_indices = self._load_mrmr(mrmr_file,
+                                            available_features)
+
         self.save_to = save_to
+
         self.criterion_options = criterion_options
 
     def export(self, clf, feature_names, class_names, name):
@@ -48,13 +52,34 @@ class Experiment(object):
         graph.write_pdf(os.path.join(self.save_to,
                                      'decision_tree.{}.pdf'.format(name)))
 
+    def _load_mrmr(self, mrmr_file, features):
+        feature_lists = list(features)
+        mrmr_indices = []
+        mrmr_names = []
+        with open(mrmr_file) as f:
+            for line in f:
+                columns = line.split()
+                mrmr_names.append(columns[1])
+                mrmr_indices.append(feature_lists.index(columns[1]))
+
+        # logger.debug('Selected features: {}'.format(mrmr_names))
+        # logger.debug('Features by index: {}'.format(
+        #    numpy.array(features, dtype=numpy.str_)[mrmr_indices]))
+        for mrmr_feature in mrmr_names:
+            assert mrmr_feature in features, (
+                'Feature "{}" is not in the indexed version'.format(
+                    mrmr_feature)
+            )
+        return mrmr_indices
+
     def criterion_based_accuracy(self, criterion, vector_type):
         accuracies = []
         predicted_labels = []
         actual_labels = []
         dataset = self.datasets[vector_type]
         partitioner = processing.CrossValidation(k=self.n,
-                                                 dataset=dataset)
+                                                 dataset=dataset,
+                                                 columns=self.mrmr_indices)
         for i, (training, testing) in enumerate(partitioner):
             #logger.info('Training Decision Tree')
             #logger.debug('Features: {}'.format(training.features))
@@ -70,7 +95,8 @@ class Experiment(object):
                 predicted_labels.append(int(predicted_label))
                 actual_labels.append(true_label)
 
-            self.export(clf, feature_names=list(dataset.features),
+            self.export(clf, feature_names=numpy.array(dataset.features)\
+                                                      [self.mrmr_indices],
                         class_names=list(dataset.class_names),
                         name='{0}.{1}.crossfold_{2}'.format(
                             vector_type, criterion, i+1
@@ -111,7 +137,8 @@ class Experiment(object):
                 logger.info(hr(criterion, '.'))
 
                 partitioner = processing.CrossValidation(k=self.n,
-                                                         dataset=dataset)
+                                                         dataset=dataset,
+                                                         columns=self.mrmr_indices)
                 path_lengths_by_label = defaultdict(list)
                 logger.info(hr('Decision Tree Testing', '#'))
                 for i, (training, testing) in enumerate(partitioner):
