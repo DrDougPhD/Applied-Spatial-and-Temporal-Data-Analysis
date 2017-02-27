@@ -18,6 +18,12 @@ class Experiment(object):
     def __init__(self, cross_validation_n, corpus_series, criterion_options,
                  save_to):
         super(Experiment, self).__init__()
+
+        logger.debug('Relevant attributes:')
+        available_features = numpy.array(corpus_series['Term Frequency'] \
+                                                       .features,
+                                         dtype=numpy.str_)
+
         self.n = cross_validation_n
         self.datasets = corpus_series
         self.save_to = save_to
@@ -48,13 +54,14 @@ class Experiment(object):
         actual_labels = []
         dataset = self.datasets[vector_type]
         partitioner = processing.CrossValidation(k=self.n,
-            dataset=dataset)
+                                                 dataset=dataset)
         for i, (training, testing) in enumerate(partitioner):
-            logger.info('Training Decision Tree')
+            #logger.info('Training Decision Tree')
+            #logger.debug('Features: {}'.format(training.features))
             clf = tree.DecisionTreeClassifier()
             clf.fit(training.matrix, training.classes)
 
-            logger.info('Predicting scores')
+            #logger.info('Predicting scores')
             accuracy = clf.score(testing.matrix, testing.classes)
             accuracies.append(accuracy)
 
@@ -143,10 +150,10 @@ class Experiment(object):
                         path_lengths_by_label[k]
 
                     path_lengths = path_lengths_by_label[k]
-                    logger.debug('Path statistics for {}'.format(k))
-                    logger.debug('Min path length: {}'.format(min(path_lengths)))
-                    logger.debug('Max path length: {}'.format(max(path_lengths)))
-                    logger.debug('Avg path length: {}'.format(numpy.mean(path_lengths)))
+                    # logger.debug('Path statistics for {}'.format(k))
+                    # logger.debug('Min path length: {}'.format(min(path_lengths)))
+                    # logger.debug('Max path length: {}'.format(max(path_lengths)))
+                    # logger.debug('Avg path length: {}'.format(numpy.mean(path_lengths)))
 
         # save to file of format:
         # article_no article_class_no predicted_class_no decision_tree_path
@@ -158,10 +165,7 @@ class Experiment(object):
         #
         # with open(os.path.join(
         #           save_to, 'decision_tree_predicted_class_and_tree_path')) as f:
-
-
         return results
-
 
 
 # class ExperimentPerformance(LoggingObject):
@@ -211,13 +215,13 @@ class Experiment(object):
 #
 
 def _convert_tree_path_to_list(path):
-    logger.debug(hr('Converting path to ->', '.'))
+    #logger.debug(hr('Converting path to ->', '.'))
     adjacency_list = path.toarray()[0]
-    logger.debug(adjacency_list)
+    #logger.debug(adjacency_list)
     pretty_list = []
     for i, visited in enumerate(adjacency_list):
         if visited == 1:
             pretty_list.append(str(i))
     pretty_path = '->'.join(pretty_list)
-    logger.debug(pretty_path)
+    #logger.debug(pretty_path)
     return pretty_path

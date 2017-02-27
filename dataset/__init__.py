@@ -1,9 +1,15 @@
 import os
+
+import shutil
+
 from . import load
 from .articles import ArticleSelector
+import logging
+
+logger = logging.getLogger(__name__)
 
 
-def get(from_, n=10, randomize=True):
+def get(from_, n=10, archive_to=None, randomize=True):
     dataset_dir = load.get_dataset_dir(from_)
     archive_files = load.get_datasets(indir=dataset_dir)
     decompressed_dataset_directories = {}
@@ -17,4 +23,14 @@ def get(from_, n=10, randomize=True):
     # randomly select articles
     selector = ArticleSelector(decompressed_dataset_directories)
     selected_articles = selector.get(n, randomize=randomize)
+
+    if archive_to is not None:
+        logger.info('Copying {0} articles to {1}'.format(
+            len(selected_articles),
+            archive_to
+        ))
+        os.makedirs(archive_to, exist_ok=True)
+        for article in selected_articles:
+            shutil.copy(article.path, archive_to)
+
     return selected_articles

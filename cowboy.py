@@ -93,14 +93,13 @@ class Homework2Experiments(object):
 
     pickle_file_fmt = 'hw2.{}.pickle'
 
-    def __init__(self, n, dataset_dir, knn_vote_weight, pickling,
-                 randomize=True):
+    def __init__(self, n, dataset_dir, pickling, randomize=True):
         # load data
         logger.info('Looking for datasets in {}'.format(dataset_dir))
         self.n = n
         self.dataset_dir = dataset_dir
-        self.knn_vote_weight=knn_vote_weight
-        self.output_dir = os.path.join('figures', knn_vote_weight)
+        self.knn_vote_weight = None
+        self.output_dir = os.path.join('results')
         os.makedirs(self.output_dir, exist_ok=True)
 
         self.pickling = pickling
@@ -116,12 +115,19 @@ class Homework2Experiments(object):
         corpus_by_vectorizer = self._load_pickle(corpus_pickle)
         if not corpus_by_vectorizer:
             self.articles = dataset.get(n=n, from_=dataset_dir,
-                                        randomize=randomize)
+                                        randomize=randomize,
+                                        archive_to=os.path.join(
+                                            self.output_dir,
+                                            'articles'
+                                        ))
 
             corpus_by_vectorizer = {
-                self.vectorizers[k]: preprocess.execute(corpus=self.articles,
-                                                   exclude_stopwords=True,
-                                                   method=k)
+                self.vectorizers[k]: preprocess.execute(
+                    corpus=self.articles,
+                    exclude_stopwords=True,
+                    method=k,
+                    save_csv_to=self.output_dir,
+                    mrmr=os.path.join('data', 'mrmr.features.txt'))
                 for k in self.vectorizers
             }
             self._save_to_pickel(corpus_by_vectorizer, corpus_pickle)
@@ -134,6 +140,9 @@ class Homework2Experiments(object):
     def run(self, knn_neighbors_max, dec_tree_max_leafs):
         logger.info(hr('Beginning Experiments'))
         self.decision_tree(max_leafs=dec_tree_max_leafs)
+        self.knn_vote_weight = 'uniform'
+        self.knn(max_neighbors=knn_neighbors_max)
+        self.knn_vote_weight = 'distance'
         self.knn(max_neighbors=knn_neighbors_max)
 
     def _load_pickle(self, filename):
@@ -158,7 +167,7 @@ class Homework2Experiments(object):
 
 
     def decision_tree(self, max_leafs):
-        output_path = os.path.join('results', 'decision_tree')
+        output_path = os.path.join(self.output_dir, 'decision_tree')
         os.makedirs(output_path, exist_ok=True)
 
         logger.info(hr('Decision Tree', '+'))
@@ -204,7 +213,7 @@ class Homework2Experiments(object):
         tree_plots.path_lengths(decision_paths, save_to=output_path)
 
     def knn(self, max_neighbors):
-        output_path = os.path.join('results', 'knn', 'distance_voting')
+        output_path = os.path.join(self.output_dir, 'knn', self.knn_vote_weight)
         os.makedirs(output_path, exist_ok=True)
 
         logger.info(hr('k-Nearest Neighbors', '+'))
@@ -264,9 +273,6 @@ class Homework2Experiments(object):
     def archive(self):
         # news articles
         # data matrix
-
-
-
         # classification results
         return
 
@@ -276,21 +282,19 @@ class Homework2Experiments(object):
 
 def main():
     configuration = {
-        'n': 20,
-        'k': 3,
-        'knn_voting_weight': 'distance',
+        'n': 100,
+        'k': 10,
         'dectree_max_leafs': 10,
         'enable_pickling': False,
     }
     experiments = Homework2Experiments(
         n=configuration['n'],
         dataset_dir=DATA_DIR,
-        knn_vote_weight=configuration['knn_voting_weight'],
         pickling=configuration['enable_pickling'])
     experiments.run(knn_neighbors_max=configuration['k'],
                     dec_tree_max_leafs=configuration['dectree_max_leafs'])
-    experiments.archive()
-    experiments.plot()
+    # experiments.archive()
+    # experiments.plot()
 
 
 if __name__ == '__main__':

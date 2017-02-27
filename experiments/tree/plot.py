@@ -130,7 +130,7 @@ def prec_n_rec(results, class_labels, save_to=None):
                                  align='center',
                                  hatch=hatch[metric])
                 for cls, bar in zip(class_labels, bars):
-                    logger.debug(color.keys())
+                    #logger.debug(color.keys())
                     bar.set_color(color[cls])
 
                 if metric not in bar_handles:

@@ -84,6 +84,16 @@ class Experiment(LoggingObject):
         predicted_labels = []
         neighbors = []
 
+        classification_results_file = open(os.path.join(
+            self.save_to,
+            'knn.n{0}.{1}.{2}.csv'.format(
+                x, series,
+                variation if isinstance(variation, str)
+                          else variation.__name__)),
+            'w')
+        classification_results_file.write('article,actual_category,'
+                                          'predicted_category\n')
+
         for training, testing in partitioner:
             self.info('Training KNN Model')
             clf = KNeighborsClassifier(n_neighbors=x,
@@ -109,6 +119,14 @@ class Experiment(LoggingObject):
                 # for this class.
                 actual_labels.append(int(label))
                 predicted_labels.append(int(predicted))
+                predicted_class_name = partitioner.classnames[predicted]
+
+                classification_results_file.write(
+                    '{0},{1},{2}\n'.format(
+                        article.filename,
+                        article.category,
+                        predicted_class_name
+                    ))
 
                 # Let's look at what are the nearest neighbors of this guy
                 distances, indices = clf.kneighbors(m)
@@ -124,7 +142,7 @@ class Experiment(LoggingObject):
                 #     article.category, article.title,
                 # ))
 
-                predicted_class_name = partitioner.classnames[predicted]
+
                 article_neighbors = []
                 neighbor_entry = {
                     'article': article,
@@ -244,6 +262,8 @@ class Experiment(LoggingObject):
                                                      '1}.csv'.format(
                     vector_type, variation)),
                           'w') as f:
+                    f.write('article,category,neighbor,distance,'
+                            'neighbor_category\n')
                     logger.debug('Fitting KNN classifier')
                     clf = KNeighborsClassifier(n_neighbors=num_neighbors,
                                                algorithm='brute',

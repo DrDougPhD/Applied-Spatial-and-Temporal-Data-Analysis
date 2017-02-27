@@ -56,6 +56,9 @@ class CrossValidation(object):
         self.k = k
         self.dataset = dataset
         self.matrix = dataset.matrix
+
+        self.feature_names = numpy.array(dataset.features,
+                                         dtype=numpy.str_)
         logger.info('Partitioning corpus into {} partitions'.format(k))
         self.classes = dataset.classes
         self.classnames = dataset.class_names
@@ -79,15 +82,15 @@ class CrossValidation(object):
         part_sizes = [ part_size for i in range(k) ]
         if part_size*k != n:
             remains = n - part_size*k
-            logger.debug('{} partitions will receive an extra element'.format(
-                remains
-            ))
+            # logger.debug('{} partitions will receive an extra element'.format(
+            #     remains
+            # ))
             for i in range(remains):
                 part_sizes[i] += 1
 
             assert sum(part_sizes) == n, 'Partitions do not include all ' \
                                          'elements'
-        logger.debug('Partition sizes: {}'.format(part_sizes))
+        # logger.debug('Partition sizes: {}'.format(part_sizes))
 
         # partition index array
         partitioned_indices = []
@@ -98,7 +101,7 @@ class CrossValidation(object):
                 indices[starting_index:ending_index]
             )
             starting_index = ending_index
-        logger.debug('Partitioned indices: {}'.format(partitioned_indices))
+        #logger.debug('Partitioned indices: {}'.format(partitioned_indices))
         return partitioned_indices
 
     def __iter__(self):
@@ -106,8 +109,8 @@ class CrossValidation(object):
             # build the indices for the trainer by removing i from it
             partition_nums = list(range(self.k))
             partition_nums.pop(i)
-            logger.debug('Trainer partitions: {}'.format(partition_nums))
-            logger.debug('Tester partitions:  {}'.format([i]))
+            #logger.debug('Trainer partitions: {}'.format(partition_nums))
+            #logger.debug('Tester partitions:  {}'.format([i]))
 
             trainer_row_indices = list(self.partition_indices)
             trainer_row_indices.pop(i)
@@ -123,14 +126,14 @@ class CrossValidation(object):
                                       classes=self.classes,
                                       matrix=self.matrix,
                                       class_labels=self.dataset.class_names,
-                                      features=self.dataset.features,
+                                      features=self.feature_names,
                                       orig_dataset=self.dataset)
             #logger.debug('Tester ===')
             tester = CorpusPartition(indices=self.partition_indices[i],
                                      classes=self.classes,
                                      matrix=self.matrix,
                                      class_labels=self.dataset.class_names,
-                                     features=self.dataset.features,
+                                     features=self.feature_names,
                                      orig_dataset=self.dataset)
             yield trainer, tester
 
@@ -139,6 +142,8 @@ class CorpusPartition(object):
     # ducked typed object to host the partitions
     def __init__(self, indices, classes, matrix,
                  class_labels, features, orig_dataset):
+        #logger.debug(hr('Partition'))
+        #logger.debug('{} features'.format(matrix.shape[1]))
         self.indices = indices
         self.classes = classes[indices]
         self.matrix = matrix[indices, :]
@@ -203,7 +208,8 @@ class PairwiseSimilarity(object):
         # extract class labels from the articles
         self.class_names = list(set([document.category for document in
                                      self.corpus]))
-        class_to_index = { k: i for i, k in enumerate(self.class_names) }
+        class_to_index = self.class_to_index = { k: i for i, k in enumerate(
+            self.class_names) }
         self.classes = numpy.array([class_to_index[doc.category]
                                     for doc in self.corpus])
 
@@ -306,6 +312,18 @@ class PairwiseSimilarity(object):
                 key=lambda e: e[1],
                 reverse=True,
             ))
+
+    def filter_features(self, indices):
+        logger.debug('Filtering out non-relevant features: {}'.format(indices))
+        self.matrix = self.matrix[:, indices]
+        self.features = numpy.array(self.features)[indices]
+        logger.debug('Relevant features:')
+        logger.debug(self.features)
+
+        corpus = self.corpus
+        for i in range(len(corpus)):
+            vector = self.matrix.getrow(i).toarray()[0]
+            corpus[i].vector = vector
 
 
 class ComparedArticles(object):

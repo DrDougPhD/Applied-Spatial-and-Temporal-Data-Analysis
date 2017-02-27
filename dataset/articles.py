@@ -3,6 +3,7 @@ import logging
 import glob
 import string
 import random
+random.seed(0)
 import shutil
 from bs4 import BeautifulSoup
 from collections import defaultdict
