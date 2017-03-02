@@ -25,4 +25,6 @@ os.makedirs(CACHE_STORAGE, exist_ok=True)
 os.makedirs(PICKLE_STORAGE, exist_ok=True)
 os.makedirs(CSV_STORAGE, exist_ok=True)
 
-PICKLING_ENABLED = False
+PICKLING_ENABLED = True
+
+VECTORIZER_METHOD = 'tf'

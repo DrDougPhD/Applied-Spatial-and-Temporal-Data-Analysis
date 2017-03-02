@@ -11,6 +11,7 @@ from sklearn.manifold import SpectralEmbedding
 from sklearn.random_projection import SparseRandomProjection
 
 import config
+import preprocess
 
 
 def setup_logger(name):
@@ -51,9 +52,13 @@ import dataset
 
 def main():
     logger.info(hr('Loading Articles'))
-    articles = dataset.get(n=config.NUM_ARTICLES,
-                           from_=config.DATA_DIR,
-                           randomize=True)
+    articles = dataset.load_dataset(n=config.NUM_ARTICLES,
+                                    from_=config.DATA_DIR,
+                                    randomize=True)
+    logger.info(hr('Vectorizing Corpus'))
+    corpus = preprocess.preprocess(corpus=articles,
+                                   exclude_stopwords=True,
+                                   method=config.VECTORIZER_METHOD)
 
 #
 # class Homework3Experiments(object):

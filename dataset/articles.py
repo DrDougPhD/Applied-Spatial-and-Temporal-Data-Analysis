@@ -3,14 +3,13 @@ import logging
 import glob
 import string
 import random
-import shutil
 from bs4 import BeautifulSoup
 from collections import defaultdict
 
-import config
+logger = logging.getLogger('cnn.'+__name__)
 import utils
 
-logger = logging.getLogger('cnn.'+__name__)
+
 
 try:  # this is my own package, but it might not be present
     from lib.lineheaderpadded import hr
@@ -241,8 +240,8 @@ class NewspaperArticle(object):
         :return: string Next word in the article.
         """
         self._setup_reader()
-        logger.debug('Parsing through {}'.format(
-            os.path.basename(self.path)))
+        # logger.debug('Parsing through {}'.format(
+        #     os.path.basename(self.path)))
         for w in self._next_word():
             self.length += 1
             yield w
