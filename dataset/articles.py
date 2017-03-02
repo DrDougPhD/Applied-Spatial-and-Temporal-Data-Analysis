@@ -7,8 +7,8 @@ import shutil
 from bs4 import BeautifulSoup
 from collections import defaultdict
 
-DATA_DIR = os.path.join('..', 'data')
-SELECTED_ARTICLE_ARCHIVE = os.path.join(DATA_DIR, 'articles')
+import config
+import utils
 
 logger = logging.getLogger('cnn.'+__name__)
 
@@ -84,58 +84,70 @@ class ArticleSelector(object):
         self.accessors = [ArticleSelector.article_accessor[size](datasets[k])
                           for k, size in file_sizes]
 
-    def get(self, count, randomize=True,
-            archive_to=SELECTED_ARTICLE_ARCHIVE,
-            equal_dist=True):
-        # evenly distribute articles selected from each located dataset
+    def get(self, count, randomize=True, equal_dist=True):
+        articles = self._load_all_articles()
+        logger.info('Dataset size: {}'.format(len(articles)))
+
+        # partition articles by their categories
+        logger.info('Partitioning dataset by category')
+        partitioning = partition_by_category(articles)
+        if equal_dist:
+            logger.info('Equal-sized category partitions')
+            truncate_to_equal_category_distribution(partitioning)
+
+
+        # flatten article selection, either randomly sampling from each
+        # category or guaranteeing equal samples for each category
+        selected_articles = self._select_and_flatten(randomize, equal_dist,
+                                                     count, partitioning)
+
+        self._check_category_diversity(selected_articles)
+        random.shuffle(selected_articles)
+        return selected_articles
+
+    def _select_and_flatten(self, randomize, equal_dist, count, partitioning):
+        selected_articles = []
+        if randomize:
+            random.seed(randomize)
+            logger.debug('Random selection of {} articles'.format(count))
+
+            if equal_dist:
+                num_articles_per_partition = 1+(count // len(partitioning))
+                logger.debug('Equally sampling {} articles per '
+                             'category'.format(num_articles_per_partition))
+                for key, category_partition in partitioning.items():
+                    selected_articles.extend(
+                        random.sample(category_partition,
+                                      num_articles_per_partition)
+                    )
+                return selected_articles
+
+            else:
+                logger.debug('Random sampling without equal sampling per '
+                             'partition')
+                for c, category_partition in partitioning.items():
+                    selected_articles.extend(category_partition)
+
+                return random.sample(selected_articles, count)
+
+        else:
+            logger.debug('Non-random selection of {} articles'.format(count))
+
+            for c, category_partition in partitioning.items():
+                selected_articles.extend(partitioning)
+                if len(selected_articles) > count:
+                    break
+            return selected_articles[:count]
+
+    def _load_all_articles(self):
         articles = []
         for selector in self.accessors:
             subset = selector.retrieve()
             articles.extend(subset)
             assert len(articles) > 0, 'No articles found for {}'.format(
                 selector.__class__.__name__)
+        return articles
 
-        logger.debug('#' * 100)
-        logger.debug('Dataset size: {}'.format(len(articles)))
-        partition = partition_by_category(articles)
-        if equal_dist:
-            truncate_to_equal_category_distribution(partition)
-
-        # shuffle and truncate set to the specified size
-        if randomize:
-            logger.debug('Random selection of {} articles'.format(count))
-            selected_articles = []
-            if equal_dist:
-                num_articles_per_partition = 1+(count // len(partition))
-                for c in partition:
-                    selected_articles.extend(
-                        random.sample(partition[c], num_articles_per_partition)
-                    )
-
-            else:
-                for c in partition:
-                    selected_articles.extend(partition[c])
-
-                selected_articles = random.sample(selected_articles, count)
-
-        else:
-            logger.debug('Non-random selection of {} articles'.format(count))
-            selected_articles = []
-            for c in partition:
-                selected_articles.extend(partition[c])
-                if len(selected_articles) > count:
-                    break
-            selected_articles = selected_articles[:count]
-
-        if archive_to:
-            logger.debug('Copying files to {}'.format(archive_to))
-            os.makedirs(archive_to, exist_ok=True)
-            [shutil.copy(f.path, archive_to) for f in selected_articles]
-            logger.debug('{} files copied'.format(len(selected_articles)))
-
-        self._check_category_diversity(selected_articles)
-        random.shuffle(selected_articles)
-        return selected_articles
 
     def _check_category_diversity(self, selected_articles):
         categories = set()
@@ -148,18 +160,20 @@ class ArticleSelector(object):
 
 
 def partition_by_category(articles):
-    def category(filename):
-        c = filename.split('-')[0]
-        return c.split('_')[1]
-
-    categories = set([category(p.filename)
+    categories = set([utils.get_category(p.filename)
                       for p in articles])
 
-    logger.debug('Categories: {}'.format(categories))
     partitions = {c: [] for c in categories}
     for f in articles:
-        category_of_art = category(f.filename)
+        category_of_art = utils.get_category(f.filename)
         partitions[category_of_art].append(f)
+
+    logger.debug('Articles per category:')
+    for key, category_partition in partitions.items():
+        logger.debug('{key: >15}: {count} articles'.format(
+            key=key,
+            count=len(category_partition)
+        ))
 
     return partitions
 
@@ -169,7 +183,6 @@ def truncate_to_equal_category_distribution(partitions):
     min_articles = float('inf')
     for c in partitions:
         article_count = len(partitions[c])
-        logger.debug('\t{0: >15}:\t{1}'.format(c, article_count))
         min_articles = min(article_count, min_articles)
 
     logger.debug('Smallest category has {} articles.'
@@ -190,7 +203,6 @@ def truncate_to_equal_category_distribution(partitions):
 
     logger.debug('New dataset size: {}'.format(
         sum([len(partitions[c]) for c in partitions])))
-    logger.debug('#' * 100)
 
 
 class NewspaperArticle(object):
