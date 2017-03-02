@@ -30,17 +30,22 @@ def pickled(func):
             n=config.NUM_ARTICLES)
         pickle_path = os.path.join(config.PICKLE_STORAGE, pickle_filename)
 
-        try:
-            with open(pickle_path, 'rb') as pkl:
-                result = pickle.load(pkl)
-            logger.debug('Pickle loaded from {}'.format(pickle_path))
+        if config.PICKLING_ENABLED:
+            try:
+                with open(pickle_path, 'rb') as pkl:
+                    result = pickle.load(pkl)
+                logger.debug('Pickle loaded from {}'.format(pickle_path))
+                return result
 
-        except:
-            logger.warning('No pickle for {0} at "{1}".'
-                           ' It will be created after execution.'.format(
-                func.__name__, pickle_path))
-            result = func(*args, **kwargs)
+            except:
+                logger.warning('No pickle for {0} at "{1}".'
+                               ' It will be created after execution.'.format(
+                    func.__name__, pickle_path))
 
+        result = func(*args, **kwargs)
+
+        if config.PICKLING_ENABLED:
+            logger.debug('Pickling result to {}'.format(pickle_path))
             with open(pickle_path, 'wb') as pkl:
                 pickle.dump(result, pkl)
 
