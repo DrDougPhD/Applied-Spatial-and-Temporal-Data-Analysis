@@ -56,7 +56,8 @@ import utils
 def main():
     logger.info(hr('Loading Articles'))
     articles = dataset.get(n=config.NUM_ARTICLES,
-                           from_=config.DATA_DIR)
+                           from_=config.DATA_DIR,
+                           randomize=True)
 
 #
 # class Homework3Experiments(object):
