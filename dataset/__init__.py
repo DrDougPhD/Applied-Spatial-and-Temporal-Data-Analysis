@@ -4,7 +4,7 @@ import utils
 from . import load
 from .articles import ArticleSelector
 
-@utils.pickled
+@utils.pickled('n', 'randomize')
 def load_dataset(from_, n, randomize):
     dataset_dir = load.get_dataset_dir(from_)
     archive_files = load.get_datasets(indir=dataset_dir)

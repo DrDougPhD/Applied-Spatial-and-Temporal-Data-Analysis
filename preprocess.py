@@ -13,7 +13,7 @@ logger = logging.getLogger('cnn.'+__name__)
 import utils
 
 
-@utils.pickled
+@utils.pickled('method')
 def preprocess(corpus, exclude_stopwords, method):
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
