@@ -1,46 +1,9 @@
-import os
-import logging
-import numpy
-import shutil
-from matplotlib import pyplot
-from sklearn.cluster import FeatureAgglomeration
-from sklearn.decomposition import SparsePCA
-from sklearn.manifold import Isomap
-from sklearn.manifold import LocallyLinearEmbedding
-from sklearn.manifold import SpectralEmbedding
-from sklearn.random_projection import SparseRandomProjection
+import utils
+logger = utils.setup_logger('cnn')
 
 import config
 import preprocess
 
-
-def setup_logger(name):
-    # create file handler which logs even debug messages
-    # todo: place them in a log directory, or add the time to the log's
-    # filename, or append to pre-existing log
-    log_file = os.path.join('/tmp', name + '.log')
-    fh = logging.FileHandler(log_file)
-    fh.setLevel(logging.DEBUG)
-    # create console handler with a higher log level
-    ch = logging.StreamHandler()
-
-    ch.setLevel(logging.DEBUG)
-
-    # create formatter and add it to the handlers
-    fh.setFormatter(logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    ))
-    ch.setFormatter(logging.Formatter(
-        "%(levelname)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %("
-        "message)s"
-    ))
-    # add the handlers to the logger
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(fh)
-    logger.addHandler(ch)
-    return logger
-logger = setup_logger('cnn')
 
 try:
     from lib.lineheaderpadded import hr
@@ -59,6 +22,10 @@ def main():
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
                                    method=config.VECTORIZER_METHOD)
+
+
+if __name__ == '__main__':
+    main()
 
 #
 # class Homework3Experiments(object):
@@ -282,6 +249,3 @@ def main():
 #         pyplot.tight_layout(h_pad=4)
 #         pyplot.show()
 
-
-if __name__ == '__main__':
-    main()

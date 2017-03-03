@@ -8,6 +8,33 @@ import config
 
 logger = logging.getLogger('cnn.' + __name__)
 
+def setup_logger(name):
+    # create file handler which logs even debug messages
+    # todo: place them in a log directory, or add the time to the log's
+    # filename, or append to pre-existing log
+    log_file = os.path.join('/tmp', name + '.log')
+    fh = logging.FileHandler(log_file)
+    fh.setLevel(logging.DEBUG)
+    # create console handler with a higher log level
+    ch = logging.StreamHandler()
+
+    ch.setLevel(logging.DEBUG)
+
+    # create formatter and add it to the handlers
+    fh.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    ))
+    ch.setFormatter(logging.Formatter(
+        "%(levelname)s [%(filename)s:%(lineno)s - %(funcName)20s() ] %("
+        "message)s"
+    ))
+    # add the handlers to the logger
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
+    logger.addHandler(ch)
+    return logger
+
 
 def get_category(filename):
     c = filename.split('-')[0]

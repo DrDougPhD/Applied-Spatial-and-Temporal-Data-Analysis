@@ -26,8 +26,8 @@ def preprocess(corpus, exclude_stopwords, method):
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
                                   stopwords=stopwords)
-
-
+    logger.debug(vectorizer)
+    return vectorizer
 
 
 class CorpusVectorizer(object):
@@ -74,6 +74,10 @@ class CorpusVectorizer(object):
             #     # vector = [ int(bool(e)) for e in vector ]
             #     vector = (vector != 0).astype(int).toarray()[0]
             corpus[i].vector = vector
+
+    def __iter__(self):
+        for article in self.corpus:
+            yield article
 
 
 # progress = ProgressBar(
