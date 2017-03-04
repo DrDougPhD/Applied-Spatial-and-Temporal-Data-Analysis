@@ -3,7 +3,7 @@ import pprint
 import numpy
 from scipy.spatial import distance
 
-def it(vectors, k, distance, initial_centroid_method):
+def it(vectors, k, distance, initial_centroid_method, verbose=True):
     # 1. initialize centroids
     centroids = globals()[initial_centroid_method+'_centroids']\
                          (vectors=vectors, k=k)
@@ -19,19 +19,20 @@ def it(vectors, k, distance, initial_centroid_method):
     clusters = None
     while True:
         #   2.a Associate vectors with their closest centroid
-        for i, v in enumerate(vectors):
-            distances = [
-                distance(v, centroids[idx])
-                for idx in centroid_indices
-            ]
+        if verbose:
+            for i, v in enumerate(vectors):
+                distances = [
+                    distance(v, centroids[idx])
+                    for idx in centroid_indices
+                ]
 
-            closest_centroid_idx = min(centroid_indices,
-                                       key=lambda idx: distances[idx])
-            print('Article #{}'.format(i))
-            print('Distances:\n{}'.format(
-                pprint.pformat(list(enumerate(distances)))))
-            print('Closest: {}'.format(closest_centroid_idx))
-            print('.'*40)
+                closest_centroid_idx = min(centroid_indices,
+                                           key=lambda idx: distances[idx])
+                print('Article #{0} -- {1}'.format(i, v))
+                print('Distances:\n{}'.format(
+                    pprint.pformat(list(enumerate(distances)))))
+                print('Closest: {}'.format(closest_centroid_idx))
+                print('.'*40)
 
 
         new_cluster_indices = numpy.array([
@@ -43,11 +44,12 @@ def it(vectors, k, distance, initial_centroid_method):
          for (vector_idx,), cluster_idx
          in numpy.ndenumerate(new_cluster_indices)]
 
-        print('.' * 80)
-        print('Iteration #{}'.format(iteration))
-        print('Clusters:')
-        for cluster_idx, cluster in enumerate(clusters):
-            print('{0}: {1}'.format(cluster_idx, cluster))
+        if verbose:
+            print('.' * 80)
+            print('Iteration #{}'.format(iteration))
+            print('Clusters:')
+            for cluster_idx, cluster in enumerate(clusters):
+                print('{0}: {1}'.format(cluster_idx, cluster))
 
         if (new_cluster_indices == old_cluster_indices).all():
             return clusters
@@ -60,14 +62,18 @@ def it(vectors, k, distance, initial_centroid_method):
             for indices in clusters
         ])
 
-        print('Centroids:')
-        print(pprint.pformat(list(enumerate(centroids))))
+        if verbose:
+            print('Centroids:')
+            print(pprint.pformat(list(enumerate(centroids))))
 
         iteration += 1
 
 
 def random_centroids(vectors, k):
-    return vectors[numpy.random.choice(numpy.arange(vectors.shape[0]), size=k)]
+    numpy.random.seed(0)
+    return vectors[numpy.random.choice(numpy.arange(vectors.shape[0]),
+                                       size=k,
+                                       replace=False)]
 
 
 if __name__ == '__main__':
