@@ -1,14 +1,17 @@
 import pprint
 
 import numpy
+from matplotlib import pyplot
 from scipy.spatial import distance
 
-def it(vectors, k, distance, initial_centroid_method, verbose=True):
+def it(vectors, k, distance, initial_centroid_method, verbose=False):
     # 1. initialize centroids
     centroids = globals()[initial_centroid_method+'_centroids']\
                          (vectors=vectors, k=k)
-    print('Initial centroids:')
-    print(pprint.pformat(list(enumerate(centroids))))
+
+    if verbose:
+        print('Initial centroids:')
+        print(pprint.pformat(list(enumerate(centroids))))
 
     centroid_indices = numpy.arange(k)
 
@@ -16,7 +19,7 @@ def it(vectors, k, distance, initial_centroid_method, verbose=True):
     # 2. Loop until centroids don't change anymore
     old_cluster_indices = numpy.zeros(len(vectors))-1
     iteration = 1
-    clusters = None
+    clustering = None
     while True:
         #   2.a Associate vectors with their closest centroid
         if verbose:
@@ -39,8 +42,8 @@ def it(vectors, k, distance, initial_centroid_method, verbose=True):
             min(centroid_indices, key=lambda idx: distance(v, centroids[idx]))
             for v in vectors
         ])
-        clusters = [[] for _ in range(k)]
-        [clusters[cluster_idx].append(vector_idx)
+        clustering = [[] for _ in range(k)]
+        [clustering[cluster_idx].append(vector_idx)
          for (vector_idx,), cluster_idx
          in numpy.ndenumerate(new_cluster_indices)]
 
@@ -48,18 +51,18 @@ def it(vectors, k, distance, initial_centroid_method, verbose=True):
             print('.' * 80)
             print('Iteration #{}'.format(iteration))
             print('Clusters:')
-            for cluster_idx, cluster in enumerate(clusters):
+            for cluster_idx, cluster in enumerate(clustering):
                 print('{0}: {1}'.format(cluster_idx, cluster))
 
         if (new_cluster_indices == old_cluster_indices).all():
-            return clusters
+            return clustering, centroids
 
         old_cluster_indices = new_cluster_indices
 
         #   2.b Recompute centroid
         centroids = numpy.array([
             numpy.mean(vectors[indices], axis=0)
-            for indices in clusters
+            for indices in clustering
         ])
 
         if verbose:
@@ -70,16 +73,31 @@ def it(vectors, k, distance, initial_centroid_method, verbose=True):
 
 
 def random_centroids(vectors, k):
-    numpy.random.seed(0)
     return vectors[numpy.random.choice(numpy.arange(vectors.shape[0]),
                                        size=k,
                                        replace=False)]
 
 
 if __name__ == '__main__':
-    vectors = numpy.random.rand(100, 5)
+    vectors = numpy.random.rand(100, 2)
     k = 7
     distance = distance.euclidean
     centroid_method = 'random'
 
-    it(vectors, k, distance, centroid_method)
+    clustering, centroids = it(vectors, k, distance, centroid_method,
+                               verbose=True)
+
+    markers = '.ov^*+x'
+    colors = 'rgbcmyk'
+    for cluster_idx, cluster in enumerate(clustering):
+        pyplot.scatter(vectors[cluster][:,0],
+                       vectors[cluster][:,1],
+                       marker='.',
+                       #marker=markers[cluster_idx],
+                       c=colors[cluster_idx])
+        pyplot.scatter(centroids[cluster_idx][0],
+                       centroids[cluster_idx][1],
+                       marker=markers[cluster_idx],
+                       c=colors[cluster_idx])
+
+    pyplot.show()
