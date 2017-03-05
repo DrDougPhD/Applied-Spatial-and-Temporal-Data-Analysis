@@ -57,10 +57,7 @@ def main():
         cluster.sort(key=lambda a: a.category)
 
         # flatten cluster
-        articles_sorted_by_cluster.extend([
-            (article, cluster_index)
-            for article in cluster
-        ])
+        articles_sorted_by_cluster.extend(cluster)
 
         logger.debug('{0: >5}:'.format(cluster_index))
         for article in cluster:
@@ -68,68 +65,21 @@ def main():
                                                       article.title))
 
     logger.info(hr('Similarity / Distance Matrix'))
-    # make an index array augmented with the article categories of each article
-    # index_category_array = numpy.array([
-    #     numpy.arange(len(corpus.count))
-    # ])
-
-    # Create a list of index pairs to correspond to entries in the array
-    cart_product_of_article_indices = itertools.product(
-        numpy.arange(corpus.count), repeat=2)
-    #logger.debug(pprint.pformat(list(cart_product_of_article_indices)))
-
     # Create an array of distance values between each pair
-    distances = distance_matrix(matrix=list(map(lambda x: x[0].vector,
-                                                articles_sorted_by_cluster)),
-                                distance_func=distance.euclidean,
-                                n=corpus.count)
-    logger.debug(distances)
-    # similarities = utils.euclidean_similarities(distances)
+    # distances = distance_matrix(matrix=list(map(lambda x: x[0].vector,
+    #                                             articles_sorted_by_cluster)),
+    #                             distance_func=distance.euclidean,
+    #                             n=corpus.count)
+    # logger.debug(distances)
+
+    similarities = utils.similarity_matrix(
+        matrix=[article.vector for article in articles_sorted_by_cluster],
+        distance_metric=distance.euclidean,
+    )
     # similarities.shape = (corpus.count, corpus.count)
     #
     #
-    # logger.debug('\n{}'.format(similarities))
-
-
-@utils.pickled('n','distance_func')
-def distance_matrix(matrix, distance_func, n):
-    return MemoizedDistances(matrix=matrix,
-                             distance_func=distance_func)
-
-
-class MemoizedDistances(object):
-    def __init__(self, matrix, distance_func):
-        n = len(matrix)
-        self.distance_fn = distance_func
-
-        indices = numpy.arange(n)
-        self.memoized = {i: {} for i in indices}
-
-        cart_product_indices = itertools.product(indices,
-                                                 repeat=2)
-        self.distance_matrix = numpy.array([
-            self._get_distance(matrix[i], matrix[j],
-                               i, j)
-            for i, j in cart_product_indices
-        ])
-        self.distance_matrix.shape = (n, n)
-
-    def _get_distance(self, u, v, u_idx, v_idx):
-        if u_idx == v_idx:
-            return 0
-
-        min_idx = min(u_idx, v_idx)
-        max_idx = max(u_idx, v_idx)
-        memoized_for_u = self.memoized[min_idx]
-
-        if max_idx not in memoized_for_u:
-            memoized_for_u[max_idx] = self.distance_fn(u, v)
-
-        return memoized_for_u[max_idx]
-
-    def __str__(self):
-        return pprint.pformat(self.distance_matrix)
-
+    logger.debug('\n{}'.format(similarities))
 
 
 if __name__ == '__main__':

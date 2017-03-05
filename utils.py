@@ -1,9 +1,11 @@
 import os
 import logging
+import pprint
 import shutil
 
 import pickle
 
+import itertools
 import numpy
 
 import config
@@ -85,9 +87,7 @@ class pickled(object):
 
             result = func(*args, **kwargs)
 
-            if config.PICKLING_ENABLED\
-                    and (not os.path.exists(pickle_path)
-                         or config.UPDATE_PICKLES):
+            if config.UPDATE_PICKLES:
                 logger.debug('Pickling result to {}'.format(pickle_path))
                 with open(pickle_path, 'wb') as pkl:
                     pickle.dump(result, pkl)
@@ -95,6 +95,61 @@ class pickled(object):
             return result
 
         return func_wrapper
+
+
+@pickled('distance_metric')
+def similarity_matrix(matrix, distance_metric):
+    distances = distance_matrix(matrix=matrix,
+                                distance_func=distance_metric,
+                                n=len(matrix))
+    # e.g. euclidean_similarities, cosine_similarities, jaccard_similarities
+    similarities = globals()[distance_metric.__name__ + '_similarities']\
+                            (distances.get_matrix())
+    return similarities
+
+
+@pickled('n','distance_func')
+def distance_matrix(matrix, distance_func, n):
+    return MemoizedDistances(matrix=matrix,
+                             distance_func=distance_func)
+
+
+class MemoizedDistances(object):
+    def __init__(self, matrix, distance_func):
+        n = len(matrix)
+        self.distance_fn = distance_func
+
+        indices = numpy.arange(n)
+        self.memoized = {i: {} for i in indices}
+
+        cart_product_indices = itertools.product(indices,
+                                                 repeat=2)
+        self.distance_matrix = numpy.array([
+            self._get_distance(matrix[i], matrix[j],
+                               i, j)
+            for i, j in cart_product_indices
+        ])
+        self.distance_matrix.shape = (n, n)
+
+    def _get_distance(self, u, v, u_idx, v_idx):
+        if u_idx == v_idx:
+            return 0
+
+        min_idx = min(u_idx, v_idx)
+        max_idx = max(u_idx, v_idx)
+        memoized_for_u = self.memoized[min_idx]
+
+        if max_idx not in memoized_for_u:
+            memoized_for_u[max_idx] = self.distance_fn(u, v)
+
+        return memoized_for_u[max_idx]
+
+    def get_matrix(self):
+        return self.distance_matrix
+
+    def __str__(self):
+        return pprint.pformat(self.distance_matrix)
+
 
 def euclidean_similarities(distances):
     min_distance = numpy.amin(distances)
