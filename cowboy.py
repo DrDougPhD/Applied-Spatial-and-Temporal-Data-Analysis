@@ -9,6 +9,7 @@ from scipy.spatial import distance
 from sklearn.cluster import KMeans
 
 import kmeans
+import sim_matrix_heatmap
 import utils
 logger = utils.setup_logger('cnn')
 
@@ -37,10 +38,6 @@ def main():
     logger.info(hr('K-Means Clustering'))
     articles_np = numpy.array(corpus.corpus)
 
-
-    # clustered = KMeans(n_clusters=7,
-    #                    random_state=1,
-    #                    init='random').fit(corpus.matrix)
     clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
                                       k=7,
                                       distance=distance.euclidean,
@@ -69,34 +66,8 @@ def main():
                                                       article.title))
 
     logger.info(hr('Similarity / Distance Matrix'))
-    # Create an array of distance values between each pair
-    # distances = distance_matrix(matrix=list(map(lambda x: x[0].vector,
-    #                                             articles_sorted_by_cluster)),
-    #                             distance_func=distance.euclidean,
-    #                             n=corpus.count)
-    # logger.debug(distances)
-
-    similarities = utils.similarity_matrix(
-        matrix=[article.vector for article in articles_sorted_by_cluster],
-        distance_metric=distance.euclidean,
-    )
-    logger.debug('\n{}'.format(similarities))
-
-    x_vals = []
-    y_vals = []
-    colors = []
-    for (x, y), color in numpy.ndenumerate(similarities):
-        x_vals.append(x)
-        y_vals.append(y)
-        colors.append(color)
-
-    logger.debug('X: {0} -- {1}'.format(len(x_vals), x_vals))
-    logger.debug('Y: {0} -- {1}'.format(len(y_vals), y_vals))
-    logger.debug('C: {0} -- {1}'.format(len(colors), colors))
-
-    pyplot.pcolor(similarities)
-    pyplot.xticks(numpy.arange(corpus.count), article_cluster_indices)
-    pyplot.show()
+    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+                            distance_metric=distance.euclidean)
 
 
 if __name__ == '__main__':
