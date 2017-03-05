@@ -2,8 +2,12 @@ import numpy
 from progressbar import ProgressBar
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import logging
+import os
+import csv
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+
+import config
 
 STOP_WORDS = ENGLISH_STOP_WORDS.union(
     'new says time just like told cnn according did make way really'
@@ -27,7 +31,7 @@ def preprocess(corpus, exclude_stopwords, method, mrmr):
                                   method=method,
                                   stopwords=stopwords,
                                   mrmr=mrmr)
-    logger.debug(vectorizer)
+    vectorizer.to_csv()
     return vectorizer
 
 
@@ -48,12 +52,15 @@ class CorpusVectorizer(object):
             progress.update(i)
         progress.finish()
 
+        self.plain_text = plain_text
+
         # isolate terms that will be preserved
         irrelevant_features = self._load_mrmr(mrmr, plain_text)
         terms_to_remove = stopwords.union(irrelevant_features)
 
         # determine the unique categories represented in the dataset
-        class_to_index = {k: i for i, k in enumerate(self.class_names)}
+        class_to_index = self.class_to_index = {
+            k: i for i, k in enumerate(self.class_names)}
         self.classes = numpy.array([class_to_index[document.category]
                                     for document in corpus])
 
@@ -104,11 +111,11 @@ class CorpusVectorizer(object):
         for i, article in enumerate(corpus):
             unique_terms_in_article = set(article.split())
             unique_features.update(unique_terms_in_article)
-            logger.debug('Article #{0} has {1} unique features, bringing '
-                         'total unique features up to {2}'.format(
-                            i,
-                            len(unique_terms_in_article),
-                            len(unique_features)))
+            # logger.debug('Article #{0} has {1} unique features, bringing '
+            #              'total unique features up to {2}'.format(
+            #                 i,
+            #                 len(unique_terms_in_article),
+            #                 len(unique_features)))
 
         # remove the good features, resulting in the irrelevant features
         # being left over
@@ -119,3 +126,29 @@ class CorpusVectorizer(object):
         ))
 
         return irrelevant_features
+
+    def to_csv(self):
+        unpreprocessed_vectorizer = CountVectorizer(min_df=1)
+        matrix = list(unpreprocessed_vectorizer.fit_transform(self.plain_text)\
+                                               .toarray())
+
+        output_filepath = os.path.join(config.RESULTS_DIR,
+                                       'corpus.{0}.{1}.csv'.format(
+                                           self.method,
+                                           self.count,
+                                       ))
+
+        logger.debug('Saving the matrix representation '
+                     'of the corpus to {}'.format(
+            output_filepath
+        ))
+
+        with open(output_filepath, 'w') as f:
+            output_csv = csv.writer(f)
+            header = ['category',
+                      *unpreprocessed_vectorizer.get_feature_names()]
+            output_csv.writerow(header)
+            for article, vector in zip(self.corpus, matrix):
+                row = [self.class_to_index[article.category],
+                       *vector]
+                output_csv.writerow(row)
