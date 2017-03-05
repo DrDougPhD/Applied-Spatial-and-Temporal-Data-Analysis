@@ -3,7 +3,9 @@ import pprint
 import numpy
 from matplotlib import pyplot
 from scipy.spatial import distance
+import utils
 
+@utils.pickled('k', 'distance', 'initial_centroid_method')
 def it(vectors, k, distance, initial_centroid_method, verbose=False):
     # 1. initialize centroids
     centroids = globals()[initial_centroid_method+'_centroids']\
