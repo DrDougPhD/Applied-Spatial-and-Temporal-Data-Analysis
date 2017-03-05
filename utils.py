@@ -56,10 +56,14 @@ class pickled(object):
 
     def __call__(self, func):
         def func_wrapper(*args, **kwargs):
+            kwstring_values = {
+                k: s.__name__ if hasattr(s, '__name__') else s
+                for k, s in kwargs.items()
+            }
             pickle_filename = 'pickle.{fn}.{values}.bin'.format(
                 fn=func.__name__,
-                values='_'.join([
-                    '{k},{v}'.format(k=k, v=kwargs[k])
+                values=''.join([
+                    '({k},{v})'.format(k=k, v=kwstring_values[k])
                     for k in self.keywords]))
             pickle_path = os.path.join(config.PICKLE_STORAGE, pickle_filename)
 
