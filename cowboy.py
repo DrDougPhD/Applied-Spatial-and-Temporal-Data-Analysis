@@ -33,14 +33,15 @@ def main():
     logger.info(hr('Vectorizing Corpus'))
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
-                                   method=config.VECTORIZER_METHOD)
+                                   method=config.VECTORIZER_METHOD,
+                                   mrmr=config.mRMR_FILE)
 
     logger.info(hr('K-Means Clustering'))
     articles_np = numpy.array(corpus.corpus)
 
     clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
                                       k=7,
-                                      distance=distance.euclidean,
+                                      distance=distance.cosine,
                                       initial_centroid_method='random')
 
     print('='*30 + 'Final Clusters' + '='*30)
@@ -68,7 +69,7 @@ def main():
 
     logger.info(hr('Similarity / Distance Matrix'))
     sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-                            distance_metric=distance.euclidean)
+                            distance_metric=distance.cosine)
 
 
 if __name__ == '__main__':

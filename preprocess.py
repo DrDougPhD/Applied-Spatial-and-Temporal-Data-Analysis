@@ -14,7 +14,7 @@ import utils
 
 
 @utils.pickled('method')
-def preprocess(corpus, exclude_stopwords, method):
+def preprocess(corpus, exclude_stopwords, method, mrmr):
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
@@ -25,25 +25,17 @@ def preprocess(corpus, exclude_stopwords, method):
     logger.debug('Vectorizing corpus')
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
-                                  stopwords=stopwords)
+                                  stopwords=stopwords,
+                                  mrmr=mrmr)
     logger.debug(vectorizer)
     return vectorizer
 
 
 class CorpusVectorizer(object):
-    def __init__(self, corpus, method, stopwords):
+    def __init__(self, corpus, method, stopwords, mrmr):
         self.corpus = corpus
         self.method = method
         self.count = len(corpus)
-
-        # specify method in which corpus is repr'd as matrix
-        if method == 'tfidf':
-            self.vectorizer = TfidfVectorizer(min_df=1,
-                                              stop_words=stopwords)
-        else:
-            # matrix will be converted to binary matrix further down
-            self.vectorizer = CountVectorizer(min_df=1,
-                                              stop_words=stopwords)
 
         logger.debug('Reading articles into memory')
         plain_text = []
@@ -56,12 +48,25 @@ class CorpusVectorizer(object):
             progress.update(i)
         progress.finish()
 
+        # isolate terms that will be preserved
+        irrelevant_features = self._load_mrmr(mrmr, plain_text)
+        terms_to_remove = stopwords.union(irrelevant_features)
+
         # determine the unique categories represented in the dataset
         class_to_index = {k: i for i, k in enumerate(self.class_names)}
         self.classes = numpy.array([class_to_index[document.category]
                                     for document in corpus])
 
         logger.debug('Transforming articles into vector space')
+        # specify method in which corpus is repr'd as matrix
+        if method == 'tfidf':
+            self.vectorizer = TfidfVectorizer(min_df=1,
+                                              stop_words=terms_to_remove)
+        else:
+            # matrix will be converted to binary matrix further down
+            self.vectorizer = CountVectorizer(min_df=1,
+                                              stop_words=terms_to_remove)
+
         self.matrix = self.vectorizer.fit_transform(plain_text)
         self.features = self.vectorizer.get_feature_names()
         logger.debug('{} unique tokens'.format(len(self.features)))
@@ -85,3 +90,28 @@ class CorpusVectorizer(object):
 #     max_value=n)
 # progress.update(i)
 # progress.finish()
+
+    def _load_mrmr(self, mrmr, corpus):
+        if mrmr is None:
+            return []
+
+        logger.debug('Loading mRMR features from "{}"'.format(mrmr))
+        # load good features from mrmr file
+        mrmr_good_features = set()
+        with open(mrmr) as f:
+            for line in f:
+                columns = line.split()
+                mrmr_good_features.add(columns[1])
+        logger.debug('mRMR relevant features: {}'.format(mrmr_good_features))
+
+        # do a quick pass over the corpus data to find all unique features
+        # contained within
+        unique_features = set()
+        for article in corpus:
+            unique_features.union(article)
+
+        # remove the good features, resulting in the irrelevant features
+        # being left over
+        irrelevant_features = unique_features - mrmr_good_features
+
+        return irrelevant_features

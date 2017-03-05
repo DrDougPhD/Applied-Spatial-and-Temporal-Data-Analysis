@@ -29,3 +29,5 @@ PICKLING_ENABLED = False
 UPDATE_PICKLES = False
 
 VECTORIZER_METHOD = 'tf'
+
+mRMR_FILE = os.path.join(_current_directory, 'data', 'mrmr.features.txt')

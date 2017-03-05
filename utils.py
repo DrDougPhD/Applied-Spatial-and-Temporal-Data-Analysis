@@ -157,6 +157,10 @@ def euclidean_similarities(distances):
     return -1* ((distances-min_distance)/(max_distance-min_distance)) + 1
 
 
+def cosine_similarities(distances):
+    return (-1*distances) + 1
+
+
 # class ArchiveReturnedFiles(object):
 #     def __init__(self, archive_directory):
 #         os.makedirs(archive_directory, exist_ok=True)
