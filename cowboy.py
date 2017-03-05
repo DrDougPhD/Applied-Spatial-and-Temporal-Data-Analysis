@@ -1,5 +1,8 @@
 import collections
 
+import itertools
+import pprint
+
 import numpy
 from scipy.spatial import distance
 from sklearn.cluster import KMeans
@@ -48,13 +51,45 @@ def main():
         print('{0}: {1}'.format(cluster_index, article_indices))
         clusters.append(list(articles_np[article_indices]))
 
+    articles_sorted_by_cluster = []
     for cluster_index, cluster in enumerate(clusters):
         # sort the cluster based on category labels
         cluster.sort(key=lambda a: a.category)
+
+        # flatten cluster
+        articles_sorted_by_cluster.extend([
+            (article, cluster_index)
+            for article in cluster
+        ])
+
         logger.debug('{0: >5}:'.format(cluster_index))
         for article in cluster:
             logger.debug('    {0: >15} -- {1}'.format(article.category,
                                                       article.title))
+
+    logger.info(hr('Similarity / Distance Matrix'))
+    # make an index array augmented with the article categories of each article
+    # index_category_array = numpy.array([
+    #     numpy.arange(len(corpus.count))
+    # ])
+
+    # Create a list of index pairs to correspond to entries in the array
+    cart_product_of_article_indices = itertools.product(
+        numpy.arange(corpus.count), repeat=2)
+    #logger.debug(pprint.pformat(list(cart_product_of_article_indices)))
+
+    # Create an array of distance values between each pair
+    distances = [distance.euclidean(articles_sorted_by_cluster[i][0].vector,
+                                    articles_sorted_by_cluster[j][0].vector)
+                 for i, j in cart_product_of_article_indices]
+    logger.debug(pprint.pformat(distances))
+    similarities = utils.euclidean_similarities(distances)
+    logger.debug(pprint.pformat(similarities))
+
+
+class MemoizedDistances(object):
+    def __init__(self):
+        pass
 
 
 if __name__ == '__main__':

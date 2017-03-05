@@ -34,6 +34,7 @@ class CorpusVectorizer(object):
     def __init__(self, corpus, method, stopwords):
         self.corpus = corpus
         self.method = method
+        self.count = len(corpus)
 
         # specify method in which corpus is repr'd as matrix
         if method == 'tfidf':
