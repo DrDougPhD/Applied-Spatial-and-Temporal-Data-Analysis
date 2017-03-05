@@ -1,3 +1,10 @@
+import collections
+
+import numpy
+from scipy.spatial import distance
+from sklearn.cluster import KMeans
+
+import kmeans
 import utils
 logger = utils.setup_logger('cnn')
 
@@ -22,6 +29,32 @@ def main():
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
                                    method=config.VECTORIZER_METHOD)
+
+    logger.info(hr('K-Means Clustering'))
+    articles_np = numpy.array(corpus.corpus)
+
+
+    # clustered = KMeans(n_clusters=7,
+    #                    random_state=1,
+    #                    init='random').fit(corpus.matrix)
+    clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
+                                      k=7,
+                                      distance=distance.euclidean,
+                                      initial_centroid_method='random')
+
+    print('='*30 + 'Final Clusters' + '='*30)
+    clusters = []
+    for cluster_index, article_indices in enumerate(clustering):
+        print('{0}: {1}'.format(cluster_index, article_indices))
+        clusters.append(list(articles_np[article_indices]))
+
+    for cluster_index, cluster in enumerate(clusters):
+        # sort the cluster based on category labels
+        cluster.sort(key=lambda a: a.category)
+        logger.debug('{0: >5}:'.format(cluster_index))
+        for article in cluster:
+            logger.debug('    {0: >15} -- {1}'.format(article.category,
+                                                      article.title))
 
 
 if __name__ == '__main__':
