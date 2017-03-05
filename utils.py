@@ -4,6 +4,8 @@ import shutil
 
 import pickle
 
+import numpy
+
 import config
 
 logger = logging.getLogger('cnn.' + __name__)
@@ -67,7 +69,7 @@ class pickled(object):
                     for k in self.keywords]))
             pickle_path = os.path.join(config.PICKLE_STORAGE, pickle_filename)
 
-            if config.PICKLING_ENABLED:
+            if config.PICKLING_ENABLED and not config.UPDATE_PICKLES:
                 try:
                     with open(pickle_path, 'rb') as pkl:
                         result = pickle.load(pkl)
@@ -81,7 +83,7 @@ class pickled(object):
 
             result = func(*args, **kwargs)
 
-            if config.PICKLING_ENABLED:
+            if config.PICKLING_ENABLED and config.UPDATE_PICKLES:
                 logger.debug('Pickling result to {}'.format(pickle_path))
                 with open(pickle_path, 'wb') as pkl:
                     pickle.dump(result, pkl)
@@ -89,6 +91,12 @@ class pickled(object):
             return result
 
         return func_wrapper
+
+def euclidean_similarities(distances):
+    min_distance = numpy.amin(distances)
+    max_distance = numpy.amax(distances)
+    return -1* ((distances-min_distance)/(max_distance-min_distance)) + 1
+
 
 # class ArchiveReturnedFiles(object):
 #     def __init__(self, archive_directory):
