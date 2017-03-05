@@ -56,7 +56,8 @@ def main():
         cluster.sort(key=lambda a: a.category)
 
         # flatten cluster
-        articles_sorted_by_cluster.extend(cluster)
+        articles_sorted_by_cluster.extend([article.vector
+                                           for article in cluster])
         article_cluster_indices.extend([cluster_index
                                         for _ in range(len(cluster))])
 
