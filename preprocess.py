@@ -85,12 +85,6 @@ class CorpusVectorizer(object):
         for article in self.corpus:
             yield article
 
-
-# progress = ProgressBar(
-#     max_value=n)
-# progress.update(i)
-# progress.finish()
-
     def _load_mrmr(self, mrmr, corpus):
         if mrmr is None:
             return []
@@ -107,11 +101,21 @@ class CorpusVectorizer(object):
         # do a quick pass over the corpus data to find all unique features
         # contained within
         unique_features = set()
-        for article in corpus:
-            unique_features.union(article)
+        for i, article in enumerate(corpus):
+            unique_terms_in_article = set(article.split())
+            unique_features.update(unique_terms_in_article)
+            logger.debug('Article #{0} has {1} unique features, bringing '
+                         'total unique features up to {2}'.format(
+                            i,
+                            len(unique_terms_in_article),
+                            len(unique_features)))
 
         # remove the good features, resulting in the irrelevant features
         # being left over
         irrelevant_features = unique_features - mrmr_good_features
+        logger.debug('{0} irrelevant features found out of {1} total'.format(
+            len(irrelevant_features),
+            len(unique_features)
+        ))
 
         return irrelevant_features
