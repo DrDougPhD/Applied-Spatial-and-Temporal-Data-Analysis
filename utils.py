@@ -62,8 +62,10 @@ class pickled(object):
                 k: s.__name__ if hasattr(s, '__name__') else s
                 for k, s in kwargs.items()
             }
+            pickle_key = func.__name__
+
             pickle_filename = 'pickle.{fn}.{values}.bin'.format(
-                fn=func.__name__,
+                fn=pickle_key,
                 values=''.join([
                     '({k},{v})'.format(k=k, v=kwstring_values[k])
                     for k in self.keywords]))
@@ -79,11 +81,13 @@ class pickled(object):
                 except:
                     logger.warning('No pickle for {0} at "{1}".'
                                    ' It will be created after execution.'.format(
-                        func.__name__, pickle_path))
+                        pickle_key, pickle_path))
 
             result = func(*args, **kwargs)
 
-            if config.PICKLING_ENABLED and config.UPDATE_PICKLES:
+            if config.PICKLING_ENABLED\
+                    and (not os.path.exists(pickle_path)
+                         or config.UPDATE_PICKLES):
                 logger.debug('Pickling result to {}'.format(pickle_path))
                 with open(pickle_path, 'wb') as pkl:
                     pickle.dump(result, pkl)

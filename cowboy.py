@@ -79,16 +79,22 @@ def main():
     #logger.debug(pprint.pformat(list(cart_product_of_article_indices)))
 
     # Create an array of distance values between each pair
-    distances = MemoizedDistances(list(map(lambda x: x[0].vector,
-                                      articles_sorted_by_cluster)),
-                                  distance_func=distance.euclidean)
-
+    distances = distance_matrix(matrix=list(map(lambda x: x[0].vector,
+                                                articles_sorted_by_cluster)),
+                                distance_func=distance.euclidean,
+                                n=corpus.count)
     logger.debug(distances)
     # similarities = utils.euclidean_similarities(distances)
     # similarities.shape = (corpus.count, corpus.count)
     #
     #
     # logger.debug('\n{}'.format(similarities))
+
+
+@utils.pickled('n','distance_func')
+def distance_matrix(matrix, distance_func, n):
+    return MemoizedDistances(matrix=matrix,
+                             distance_func=distance_func)
 
 
 class MemoizedDistances(object):
