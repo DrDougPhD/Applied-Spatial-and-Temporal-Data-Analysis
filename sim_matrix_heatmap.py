@@ -33,6 +33,8 @@ def plot(sorted_matrix, distance_metric):
     pyplot.pcolor(similarities)
     #pyplot.xticks(numpy.arange(sorted_matrix.shape[0]),
     # article_cluster_indices)
+    pyplot.colorbar()
+
     pyplot.show()
 
 
@@ -59,8 +61,8 @@ if __name__ == '__main__':
     sorted_vectors = None
     for cluster_indices in clustering:
         cluster_vectors = random_vectors[cluster_indices, :]
-        pyplot.scatter(cluster_vectors[:, 0],
-                       cluster_vectors[:, 1])
+        # pyplot.scatter(cluster_vectors[:, 0],
+        #                cluster_vectors[:, 1])
 
         if sorted_vectors is None:
             sorted_vectors = cluster_vectors
