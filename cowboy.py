@@ -4,6 +4,7 @@ import itertools
 import pprint
 
 import numpy
+from matplotlib import pyplot
 from scipy.spatial import distance
 from sklearn.cluster import KMeans
 
@@ -52,12 +53,15 @@ def main():
         clusters.append(list(articles_np[article_indices]))
 
     articles_sorted_by_cluster = []
+    article_cluster_indices = []
     for cluster_index, cluster in enumerate(clusters):
         # sort the cluster based on category labels
         cluster.sort(key=lambda a: a.category)
 
         # flatten cluster
         articles_sorted_by_cluster.extend(cluster)
+        article_cluster_indices.extend([cluster_index
+                                        for _ in range(len(cluster))])
 
         logger.debug('{0: >5}:'.format(cluster_index))
         for article in cluster:
@@ -76,10 +80,23 @@ def main():
         matrix=[article.vector for article in articles_sorted_by_cluster],
         distance_metric=distance.euclidean,
     )
-    # similarities.shape = (corpus.count, corpus.count)
-    #
-    #
     logger.debug('\n{}'.format(similarities))
+
+    x_vals = []
+    y_vals = []
+    colors = []
+    for (x, y), color in numpy.ndenumerate(similarities):
+        x_vals.append(x)
+        y_vals.append(y)
+        colors.append(color)
+
+    logger.debug('X: {0} -- {1}'.format(len(x_vals), x_vals))
+    logger.debug('Y: {0} -- {1}'.format(len(y_vals), y_vals))
+    logger.debug('C: {0} -- {1}'.format(len(colors), colors))
+
+    pyplot.pcolor(similarities)
+    pyplot.xticks(numpy.arange(corpus.count), article_cluster_indices)
+    pyplot.show()
 
 
 if __name__ == '__main__':

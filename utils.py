@@ -105,7 +105,7 @@ def similarity_matrix(matrix, distance_metric):
     # e.g. euclidean_similarities, cosine_similarities, jaccard_similarities
     similarities = globals()[distance_metric.__name__ + '_similarities']\
                             (distances.get_matrix())
-    return similarities
+    return numpy.array(similarities)
 
 
 @pickled('n','distance_func')
