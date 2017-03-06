@@ -6,6 +6,7 @@ import pprint
 import numpy
 from matplotlib import pyplot
 from scipy.spatial import distance
+from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
 
 import kmeans
@@ -71,10 +72,33 @@ def main():
     cart_product_indices = itertools.product(indices,
                                              repeat=2)
 
-            # logger.info(hr('Similarity / Distance Matrix'))
-    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-    #                         distance_metric=distance.cosine,
-    #                         cart_prod_indices=cart_product_indices)
+    logger.info(hr('Similarity / Distance Matrix'))
+    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+                            distance_metric=distance.cosine,
+                            cart_prod_indices=cart_product_indices)
+
+
+    ideal_cluster_matrix = utils.ideal_matrix(corpus.count, article_cluster_indices)
+    #
+    # ideal_cluster_matrix = numpy.zeros((corpus.count, corpus.count))
+    # for i,j in numpy.ndindex((corpus.count, corpus.count)):
+    #     if article_cluster_indices[i] == article_cluster_indices[j]:
+    #         ideal_cluster_matrix[i, j] = 1
+    logger.debug('Ideal cluster matrix')
+    logger.debug(ideal_cluster_matrix)
+
+    article_class_indices = [corpus.class_to_index[article.category]
+                             for article in corpus]
+    ideal_class_matrix = utils.ideal_matrix(corpus.count,
+                                            article_class_indices)
+    ideal_cluster_matrix.shape = (corpus.count * corpus.count,)
+    ideal_class_matrix.shape = (corpus.count * corpus.count,)
+
+    logger.debug('Ideal class matrix')
+    logger.debug(ideal_class_matrix)
+
+    correlation, pval = pearsonr(ideal_cluster_matrix, ideal_class_matrix)
+    logger.debug('Correlation: {}'.format(correlation))
 
     # correlation between ideal cluster matrix and class matrix
 

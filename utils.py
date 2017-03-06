@@ -161,6 +161,14 @@ def cosine_similarities(distances):
     return (-1*distances) + 1
 
 
+def ideal_matrix(n, labels):
+    ideal_mtx = numpy.zeros((n, n))
+    for i, j in numpy.ndindex((n, n)):
+        if labels[i] == labels[j]:
+            ideal_mtx[i, j] = 1
+    return ideal_mtx
+
+
 # class ArchiveReturnedFiles(object):
 #     def __init__(self, archive_directory):
 #         os.makedirs(archive_directory, exist_ok=True)

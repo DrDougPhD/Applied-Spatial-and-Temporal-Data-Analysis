@@ -103,7 +103,7 @@ class CorpusVectorizer(object):
             with open(mrmr) as f:
                 for line in f:
                     columns = line.split()
-                    mrmr_good_features.add(columns[1])
+                    mrmr_good_features.add(columns[2])
             logger.debug('mRMR relevant features: {}'.format(mrmr_good_features))
 
         except:
@@ -133,7 +133,8 @@ class CorpusVectorizer(object):
         return irrelevant_features
 
     def to_csv(self):
-        unpreprocessed_vectorizer = CountVectorizer(min_df=1)
+        unpreprocessed_vectorizer = CountVectorizer(min_df=1,
+                                                    stop_words='english')
         matrix = list(unpreprocessed_vectorizer.fit_transform(self.plain_text)\
                                                .toarray())
 
