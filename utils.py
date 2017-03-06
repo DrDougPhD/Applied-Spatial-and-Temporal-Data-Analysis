@@ -10,6 +10,7 @@ import numpy
 from scipy.stats import pearsonr
 
 import config
+from lib.lineheaderpadded import hr
 
 logger = logging.getLogger('cnn.' + __name__)
 
@@ -233,3 +234,69 @@ def calculate_sse(centroids, clustering, matrix, distance_func):
     # logger.debug('SSE: {}'.format(sse))
 
     return sse
+
+def silhouette_coeff(clustering, corpus, distance_func):
+    for i, cluster_indices in enumerate(list(clustering)):
+        cluster = corpus.matrix[cluster_indices]
+        pairwise_indices = list(itertools.combinations(
+            cluster_indices, 2))
+        logger.debug('Pairwise indices: {}'.format(pairwise_indices))
+
+        # distances = []
+        # for i,j in pairwise_indices:
+        #     u = corpus.matrix[i].toarray()
+        #     v = corpus.matrix[j].toarray()
+        #
+        #     logger.debug('u ({0.category}) := {0.title}'.format(
+        #         corpus.corpus[i]))
+        #     logger.debug('v ({0.category}) := {0.title}'.format(
+        #         corpus.corpus[j]))
+        #
+        #     d = distance_func(u, v)
+        #     logger.debug('distance := {}'.format(d))
+        #     logger.debug('.'*50)
+        #     distances.append(d)
+
+        # logger.debug(hr('Better distance calculation', '.'))
+        distances = numpy.apply_along_axis(
+            lambda indices: distance_func(corpus.matrix[indices[0]].toarray(),
+                                          corpus.matrix[indices[1]].toarray()),
+            axis=1,
+            arr=pairwise_indices
+        )
+        logger.debug('Distances between vectors in cluster:')
+        logger.debug(distances)
+        average_distance = numpy.mean(distances)
+        logger.debug('Average distance: {}'.format(average_distance))
+
+        # calculate average distance between this cluster and its closest
+        # neighboring cluster
+        closest_neighbor_distance = float('inf')
+        for j, neighbor_indices in enumerate(list(clustering)):
+            if i == j:
+                continue
+
+            logger.debug(hr('Distance to Cluster {}'.format(j)))
+            pairwise_indices = list(itertools.product(cluster_indices,
+                                                      neighbor_indices))
+            neighbor_distances = numpy.apply_along_axis(
+                lambda indices: distance_func(
+                    corpus.matrix[indices[0]].toarray(),
+                    corpus.matrix[indices[1]].toarray()),
+                axis=1,
+                arr=pairwise_indices
+            )
+            avg_distance_to_neighbors = numpy.mean(neighbor_distances)
+            logger.debug(
+                'Average distance: {}'.format(avg_distance_to_neighbors))
+            closest_neighbor_distance = min(closest_neighbor_distance,
+                                            avg_distance_to_neighbors)
+
+        logger.debug('Closest neighboring cluster (avg distance): {}'.format(
+            closest_neighbor_distance
+        ))
+
+        silhouette = (closest_neighbor_distance - average_distance) \
+                   / max(closest_neighbor_distance, average_distance)
+
+        return silhouette
