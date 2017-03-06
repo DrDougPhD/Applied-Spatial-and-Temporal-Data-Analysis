@@ -88,6 +88,26 @@ def main():
                       distance_func=distance_func)
     logger.debug('SSE: {}'.format(sse))
 
+    ## Silhouette coefficient
+    average_intracluster_distance = None
+    for cluster_indices in clustering:
+        cluster = corpus.matrix[cluster_indices]
+        pairwise_indices = itertools.product(numpy.arange(len(cluster_indices)),
+                                             repeat=2)
+        distances = utils.distance_matrix(matrix=cluster.toarray(),
+                                          distance_func=distance_func,
+                                          n=len(cluster_indices),
+                                          cart_product_indices=pairwise_indices,
+                                          disable_pickle=True)
+        logger.debug('Distances: {}'.format(distances.get_matrix().shape))
+        logger.debug(distances)
+        lower_tiangular = numpy.tril(distances.get_matrix())
+        logger.debug('Lower triangular of pairwise distance matrix for this '
+                     'cluster:')
+        logger.debug(lower_tiangular)
+        logger.debug('.'*60)
+
+
 
 if __name__ == '__main__':
     main()

@@ -61,6 +61,9 @@ class pickled(object):
 
     def __call__(self, func):
         def func_wrapper(*args, **kwargs):
+            if 'disable_pickle' in kwargs and kwargs['disable_pickle']:
+                return func(*args, **kwargs)
+
             kwstring_values = {
                 k: s.__name__ if hasattr(s, '__name__') else s
                 for k, s in kwargs.items()
@@ -111,7 +114,7 @@ def similarity_matrix(matrix, distance_metric, cart_product_indices):
 
 
 @pickled('n','distance_func')
-def distance_matrix(matrix, distance_func, n, cart_product_indices):
+def distance_matrix(matrix, distance_func, n, cart_product_indices, **kwargs):
     return MemoizedDistances(matrix=matrix,
                              distance_func=distance_func,
                              cart_product_indices=cart_product_indices)
@@ -119,7 +122,11 @@ def distance_matrix(matrix, distance_func, n, cart_product_indices):
 
 class MemoizedDistances(object):
     def __init__(self, matrix, cart_product_indices, distance_func):
-        n = len(matrix)
+        try:
+            n = len(matrix)
+        except:
+            n = matrix.shape[0]
+
         self.distance_fn = distance_func
 
         indices = numpy.arange(n)
@@ -133,6 +140,12 @@ class MemoizedDistances(object):
         self.distance_matrix.shape = (n, n)
 
     def _get_distance(self, u, v, u_idx, v_idx):
+        # logger.debug('Calculating distance for vectors '
+        #              'of shape {0} and {1}...'.format(
+        #     u.shape, v.shape
+        # ))
+        # logger.debug(u)
+        # logger.debug(v)
         if u_idx == v_idx:
             return 0
 
