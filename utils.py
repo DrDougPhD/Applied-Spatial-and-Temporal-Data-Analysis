@@ -184,15 +184,11 @@ def ideal_matrix(n, labels):
     return ideal_mtx
 
 
-def ideal_correlation(indices, corpus):
-    ideal_cluster_matrix = ideal_matrix(corpus.count, indices)
+def ideal_correlation(cluster_indices, class_indices, n):
+    ideal_cluster_matrix = ideal_matrix(n, cluster_indices)
+    ideal_class_matrix = ideal_matrix(n, class_indices)
+    ideal_class_matrix.shape = ideal_cluster_matrix.shape = (n*n,)
 
-    article_class_indices = [corpus.class_to_index[article.category]
-                             for article in corpus]
-    ideal_class_matrix = ideal_matrix(corpus.count, article_class_indices)
-
-    ideal_cluster_matrix.shape = (corpus.count * corpus.count,)
-    ideal_class_matrix.shape = (corpus.count * corpus.count,)
     correlation, pval = pearsonr(ideal_cluster_matrix, ideal_class_matrix)
 
     # logger.debug('Ideal cluster matrix')
