@@ -72,26 +72,21 @@ def main():
     cart_product_indices = itertools.product(indices,
                                              repeat=2)
 
-    logger.info(hr('Similarity / Distance Matrix'))
-    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-                            distance_metric=distance.cosine,
-                            cart_prod_indices=cart_product_indices)
-
-
-    ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+    # logger.info(hr('Similarity / Distance Matrix'))
+    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #                         distance_metric=distance.cosine,
+    #                         cart_prod_indices=cart_product_indices)
+    #
+    #
+    # ## Ideal Cluster to Ideal Class Similarity Matrix correlation
     correlation = utils.ideal_correlation(article_cluster_indices, corpus)
+    logger.info('Ideal Correlation: {}'.format(correlation))
 
     ## SSE
     distance_func = distance.cosine
-    for cluster_centroid, cluster in zip(centroids, clustering):
-        distances_to_centroid = numpy.apply_along_axis(
-            lambda v: distance_func(v, cluster_centroid),
-            axis=0,
-            arr=cluster,
-        )
-        logger.debug('Distances to centroid: {}'.format(distances_to_centroid))
-        squared_error_about_centroid = 0
-
+    sse = utils.calculate_sse(centroids, clustering, corpus.matrix,
+                      distance_func=distance_func)
+    logger.debug('SSE: {}'.format(sse))
 
 
 if __name__ == '__main__':

@@ -190,3 +190,33 @@ def ideal_correlation(indices, corpus):
 
     # correlation between ideal cluster matrix and class matrix
     return correlation
+
+
+def calculate_sse(centroids, clustering, matrix, distance_func):
+    squared_distances = []
+    for cluster_centroid, cluster_indices in zip(centroids, clustering):
+        cluster = matrix[cluster_indices].toarray()
+        sqrd_distances_to_centroid = numpy.apply_along_axis(
+            lambda v: distance_func(v, cluster_centroid) ** 2,
+            arr=cluster,
+            axis=1,
+        )
+
+        # logger.debug('Cluster centroid (shape: {0}): {1}'.format(
+        #     cluster_centroid.shape,
+        #     cluster_centroid
+        # ))
+        # logger.debug('Cluster (shape: {0}): {1}'.format(cluster.shape,
+        #                                                 cluster))
+        # logger.debug('Distances to centroid: {}'.format(
+        #     sqrd_distances_to_centroid))
+
+        squared_distances.append(sqrd_distances_to_centroid)
+    squared_distances_flattened = numpy.concatenate(squared_distances)
+    sse = numpy.sum(squared_distances_flattened)
+
+    # logger.debug('Flattened squared distances: {}'.format(
+    #     squared_distances_flattened))
+    # logger.debug('SSE: {}'.format(sse))
+
+    return sse
