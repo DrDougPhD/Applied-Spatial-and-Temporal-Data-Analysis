@@ -72,24 +72,27 @@ def main():
     cart_product_indices = itertools.product(indices,
                                              repeat=2)
 
-    # logger.info(hr('Similarity / Distance Matrix'))
-    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-    #                         distance_metric=distance.cosine,
-    #                         cart_prod_indices=cart_product_indices)
-    #
-    #
-    # ## Ideal Cluster to Ideal Class Similarity Matrix correlation
-    correlation = utils.ideal_correlation(article_cluster_indices, corpus)
+    logger.info(hr('Similarity / Distance Matrix'))
+    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+                            distance_metric=distance.cosine,
+                            cart_prod_indices=cart_product_indices)
+
+    ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+    article_class_indices = [corpus.class_to_index[article.category]
+                             for article in corpus]
+    correlation = utils.ideal_correlation(
+        cluster_indices=article_cluster_indices,
+        class_indices=article_class_indices,
+        n=corpus.count)
     logger.info('Ideal Correlation: {}'.format(correlation))
 
     ## SSE
     distance_func = distance.cosine
-    sse = utils.calculate_sse(centroids, clustering, corpus.matrix,
-                      distance_func=distance_func)
+    sse = utils.calculate_sse(centroids, clustering, corpus.matrix)
     logger.debug('SSE: {}'.format(sse))
 
     ## Silhouette coefficient
-    silhouette = utils.silhouette_coeff(clustering, corpus, distance_func)
+    silhouette = utils.silhouette_coeff(clustering, corpus.matrix.toarray())
     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
 
 if __name__ == '__main__':

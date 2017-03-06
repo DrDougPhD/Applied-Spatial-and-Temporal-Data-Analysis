@@ -7,6 +7,7 @@ import pickle
 
 import itertools
 import numpy
+from scipy.spatial import distance
 from scipy.stats import pearsonr
 
 import config
@@ -202,12 +203,16 @@ def ideal_correlation(cluster_indices, class_indices, n):
     return correlation
 
 
-def calculate_sse(centroids, clustering, matrix, distance_func):
+def calculate_sse(centroids, clustering, matrix):
     squared_distances = []
     for cluster_centroid, cluster_indices in zip(centroids, clustering):
-        cluster = matrix[cluster_indices].toarray()
+        try:
+            cluster = matrix[cluster_indices].toarray()
+        except:
+            cluster = matrix[cluster_indices]
+
         sqrd_distances_to_centroid = numpy.apply_along_axis(
-            lambda v: distance_func(v, cluster_centroid) ** 2,
+            lambda v: distance.euclidean(v, cluster_centroid) ** 2,
             arr=cluster,
             axis=1,
         )
@@ -231,9 +236,9 @@ def calculate_sse(centroids, clustering, matrix, distance_func):
 
     return sse
 
-def silhouette_coeff(clustering, corpus, distance_func):
+def silhouette_coeff(clustering, matrix):
     for i, cluster_indices in enumerate(list(clustering)):
-        cluster = corpus.matrix[cluster_indices]
+        cluster = matrix[cluster_indices]
         pairwise_indices = list(itertools.combinations(
             cluster_indices, 2))
         logger.debug('Pairwise indices: {}'.format(pairwise_indices))
@@ -255,8 +260,8 @@ def silhouette_coeff(clustering, corpus, distance_func):
 
         # logger.debug(hr('Better distance calculation', '.'))
         distances = numpy.apply_along_axis(
-            lambda indices: distance_func(corpus.matrix[indices[0]].toarray(),
-                                          corpus.matrix[indices[1]].toarray()),
+            lambda indices: distance.euclidean(matrix[indices[0]],
+                                               matrix[indices[1]]),
             axis=1,
             arr=pairwise_indices
         )
@@ -276,9 +281,9 @@ def silhouette_coeff(clustering, corpus, distance_func):
             pairwise_indices = list(itertools.product(cluster_indices,
                                                       neighbor_indices))
             neighbor_distances = numpy.apply_along_axis(
-                lambda indices: distance_func(
-                    corpus.matrix[indices[0]].toarray(),
-                    corpus.matrix[indices[1]].toarray()),
+                lambda indices: distance.euclidean(
+                    matrix[indices[0]],
+                    matrix[indices[1]]),
                 axis=1,
                 arr=pairwise_indices
             )
