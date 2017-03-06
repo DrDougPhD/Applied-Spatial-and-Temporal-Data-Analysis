@@ -10,11 +10,12 @@ logger = logging.getLogger('cnn.' + __name__)
 
 import utils
 
-def plot(sorted_matrix, distance_metric):
+def plot(sorted_matrix, distance_metric, cart_prod_indices):
     # Create an array of distance values between each pair
     similarities = utils.similarity_matrix(
         matrix=sorted_matrix,
         distance_metric=distance_metric,
+        cart_product_indices=cart_prod_indices
     )
     logger.debug('\n{}'.format(similarities))
 

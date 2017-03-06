@@ -99,11 +99,16 @@ class CorpusVectorizer(object):
         logger.debug('Loading mRMR features from "{}"'.format(mrmr))
         # load good features from mrmr file
         mrmr_good_features = set()
-        with open(mrmr) as f:
-            for line in f:
-                columns = line.split()
-                mrmr_good_features.add(columns[1])
-        logger.debug('mRMR relevant features: {}'.format(mrmr_good_features))
+        try:
+            with open(mrmr) as f:
+                for line in f:
+                    columns = line.split()
+                    mrmr_good_features.add(columns[1])
+            logger.debug('mRMR relevant features: {}'.format(mrmr_good_features))
+
+        except:
+            logger.exception('No mRMR file at {}. Please create it.'.format(mrmr))
+            raise
 
         # do a quick pass over the corpus data to find all unique features
         # contained within

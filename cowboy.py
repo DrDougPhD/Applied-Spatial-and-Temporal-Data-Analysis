@@ -67,9 +67,17 @@ def main():
             logger.debug('    {0: >15} -- {1}'.format(article.category,
                                                       article.title))
 
-    logger.info(hr('Similarity / Distance Matrix'))
-    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-                            distance_metric=distance.cosine)
+    indices = numpy.arange(corpus.count)
+    cart_product_indices = itertools.product(indices,
+                                             repeat=2)
+
+            # logger.info(hr('Similarity / Distance Matrix'))
+    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #                         distance_metric=distance.cosine,
+    #                         cart_prod_indices=cart_product_indices)
+
+    # correlation between ideal cluster matrix and class matrix
+
 
 
 if __name__ == '__main__':

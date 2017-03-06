@@ -98,10 +98,11 @@ class pickled(object):
 
 
 @pickled('distance_metric')
-def similarity_matrix(matrix, distance_metric):
+def similarity_matrix(matrix, distance_metric, cart_product_indices):
     distances = distance_matrix(matrix=matrix,
                                 distance_func=distance_metric,
-                                n=len(matrix))
+                                n=len(matrix),
+                                cart_product_indices=cart_product_indices)
     # e.g. euclidean_similarities, cosine_similarities, jaccard_similarities
     similarities = globals()[distance_metric.__name__ + '_similarities']\
                             (distances.get_matrix())
@@ -109,21 +110,20 @@ def similarity_matrix(matrix, distance_metric):
 
 
 @pickled('n','distance_func')
-def distance_matrix(matrix, distance_func, n):
+def distance_matrix(matrix, distance_func, n, cart_product_indices):
     return MemoizedDistances(matrix=matrix,
-                             distance_func=distance_func)
+                             distance_func=distance_func,
+                             cart_product_indices=cart_product_indices)
 
 
 class MemoizedDistances(object):
-    def __init__(self, matrix, distance_func):
+    def __init__(self, matrix, cart_product_indices, distance_func):
         n = len(matrix)
         self.distance_fn = distance_func
 
         indices = numpy.arange(n)
         self.memoized = {i: {} for i in indices}
 
-        cart_product_indices = itertools.product(indices,
-                                                 repeat=2)
         self.distance_matrix = numpy.array([
             self._get_distance(matrix[i], matrix[j],
                                i, j)
