@@ -64,7 +64,7 @@ class CorpusVectorizer(object):
                                     for document in corpus])
 
         # isolate terms that will be preserved
-        worst_features = self._feature_removal(keep=self.count,
+        worst_features = self._feature_removal(keep=400,
                                                corpus=plain_text)
         logger.debug('{0} features to be removed'.format(len(worst_features)))
         terms_to_remove = stopwords.union(worst_features)
@@ -92,6 +92,18 @@ class CorpusVectorizer(object):
             #     # vector = [ int(bool(e)) for e in vector ]
             #     vector = (vector != 0).astype(int).toarray()[0]
             corpus[i].vector = vector
+
+        # Checking for empty articles
+        for i, article in enumerate(corpus):
+            sum_of_vector = numpy.sum(article.vector)
+            logger.debug('Article #{0} has a summed vector of {1}'.format(
+                i+1, sum_of_vector
+            ))
+            if sum_of_vector == 0:
+                logger.warning('Article titled "{0.title}"'
+                               ' (category: {0.category})'
+                               ' is empty after feature selection'.format(
+                    article))
 
     def __iter__(self):
         for article in self.corpus:
