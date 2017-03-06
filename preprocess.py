@@ -1,3 +1,5 @@
+import pprint
+
 import numpy
 from progressbar import ProgressBar
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
@@ -6,6 +8,8 @@ import os
 import csv
 
 from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.feature_selection import SelectKBest
+from sklearn.feature_selection import chi2
 
 import config
 
@@ -51,18 +55,19 @@ class CorpusVectorizer(object):
             self.class_names.add(document.category)
             progress.update(i)
         progress.finish()
-
         self.plain_text = plain_text
-
-        # isolate terms that will be preserved
-        irrelevant_features = self._load_mrmr(mrmr, plain_text)
-        terms_to_remove = stopwords.union(irrelevant_features)
 
         # determine the unique categories represented in the dataset
         class_to_index = self.class_to_index = {
             k: i for i, k in enumerate(self.class_names)}
         self.classes = numpy.array([class_to_index[document.category]
                                     for document in corpus])
+
+        # isolate terms that will be preserved
+        worst_features = self._feature_removal(keep=self.count,
+                                               corpus=plain_text)
+        logger.debug('{0} features to be removed'.format(len(worst_features)))
+        terms_to_remove = stopwords.union(worst_features)
 
         logger.debug('Transforming articles into vector space')
         # specify method in which corpus is repr'd as matrix
@@ -158,3 +163,17 @@ class CorpusVectorizer(object):
                 row = [self.class_to_index[article.category],
                        *vector]
                 output_csv.writerow(row)
+
+    def _feature_removal(self, keep, corpus):
+        logger.debug('{} features will be kept'.format(keep))
+        vectorizer = TfidfVectorizer(min_df=1)
+        matrix = vectorizer.fit_transform(corpus)
+        features = numpy.array(vectorizer.get_feature_names(),
+                               dtype=numpy.str_)
+        selector = SelectKBest(chi2, k=keep)
+        k_best_features = selector.fit(matrix, self.classes).get_support()
+
+        logger.debug('Best features:')
+        logger.debug(pprint.pformat(list(features[k_best_features])))
+
+        return features[k_best_features == False]
