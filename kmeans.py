@@ -1,4 +1,5 @@
 import pprint
+import random
 
 import numpy
 from matplotlib import pyplot
@@ -78,6 +79,41 @@ def random_centroids(vectors, k):
     return vectors[numpy.random.choice(numpy.arange(vectors.shape[0]),
                                        size=k,
                                        replace=False)]
+
+
+def kpp_centroids(vectors, k):
+    vectors = list(vectors)
+    cluster_centers = random.sample(vectors, k)
+    d = list(numpy.zeros(len(vectors)))
+
+    for i in range(1, len(cluster_centers)):
+        sum = 0
+        for j, p in enumerate(vectors):
+            d[j] = _nearest_cluster_center(p, cluster_centers[:i])
+            sum += d[j]
+
+        sum *= random.random()
+
+        for j, di in enumerate(d):
+            sum -= di
+            if sum > 0:
+                continue
+            cluster_centers[i] = vectors[j]
+            break
+
+    return cluster_centers
+
+
+def _nearest_cluster_center(point, cluster_centers):
+    """Distance and index of the closest cluster center"""
+    min_dist = float('inf')
+
+    for i, cc in enumerate(cluster_centers):
+        d = distance.euclidean(cc, point)**2
+        if min_dist > d:
+            min_dist = d
+
+    return min_dist
 
 
 if __name__ == '__main__':

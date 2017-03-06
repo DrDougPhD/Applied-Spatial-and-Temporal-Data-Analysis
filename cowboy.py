@@ -43,7 +43,7 @@ def main():
     clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
                                       k=7,
                                       distance=distance.cosine,
-                                      initial_centroid_method='random')
+                                      initial_centroid_method='kpp')
 
     print('='*30 + 'Final Clusters' + '='*30)
     clusters = []
@@ -94,6 +94,7 @@ def main():
     ## Silhouette coefficient
     silhouette = utils.silhouette_coeff(clustering, corpus.matrix.toarray())
     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+
 
 if __name__ == '__main__':
     main()
