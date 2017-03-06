@@ -78,29 +78,19 @@ def main():
                             cart_prod_indices=cart_product_indices)
 
 
-    ideal_cluster_matrix = utils.ideal_matrix(corpus.count, article_cluster_indices)
-    #
-    # ideal_cluster_matrix = numpy.zeros((corpus.count, corpus.count))
-    # for i,j in numpy.ndindex((corpus.count, corpus.count)):
-    #     if article_cluster_indices[i] == article_cluster_indices[j]:
-    #         ideal_cluster_matrix[i, j] = 1
-    logger.debug('Ideal cluster matrix')
-    logger.debug(ideal_cluster_matrix)
+    ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+    correlation = utils.ideal_correlation(article_cluster_indices, corpus)
 
-    article_class_indices = [corpus.class_to_index[article.category]
-                             for article in corpus]
-    ideal_class_matrix = utils.ideal_matrix(corpus.count,
-                                            article_class_indices)
-    ideal_cluster_matrix.shape = (corpus.count * corpus.count,)
-    ideal_class_matrix.shape = (corpus.count * corpus.count,)
-
-    logger.debug('Ideal class matrix')
-    logger.debug(ideal_class_matrix)
-
-    correlation, pval = pearsonr(ideal_cluster_matrix, ideal_class_matrix)
-    logger.debug('Correlation: {}'.format(correlation))
-
-    # correlation between ideal cluster matrix and class matrix
+    ## SSE
+    distance_func = distance.cosine
+    for cluster_centroid, cluster in zip(centroids, clustering):
+        distances_to_centroid = numpy.apply_along_axis(
+            lambda v: distance_func(v, cluster_centroid),
+            axis=0,
+            arr=cluster,
+        )
+        logger.debug('Distances to centroid: {}'.format(distances_to_centroid))
+        squared_error_about_centroid = 0
 
 
 

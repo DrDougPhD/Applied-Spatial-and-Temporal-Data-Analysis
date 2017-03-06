@@ -7,6 +7,7 @@ import pickle
 
 import itertools
 import numpy
+from scipy.stats import pearsonr
 
 import config
 
@@ -169,20 +170,23 @@ def ideal_matrix(n, labels):
     return ideal_mtx
 
 
-# class ArchiveReturnedFiles(object):
-#     def __init__(self, archive_directory):
-#         os.makedirs(archive_directory, exist_ok=True)
-#         self.directory = archive_directory
-#
-#     def __call__(self, func):
-#         def func_wrapper(*args, **kwargs):
-#             files = func(*args, **kwargs)
-#
-#             logger.debug('Copying files to {}'.format(self.directory))
-#
-#             [shutil.copy(f.path, self.directory) for f in files]
-#             logger.debug('{} files copied'.format(len(files)))
-#
-#             return files
-#
-#         return func_wrapper
+def ideal_correlation(indices, corpus):
+    ideal_cluster_matrix = ideal_matrix(corpus.count, indices)
+
+    article_class_indices = [corpus.class_to_index[article.category]
+                             for article in corpus]
+    ideal_class_matrix = ideal_matrix(corpus.count, article_class_indices)
+
+    ideal_cluster_matrix.shape = (corpus.count * corpus.count,)
+    ideal_class_matrix.shape = (corpus.count * corpus.count,)
+    correlation, pval = pearsonr(ideal_cluster_matrix, ideal_class_matrix)
+
+    # logger.debug('Ideal cluster matrix')
+    # logger.debug(ideal_cluster_matrix)
+    # logger.debug('Ideal class matrix')
+    # logger.debug(ideal_class_matrix)
+    # logger.info('Correlation between Ideal Cluster Similarity Matrix and '
+    #             'Ideal Class Similarity Matrix: {}'.format(correlation))
+
+    # correlation between ideal cluster matrix and class matrix
+    return correlation

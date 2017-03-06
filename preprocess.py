@@ -96,9 +96,9 @@ class CorpusVectorizer(object):
         # Checking for empty articles
         for i, article in enumerate(corpus):
             sum_of_vector = numpy.sum(article.vector)
-            logger.debug('Article #{0} has a summed vector of {1}'.format(
-                i+1, sum_of_vector
-            ))
+            # logger.debug('Article #{0} has a summed vector of {1}'.format(
+            #     i+1, sum_of_vector
+            # ))
             if sum_of_vector == 0:
                 logger.warning('Article titled "{0.title}"'
                                ' (category: {0.category})'
