@@ -31,69 +31,76 @@ def main():
     articles = dataset.load_dataset(n=config.NUM_ARTICLES,
                                     from_=config.DATA_DIR,
                                     randomize=True)
+
+    logger.info(hr('Feature Subset Selection'))
+    feature_subset = preprocess.dimreduce(corpus=articles)
+
+
     logger.info(hr('Vectorizing Corpus'))
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
-                                   method=config.VECTORIZER_METHOD,
-                                   mrmr=config.mRMR_FILE)
+                                   method=config.VECTORIZER_METHOD)
 
-    logger.info(hr('K-Means Clustering'))
-    articles_np = numpy.array(corpus.corpus)
 
-    clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
-                                      k=7,
-                                      distance=distance.cosine,
-                                      initial_centroid_method='kpp')
-
-    print('='*30 + 'Final Clusters' + '='*30)
-    clusters = []
-    for cluster_index, article_indices in enumerate(clustering):
-        print('{0}: {1}'.format(cluster_index, article_indices))
-        clusters.append(list(articles_np[article_indices]))
-
-    articles_sorted_by_cluster = []
-    article_cluster_indices = []
-    for cluster_index, cluster in enumerate(clusters):
-        # sort the cluster based on category labels
-        cluster.sort(key=lambda a: a.category)
-
-        # flatten cluster
-        articles_sorted_by_cluster.extend([article.vector
-                                           for article in cluster])
-        article_cluster_indices.extend([cluster_index
-                                        for _ in range(len(cluster))])
-
-        logger.debug('{0: >5}:'.format(cluster_index))
-        for article in cluster:
-            logger.debug('    {0: >15} -- {1}'.format(article.category,
-                                                      article.title))
-
-    indices = numpy.arange(corpus.count)
-    cart_product_indices = itertools.product(indices,
-                                             repeat=2)
-
-    logger.info(hr('Similarity / Distance Matrix'))
-    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-                            distance_metric=distance.cosine,
-                            cart_prod_indices=cart_product_indices)
-
-    ## Ideal Cluster to Ideal Class Similarity Matrix correlation
-    article_class_indices = [corpus.class_to_index[article.category]
-                             for article in corpus]
-    correlation = utils.ideal_correlation(
-        cluster_indices=article_cluster_indices,
-        class_indices=article_class_indices,
-        n=corpus.count)
-    logger.info('Ideal Correlation: {}'.format(correlation))
-
-    ## SSE
-    distance_func = distance.cosine
-    sse = utils.calculate_sse(centroids, clustering, corpus.matrix)
-    logger.debug('SSE: {}'.format(sse))
-
-    ## Silhouette coefficient
-    silhouette = utils.silhouette_coeff(clustering, corpus.matrix.toarray())
-    logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+    #
+    #
+    # logger.info(hr('K-Means Clustering'))
+    # articles_np = numpy.array(corpus.corpus)
+    #
+    # clustering, centroids = kmeans.it(vectors=corpus.matrix.toarray(),
+    #                                   k=7,
+    #                                   distance=distance.cosine,
+    #                                   initial_centroid_method='kpp')
+    #
+    # print('='*30 + 'Final Clusters' + '='*30)
+    # clusters = []
+    # for cluster_index, article_indices in enumerate(clustering):
+    #     print('{0}: {1}'.format(cluster_index, article_indices))
+    #     clusters.append(list(articles_np[article_indices]))
+    #
+    # articles_sorted_by_cluster = []
+    # article_cluster_indices = []
+    # for cluster_index, cluster in enumerate(clusters):
+    #     # sort the cluster based on category labels
+    #     cluster.sort(key=lambda a: a.category)
+    #
+    #     # flatten cluster
+    #     articles_sorted_by_cluster.extend([article.vector
+    #                                        for article in cluster])
+    #     article_cluster_indices.extend([cluster_index
+    #                                     for _ in range(len(cluster))])
+    #
+    #     logger.debug('{0: >5}:'.format(cluster_index))
+    #     for article in cluster:
+    #         logger.debug('    {0: >15} -- {1}'.format(article.category,
+    #                                                   article.title))
+    #
+    # indices = numpy.arange(corpus.count)
+    # cart_product_indices = itertools.product(indices,
+    #                                          repeat=2)
+    #
+    # logger.info(hr('Similarity / Distance Matrix'))
+    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #                         distance_metric=distance.cosine,
+    #                         cart_prod_indices=cart_product_indices)
+    #
+    # ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+    # article_class_indices = [corpus.class_to_index[article.category]
+    #                          for article in corpus]
+    # correlation = utils.ideal_correlation(
+    #     cluster_indices=article_cluster_indices,
+    #     class_indices=article_class_indices,
+    #     n=corpus.count)
+    # logger.info('Ideal Correlation: {}'.format(correlation))
+    #
+    # ## SSE
+    # distance_func = distance.cosine
+    # sse = utils.calculate_sse(centroids, clustering, corpus.matrix)
+    # logger.debug('SSE: {}'.format(sse))
+    #
+    # ## Silhouette coefficient
+    # silhouette = utils.silhouette_coeff(clustering, corpus.matrix.toarray())
+    # logger.debug('Silhouette Coefficient: {}'.format(silhouette))
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ import pprint
 
 import numpy
 from progressbar import ProgressBar
+from sklearn import tree
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import logging
 import os
@@ -12,6 +13,7 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 
 import config
+from lib.lineheaderpadded import hr
 
 STOP_WORDS = ENGLISH_STOP_WORDS.union(
     'new says time just like told cnn according did make way really'
@@ -22,7 +24,7 @@ import utils
 
 
 @utils.pickled('method')
-def preprocess(corpus, exclude_stopwords, method, mrmr):
+def preprocess(corpus, exclude_stopwords, method):
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
@@ -33,14 +35,52 @@ def preprocess(corpus, exclude_stopwords, method, mrmr):
     logger.debug('Vectorizing corpus')
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
-                                  stopwords=stopwords,
-                                  mrmr=mrmr)
+                                  stopwords=stopwords)
     vectorizer.to_csv()
     return vectorizer
 
 
+def dimreduce(corpus):
+    # remove meaningless words
+    vectorizer = CorpusVectorizer(corpus=corpus,
+                                  method='tf-idf',
+                                  stopwords=ENGLISH_STOP_WORDS)
+
+    feature_score_vectors = vectorizer.matrix.T
+
+    # rank words in terms of their average tf-idf scores
+    avg_feature_scores = []
+    for feature_scores, feature_name in zip(feature_score_vectors,
+                                            vectorizer.features):
+        logger.debug(
+            'Feature scores {0}: {1}'.format(feature_name, feature_scores))
+        avg_feature_score = numpy.mean(feature_scores.toarray())
+        avg_feature_scores.append((feature_name, avg_feature_score))
+
+    avg_feature_scores.sort(key=lambda x: x[1], reverse=True)
+    logger.debug(pprint.pformat(avg_feature_scores))
+
+    # feed tf-idf matrix and labels into decision tree
+    classifier = tree.DecisionTreeClassifier()\
+                     .fit(vectorizer.matrix, vectorizer.classes)
+    decision_tree = classifier.tree_
+    feature_importances_vector = decision_tree.compute_feature_importances()
+    feature_importances = list(zip(vectorizer.features,
+                                   feature_importances_vector))
+    feature_importances.sort(key=lambda f: f[1], reverse=True)
+
+    logger.debug('Feature importances: {}'.format(feature_importances))
+    logger.debug('Features in tree: {non_zero_scores} out of {all}'.format(
+        non_zero_scores=None,
+        all=len(feature_importances)
+    ))
+    logger.debug('Features from dataset: {}'.format(len(vectorizer.features)))
+
+    # extract words with the highest scores
+
+
 class CorpusVectorizer(object):
-    def __init__(self, corpus, method, stopwords, mrmr):
+    def __init__(self, corpus, method, stopwords):
         self.corpus = corpus
         self.method = method
         self.count = len(corpus)
@@ -189,3 +229,16 @@ class CorpusVectorizer(object):
         logger.debug(pprint.pformat(list(features[k_best_features])))
 
         return features[k_best_features == False]
+
+
+if __name__ == '__main__':
+    logger = utils.setup_logger('cnn.' + __name__)
+    logger.info(hr('Loading Articles'))
+    import dataset
+
+    articles = dataset.load_dataset(n=config.NUM_ARTICLES,
+                                    from_=config.DATA_DIR,
+                                    randomize=True)
+
+    logger.info(hr('Feature Subset Selection'))
+    feature_subset = dimreduce(corpus=articles)
