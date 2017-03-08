@@ -52,12 +52,13 @@ def dimreduce(corpus):
     avg_feature_scores = []
     for feature_scores, feature_name in zip(feature_score_vectors,
                                             vectorizer.features):
-        logger.debug(
-            'Feature scores {0}: {1}'.format(feature_name, feature_scores))
+        # logger.debug(
+        #     'Feature scores {0}: {1}'.format(feature_name, feature_scores))
         avg_feature_score = numpy.mean(feature_scores.toarray())
         avg_feature_scores.append((feature_name, avg_feature_score))
 
     avg_feature_scores.sort(key=lambda x: x[1], reverse=True)
+    logger.debug('Average feature scores:')
     logger.debug(pprint.pformat(avg_feature_scores))
 
     # feed tf-idf matrix and labels into decision tree
@@ -67,6 +68,7 @@ def dimreduce(corpus):
     feature_importances_vector = decision_tree.compute_feature_importances()
     feature_importances = list(zip(vectorizer.features,
                                    feature_importances_vector))
+    logger.debug('Decision Tree Scores:')
     feature_importances.sort(key=lambda f: f[1], reverse=True)
 
     logger.debug('Feature importances: {}'.format(feature_importances))
@@ -77,6 +79,37 @@ def dimreduce(corpus):
     logger.debug('Features from dataset: {}'.format(len(vectorizer.features)))
 
     # extract words with the highest scores
+    output_filepath = os.path.join(config.RESULTS_DIR,
+                                   'corpus.{0}.{1}.csv'.format(
+                                       'tfidf',
+                                       len(corpus),
+                                   ))
+
+    logger.debug('Saving the matrix representation '
+                 'of the corpus to {}'.format(
+        output_filepath
+    ))
+
+    categories = set([a.category for a in corpus])
+    class_to_index = {
+        k: i for i, k in enumerate(categories)}
+
+    with open(output_filepath, 'w') as f:
+        output_csv = csv.writer(f)
+        header = ['category',
+                  *vectorizer.features]
+        output_csv.writerow(header)
+        for article, vector in zip(corpus, vectorizer.matrix):
+            # v = list(*vector.toarray())
+            # logger.debug(v)
+            row = [#vectorizer.class_to_index[article.category],
+                    article.category,
+                   *list(*vector.toarray())]
+            output_csv.writerow(row)
+
+
+def _mutual_information(x, y, bin):
+    pass
 
 
 class CorpusVectorizer(object):
@@ -104,8 +137,9 @@ class CorpusVectorizer(object):
                                     for document in corpus])
 
         # isolate terms that will be preserved
-        worst_features = self._feature_removal(keep=400,
-                                               corpus=plain_text)
+        # worst_features = self._feature_removal(keep=400,
+        #                                        corpus=plain_text)
+        worst_features = ENGLISH_STOP_WORDS
         logger.debug('{0} features to be removed'.format(len(worst_features)))
         terms_to_remove = stopwords.union(worst_features)
 
