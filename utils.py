@@ -13,8 +13,6 @@ from scipy.stats import pearsonr
 import config
 from lib.lineheaderpadded import hr
 
-logger = logging.getLogger('cnn.' + __name__)
-
 def setup_logger(name):
     # create file handler which logs even debug messages
     # todo: place them in a log directory, or add the time to the log's
@@ -41,6 +39,8 @@ def setup_logger(name):
     logger.addHandler(fh)
     logger.addHandler(ch)
     return logger
+
+logger = setup_logger('cnn.' + __name__)
 
 
 def get_category(filename):
@@ -237,10 +237,24 @@ def calculate_sse(centroids, clustering, matrix):
     return sse
 
 def silhouette_coeff(clustering, matrix):
+    logger.debug('{} clusters to consider'.format(len(clustering)))
     for i, cluster_indices in enumerate(list(clustering)):
+        logger.debug(hr('Cluster {0}'.format(i), '~'))
+        logger.debug('\n{}'.format(matrix[cluster_indices]))
+
         cluster = matrix[cluster_indices]
-        pairwise_indices = list(itertools.combinations(
-            cluster_indices, 2))
+        logger.debug('Intracluster distances:')
+        # pairwise_indices = list(itertools.combinations(
+        #     cluster_indices, 2))
+        # pairwise_indices = numpy.transpose([
+        #     numpy.tile(cluster_indices, len(cluster_indices)),
+        #     numpy.repeat(cluster_indices, len(cluster_indices))
+        # ])
+        pairwise_indices = []
+        for j in list(cluster_indices):
+            for k in list(cluster_indices):
+                if j != k:
+                    pairwise_indices.append((j,k))
         logger.debug('Pairwise indices: {}'.format(pairwise_indices))
 
         # distances = []
@@ -265,6 +279,10 @@ def silhouette_coeff(clustering, matrix):
             axis=1,
             arr=pairwise_indices
         )
+        for indices, d in zip(pairwise_indices, distances):
+            logger.debug('{2:.5f} -- ({0}, {1})'.format(matrix[indices[0]],
+                                                        matrix[indices[1]],
+                                                        d))
         logger.debug('Distances between vectors in cluster:')
         logger.debug(distances)
         average_distance = numpy.mean(distances)
@@ -274,10 +292,12 @@ def silhouette_coeff(clustering, matrix):
         # neighboring cluster
         closest_neighbor_distance = float('inf')
         for j, neighbor_indices in enumerate(list(clustering)):
+            logger.debug(hr('Comparing against C{}'.format(j)))
             if i == j:
+                logger.debug('No self checks needed')
                 continue
 
-            logger.debug(hr('Distance to Cluster {}'.format(j)))
+            logger.debug(hr('Distance between C{0} and C{1}'.format(i, j), '.'))
             pairwise_indices = list(itertools.product(cluster_indices,
                                                       neighbor_indices))
             neighbor_distances = numpy.apply_along_axis(
@@ -287,6 +307,8 @@ def silhouette_coeff(clustering, matrix):
                 axis=1,
                 arr=pairwise_indices
             )
+            for (x,y), d in zip(pairwise_indices, neighbor_distances):
+                logger.debug('{0:.5f} -- ({1}, {2})'.format(d, matrix[x], matrix[y]))
             avg_distance_to_neighbors = numpy.mean(neighbor_distances)
             logger.debug(
                 'Average distance: {}'.format(avg_distance_to_neighbors))
@@ -301,3 +323,23 @@ def silhouette_coeff(clustering, matrix):
                    / max(closest_neighbor_distance, average_distance)
 
         return silhouette
+
+
+if __name__ == '__main__':
+    centroids = numpy.array([0, 0])
+    clustering = [[0,1,2,3]]
+    matrix = numpy.array([[ 1,  0],
+                          [ 0,  1],
+                          [-1,  0],
+                          [ 0, -1]])
+
+    # calculate SSE
+    sse = calculate_sse(centroids=centroids, clustering=clustering, matrix=matrix)
+    logger.info('Resulting SSE: {}'.format(sse))
+
+    # calculate silhouette
+    another_matrix = matrix + numpy.array([3, 0])
+    data_matrix = numpy.concatenate([matrix, another_matrix], axis=0)
+    clustering = [clustering[0], [4,5,6,7]]
+    silcoef = silhouette_coeff(clustering=clustering, matrix=data_matrix)
+    logger.info('Silhouette Coefficient: {}'.format(silcoef))
