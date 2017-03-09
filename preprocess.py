@@ -40,88 +40,7 @@ def preprocess(corpus, exclude_stopwords, method):
     return vectorizer
 
 
-def dimreduce(corpus, n=100):
-    # remove meaningless words
-    vectorizer = CorpusVectorizer(corpus=corpus,
-                                  method='tfidf',
-                                  stopwords=ENGLISH_STOP_WORDS)
-
-    feature_score_vectors = vectorizer.matrix.T
-
-    # rank words in terms of their average tf-idf scores
-    avg_feature_scores = []
-    for feature_scores, feature_name in zip(feature_score_vectors,
-                                            vectorizer.features):
-        # logger.debug(
-        #     'Feature scores {0}: {1}'.format(feature_name, feature_scores))
-        non_zero_scores = numpy.sum(feature_scores > 0)
-        avg_feature_score = numpy.sum(feature_scores.toarray()) / non_zero_scores
-        avg_feature_scores.append((feature_name, non_zero_scores, avg_feature_score))
-
-    avg_feature_scores.sort(key=lambda x: x[2], reverse=True)
-    logger.debug('Average feature scores:')
-    logger.debug(pprint.pformat(avg_feature_scores))
-    with open(os.path.join(config.RESULTS_DIR, 'tfidf.ordered_score.txt'),
-              'w') as f:
-        f.write('{0: >20}\t{1: ^15}\t{2}\n'.format('Feature', 'Document Freq', 'Average TF-IDF score'))
-        f.writelines(['{0: >20}\t{1: ^15}\t{2}\n'.format(*x) for x in avg_feature_scores])
-
-    # feed tf-idf matrix and labels into decision tree
-    ## needs to be redone
-    classifier = tree.DecisionTreeClassifier()\
-                     .fit(vectorizer.matrix, vectorizer.classes)
-    decision_tree = classifier.tree_
-    feature_importances_vector = decision_tree.compute_feature_importances()
-    feature_importances = list(zip(vectorizer.features,
-                                   feature_importances_vector))
-    feature_importances.sort(key=lambda f: f[1], reverse=True)
-    with open(os.path.join(config.RESULTS_DIR, 'tfidf.ordered_tree_scores.txt'),
-               'w') as f:
-        f.write('{0: >20}\t{1}\n'.format('Feature', 'Decision Tree Score'))
-        for feat, score in feature_importances:
-            f.write('{0: >20}\t{1}\n'.format(feat, score))
-
-    logger.debug('Decision Tree Scores:')
-    logger.debug(feature_importances)
-
-    # logger.debug('Feature importances: {}'.format(feature_importances))
-    logger.debug('Features in tree: {non_zero_scores} out of {all}'.format(
-        non_zero_scores=None,
-        all=len(feature_importances)
-    ))
-    logger.debug('Features from dataset: {}'.format(len(vectorizer.features)))
-
-    # extract words with the highest scores
-    output_filepath = os.path.join(config.RESULTS_DIR,
-                                   'corpus.{0}.{1}.csv'.format(
-                                       'tfidf',
-                                       len(corpus),
-                                   ))
-
-    logger.debug('Saving the matrix representation '
-                 'of the corpus to {}'.format(
-        output_filepath
-    ))
-
-    categories = set([a.category for a in corpus])
-    class_to_index = {
-        k: i for i, k in enumerate(categories)}
-
-    with open(output_filepath, 'w') as f:
-        output_csv = csv.writer(f)
-        header = ['category',
-                  *vectorizer.features]
-        output_csv.writerow(header)
-        for article, vector in zip(corpus, vectorizer.matrix):
-            # v = list(*vector.toarray())
-            # logger.debug(v)
-            row = [#vectorizer.class_to_index[article.category],
-                    article.category,
-                   *list(*vector.toarray())]
-            output_csv.writerow(row)
-
-
-def _mutual_information(x, y, bin):
+def dimreduce(corpus, method=''):
     pass
 
 
@@ -240,10 +159,7 @@ class CorpusVectorizer(object):
         return irrelevant_features
 
     def to_csv(self):
-        unpreprocessed_vectorizer = CountVectorizer(min_df=1,
-                                                    stop_words='english')
-        matrix = list(unpreprocessed_vectorizer.fit_transform(self.plain_text)\
-                                               .toarray())
+        matrix = self.matrix
 
         output_filepath = os.path.join(config.RESULTS_DIR,
                                        'corpus.{0}.{1}.csv'.format(
@@ -259,7 +175,7 @@ class CorpusVectorizer(object):
         with open(output_filepath, 'w') as f:
             output_csv = csv.writer(f)
             header = ['category',
-                      *unpreprocessed_vectorizer.get_feature_names()]
+                      *self.vectorizer.get_feature_names()]
             output_csv.writerow(header)
             for article, vector in zip(self.corpus, matrix):
                 row = [self.class_to_index[article.category],
@@ -282,13 +198,4 @@ class CorpusVectorizer(object):
 
 
 if __name__ == '__main__':
-    logger = utils.setup_logger('cnn.' + __name__)
-    logger.info(hr('Loading Articles'))
-    import dataset
-
-    articles = dataset.load_dataset(n=config.NUM_ARTICLES,
-                                    from_=config.DATA_DIR,
-                                    randomize=True)
-
-    logger.info(hr('Feature Subset Selection'))
-    feature_subset = dimreduce(corpus=articles)
+    pass

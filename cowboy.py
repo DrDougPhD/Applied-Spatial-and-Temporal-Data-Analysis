@@ -33,7 +33,8 @@ def main():
                                     randomize=True)
 
     logger.info(hr('Feature Subset Selection'))
-    feature_subset = preprocess.dimreduce(corpus=articles)
+    feature_subset = preprocess.dimreduce(corpus=articles,
+                                          method='')
 
 
     logger.info(hr('Vectorizing Corpus'))
