@@ -43,7 +43,7 @@ def preprocess(corpus, exclude_stopwords, method):
 def dimreduce(corpus):
     # remove meaningless words
     vectorizer = CorpusVectorizer(corpus=corpus,
-                                  method='tf-idf',
+                                  method='tfidf',
                                   stopwords=ENGLISH_STOP_WORDS)
 
     feature_score_vectors = vectorizer.matrix.T
@@ -54,12 +54,17 @@ def dimreduce(corpus):
                                             vectorizer.features):
         # logger.debug(
         #     'Feature scores {0}: {1}'.format(feature_name, feature_scores))
-        avg_feature_score = numpy.mean(feature_scores.toarray())
-        avg_feature_scores.append((feature_name, avg_feature_score))
+        non_zero_scores = numpy.sum(feature_scores > 0)
+        avg_feature_score = numpy.sum(feature_scores.toarray()) / non_zero_scores
+        avg_feature_scores.append((feature_name, non_zero_scores, avg_feature_score))
 
-    avg_feature_scores.sort(key=lambda x: x[1], reverse=True)
+    avg_feature_scores.sort(key=lambda x: x[2], reverse=True)
     logger.debug('Average feature scores:')
     logger.debug(pprint.pformat(avg_feature_scores))
+    with open(os.path.join(config.RESULTS_DIR, 'tfidf.ordered_score.txt'),
+              'w') as f:
+        f.write('{0: >20}\t{1: ^15}\t{2}\n'.format('Feature', 'Document Freq', 'Average TF-IDF score'))
+        f.writelines(['{0: >20}\t{1: ^15}\t{2}\n'.format(*x) for x in avg_feature_scores])
 
     # feed tf-idf matrix and labels into decision tree
     classifier = tree.DecisionTreeClassifier()\
@@ -68,10 +73,17 @@ def dimreduce(corpus):
     feature_importances_vector = decision_tree.compute_feature_importances()
     feature_importances = list(zip(vectorizer.features,
                                    feature_importances_vector))
-    logger.debug('Decision Tree Scores:')
     feature_importances.sort(key=lambda f: f[1], reverse=True)
+    with open(os.path.join(config.RESULTS_DIR, 'tfidf.ordered_tree_scores.txt'),
+               'w') as f:
+        f.write('{0: >20}\t{1}\n'.format('Feature', 'Decision Tree Score'))
+        for feat, score in feature_importances:
+            f.write('{0: >20}\t{1}\n'.format(feat, score))
 
-    logger.debug('Feature importances: {}'.format(feature_importances))
+    logger.debug('Decision Tree Scores:')
+    logger.debug(feature_importances)
+
+    # logger.debug('Feature importances: {}'.format(feature_importances))
     logger.debug('Features in tree: {non_zero_scores} out of {all}'.format(
         non_zero_scores=None,
         all=len(feature_importances)
@@ -81,7 +93,7 @@ def dimreduce(corpus):
     # extract words with the highest scores
     output_filepath = os.path.join(config.RESULTS_DIR,
                                    'corpus.{0}.{1}.csv'.format(
-                                       'tfidf',
+                                       'tfidf_actual',
                                        len(corpus),
                                    ))
 
