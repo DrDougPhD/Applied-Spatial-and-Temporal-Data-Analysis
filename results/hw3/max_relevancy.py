@@ -1,11 +1,7 @@
 import pprint
-
 import numpy as np
 import csv
-
 from progressbar import ProgressBar
-from scipy.stats import rv_continuous
-from scipy.stats import uniform
 
 filename = 'corpus.tfidf.105.csv'
 
@@ -54,70 +50,6 @@ def main():
             progress.update(i)
 
         progress.finish()
-
-
-def mutual_information(x, y, unique_classes):
-    mi = {}
-    y_ent = continuous_entropy(y)
-    for cls in unique_classes:
-        binary_classes = x == cls
-        return discrete_entropy(binary_classes, unique_classes)\
-             + y_ent - joint_entropy(binary_classes, y)
-
-
-def joint_entropy(x, y):
-    probs = []
-    for c1 in set(x):
-        for c2 in set(y):
-            probs.append(np.mean(
-                np.logical_and(x == c1, y == c2)
-            ))
-
-    return np.sum(-p * np.log(p) for p in probs)
-
-
-def continuous_entropy(x):
-    pdf = rv_continuous.pdf()
-
-
-def discrete_entropy(x, possible_values):
-    probs = [np.mean(x == c) for c in possible_values]
-    return np.sum(-p * np.log(p) for p in probs)
-
-
-class TfIdfDistribution(rv_continuous):
-    "Gaussian distribution"
-    def __init__(self, training, *args, **kwargs):
-        self.discrete_observations = np.array(training)
-        self.n = len(training)
-        super(TfIdfDistribution, self).__init__(*args, **kwargs)
-
-    def _cdf(self, x):
-        single_x = x[0]
-        observations_less_than = self.discrete_observations <= single_x
-        percent_less_than = np.sum(observations_less_than) / self.n
-
-        print('RV X =', x, single_x)
-        print('Discrete observations :=', self.discrete_observations)
-        print('Observatiosn <= {0}\t{1}'.format(single_x, observations_less_than))
-        print('Num observations <=', np.sum(observations_less_than))
-        print('Total observations =', self.n)
-        print('Percentage =', percent_less_than)
-        print('-' * 80)
-
-        return percent_less_than
-
-
-def test_distribution():
-    values = np.random.rand(30000)
-    distribution = TfIdfDistribution(training=values,
-                                     a=0,
-                                     name='Feature')
-    max_val = max(values)
-
-    print('Maximum value: {}'.format(max_val))
-    pdf = distribution.pdf(x=max_val)
-    print('PDF at {0}: {1}'.format(values[0], pdf))
 
 
 if __name__ == '__main__':
