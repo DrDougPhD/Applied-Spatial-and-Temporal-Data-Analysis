@@ -94,7 +94,7 @@ def dimreduce(corpus, n=100):
     # extract words with the highest scores
     output_filepath = os.path.join(config.RESULTS_DIR,
                                    'corpus.{0}.{1}.csv'.format(
-                                       'tfidf_actual',
+                                       'tfidf',
                                        len(corpus),
                                    ))
 
