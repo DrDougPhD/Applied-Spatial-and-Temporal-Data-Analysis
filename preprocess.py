@@ -40,7 +40,7 @@ def preprocess(corpus, exclude_stopwords, method):
     return vectorizer
 
 
-def dimreduce(corpus):
+def dimreduce(corpus, n=100):
     # remove meaningless words
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method='tf-idf',
@@ -62,6 +62,7 @@ def dimreduce(corpus):
     logger.debug(pprint.pformat(avg_feature_scores))
 
     # feed tf-idf matrix and labels into decision tree
+    ## needs to be redone
     classifier = tree.DecisionTreeClassifier()\
                      .fit(vectorizer.matrix, vectorizer.classes)
     decision_tree = classifier.tree_
@@ -145,13 +146,16 @@ class CorpusVectorizer(object):
 
         logger.debug('Transforming articles into vector space')
         # specify method in which corpus is repr'd as matrix
-        if method == 'tfidf':
-            self.vectorizer = TfidfVectorizer(min_df=1,
-                                              stop_words=terms_to_remove)
-        else:
+        if method == 'tf':
             # matrix will be converted to binary matrix further down
             self.vectorizer = CountVectorizer(min_df=1,
                                               stop_words=terms_to_remove)
+        elif method == 'tfidf' or method == 'tf-idf':
+            self.vectorizer = TfidfVectorizer(min_df=1,
+                                              stop_words=terms_to_remove)
+
+        else:
+            raise ValueError('Method {} is not implemented'.format(method))
 
         self.matrix = self.vectorizer.fit_transform(plain_text)
         self.features = self.vectorizer.get_feature_names()
