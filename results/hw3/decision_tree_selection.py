@@ -2,10 +2,30 @@ import pprint
 import numpy as np
 import csv
 from progressbar import ProgressBar
-from sklearn.tree.tree import _splitter
-from sklearn.tree.tree import CRITERIA_CLF
+
 
 filename = 'corpus.tfidf.105.csv'
+
+
+def node_impurity(targets, records):
+    num_records = len(records)
+    probabilities = []
+    for cls in set(targets):
+        records_of_class = records[targets == cls]
+        num_records_matching = len(records_of_class)
+
+        print('{0} records: {1} out of {2} ({3} percent)'.format(
+            cls, num_records_matching, num_records,
+            100*num_records_matching/num_records))
+
+        probabilities.append( (num_records_matching/num_records)**2 )
+
+    summed_impurities = -1 * np.sum(probabilities)
+
+    print('Squared Probabilities:', probabilities)
+    print('Impurity:', summed_impurities)
+    print('.'*40)
+    return summed_impurities
 
 
 def main():
@@ -17,6 +37,8 @@ def main():
         for row in csv_file:
             labels.append(row[0])
             matrix.append(np.array(row[1:], dtype=np.float_))
+
+    article_count = len(labels)
     matrix = np.array(matrix).T
     unique_labels = set(labels)
     labels = np.array(labels, dtype=np.str_)
@@ -26,39 +48,61 @@ def main():
     print(matrix)
 
     progress = ProgressBar(max_value=len(header)*len(unique_labels))
-    correlations = []
     index = 0
-    splitter = _splitter.BestSparseSplitter(CRITERIA_CLF['gini'](len(labels),
-                                                                 np.array([1]*len(header))),
-                                            -1, 1,
-                                            0,
-                                            np.random.mtrand._rand,
-                                            False)
 
+    print('Calculating Gini scores')
+    feature_scores = []
     for i, feat_vector in enumerate(matrix):
-        for class_label in unique_labels:
-            corr = np.correlate(label_binaries[class_label],
-                                feat_vector)
-            correlations.append((class_label, header[i], corr[0]))
+        observed_attr_values = set(feat_vector)
+        base_impurity = node_impurity(targets=labels,
+                                      records=feat_vector)
+        print('Base impurity for feature "{0}": {1}'.format(header[i],
+                                                            base_impurity))
 
-            progress.update(index)
-            index += 1
+        split_impurities = []
+        percent_incoming = []
+        for attr_val in observed_attr_values:
+            attr_val_mask = feat_vector == attr_val
+
+            print('Number of articles with "{0}" == {1}: {2} out of {3}'.format(
+                header[i], attr_val, np.sum(attr_val_mask), article_count
+            ))
+
+            records_with_attr_val = feat_vector[attr_val_mask]
+            labels_of_attr_val_records = labels[attr_val_mask]
+
+            attr_val_impurity = node_impurity(targets=labels_of_attr_val_records,
+                                              records=records_with_attr_val)
+
+            split_impurities.append(attr_val_impurity)
+            percent_incoming.append(len(records_with_attr_val)/article_count)
+
+        # gini index
+        score = base_impurity - np.sum(percent_incoming[j]
+                                       * -1 * np.sum(split_impurities[j])
+                                       for j in range(len(observed_attr_values)))
+        feature_scores.append((header[i], score))
+        print('-'*80)
 
     progress.finish()
 
-    print('Sorting features by mutual information')
-    correlations.sort(key=lambda x: x[-1], reverse=True)
-    print('First 100 max relevant features:')
-    pprint.pprint(correlations[:100])
+    # print('Sorting features by dectree score')
+    # feature_scores.sort(key=lambda x: x[-1], reverse=True)
+    # print('First 100 max score features:')
+    # pprint.pprint(feature_scores[:100])
+    #
+    # print('Writing out to file')
+    # with open('dectree_scores.tfidf.sorted.txt', 'w') as f:
+    #     progress = ProgressBar(max_value=len(feature_scores))
+    #     for i, score in enumerate(feature_scores):
+    #         f.write('{0: >15}\t{1}\n'.format(*score))
+    #         progress.update(i)
+    #
+    #     progress.finish()
 
-    print('Writing out to file')
-    with open('class_to_features.tfidf.sorted.txt', 'w') as f:
-        progress = ProgressBar(max_value=len(correlations))
-        for i, corr in enumerate(correlations):
-            f.write('{0: >15} {1: <15}\t{2}\n'.format(*corr))
-            progress.update(i)
 
-        progress.finish()
+def cond_prob(x, y):
+    pass
 
 
 if __name__ == '__main__':
