@@ -1,10 +1,9 @@
 import pprint
 import numpy as np
 import csv
+
+import sys
 from progressbar import ProgressBar
-
-
-filename = 'corpus.tfidf.105.csv'
 
 
 def node_impurity(targets, records):
@@ -14,21 +13,21 @@ def node_impurity(targets, records):
         records_of_class = records[targets == cls]
         num_records_matching = len(records_of_class)
 
-        print('{0} records: {1} out of {2} ({3} percent)'.format(
+        print('\t{0} records: {1} out of {2} ({3} percent)'.format(
             cls, num_records_matching, num_records,
             100*num_records_matching/num_records))
 
         probabilities.append( (num_records_matching/num_records)**2 )
 
-    summed_impurities = -1 * np.sum(probabilities)
+    summed_impurities = 1 - np.sum(probabilities)
 
-    print('Squared Probabilities:', probabilities)
-    print('Impurity:', summed_impurities)
+    print('\tSquared Probabilities:', probabilities)
+    print('\tImpurity:', summed_impurities)
     print('.'*40)
     return summed_impurities
 
 
-def main():
+def main(filename):
     matrix = []
     labels = []
     with open(filename) as f:
@@ -50,14 +49,14 @@ def main():
     progress = ProgressBar(max_value=len(header)*len(unique_labels))
     index = 0
 
-    print('Calculating Gini scores')
+    print('### Calculating Gini Scores')
     feature_scores = []
     for i, feat_vector in enumerate(matrix):
         observed_attr_values = set(feat_vector)
+
+        print('Base impurity for feature', header[i])
         base_impurity = node_impurity(targets=labels,
                                       records=feat_vector)
-        print('Base impurity for feature "{0}": {1}'.format(header[i],
-                                                            base_impurity))
 
         split_impurities = []
         percent_incoming = []
@@ -79,8 +78,9 @@ def main():
 
         # gini index
         score = base_impurity - np.sum(percent_incoming[j]
-                                       * -1 * np.sum(split_impurities[j])
+                                       * np.sum(split_impurities[j])
                                        for j in range(len(observed_attr_values)))
+        print('Gini Index splitting on {0}: {1}'.format(header[i], score))
         feature_scores.append((header[i], score))
         print('-'*80)
 
@@ -106,5 +106,11 @@ def cond_prob(x, y):
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1:
+        filename = sys.argv[-1]
+
+    else:
+        filename = 'dectreesample.csv' #'corpus.tfidf.105.csv'
+
+    main(filename)
 
