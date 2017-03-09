@@ -103,6 +103,8 @@ def main(filename):
 
         progress.finish()
 
+    return feature_scores
+
 
 def cond_prob(x, y):
     pass

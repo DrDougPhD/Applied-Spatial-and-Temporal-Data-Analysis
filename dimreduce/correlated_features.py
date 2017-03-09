@@ -48,6 +48,8 @@ def main():
 
         progress.finish()
 
+    return correlations
+
 
 if __name__ == '__main__':
     main()
