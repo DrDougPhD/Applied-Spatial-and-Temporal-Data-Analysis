@@ -25,6 +25,7 @@ except:
     hr = lambda title, line_char='-': line_char * 30 + title + line_char * 30
 
 import dataset
+import os
 
 
 def main():
@@ -33,18 +34,14 @@ def main():
                                     from_=config.DATA_DIR,
                                     randomize=True)
 
-    logger.info(hr('Feature Subset Selection'))
-    feature_subset = preprocess.dimreduce(corpus=articles,
-                                          method='')
-
-
     logger.info(hr('Vectorizing Corpus'))
-
+    feature_selection_file = os.path.join(
+        'dimreduce',
+        'correlated_features.tfidf.100articles.100terms.txt')
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
+                                   feature_subset=feature_selection_file,
                                    method=config.VECTORIZER_METHOD)
-    corpus_csv = corpus.to_csv(directory='dimreduce')
-
 
     #
     #

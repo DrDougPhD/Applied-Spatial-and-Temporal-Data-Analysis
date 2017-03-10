@@ -23,7 +23,12 @@ import utils
 
 
 @utils.pickled('method')
-def preprocess(corpus, exclude_stopwords, method):
+def preprocess(corpus, exclude_stopwords, method, feature_subset):
+    with open(feature_subset) as f:
+        features_to_preserve = [feat.strip() for feat in f]
+        logger.debug('Preserving features:')
+        logger.debug(features_to_preserve)
+
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
@@ -34,7 +39,8 @@ def preprocess(corpus, exclude_stopwords, method):
     logger.debug('Vectorizing corpus')
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
-                                  stopwords=stopwords)
+                                  stopwords=stopwords,
+                                  features_to_preserve=features_to_preserve)
     return vectorizer
 
 
@@ -43,7 +49,7 @@ def dimreduce(corpus, method=''):
 
 
 class CorpusVectorizer(object):
-    def __init__(self, corpus, method, stopwords):
+    def __init__(self, corpus, method, stopwords, features_to_preserve):
         self.corpus = corpus
         self.method = method
         self.count = len(corpus)
@@ -69,7 +75,7 @@ class CorpusVectorizer(object):
         # isolate terms that will be preserved
         # worst_features = self._feature_removal(keep=400,
         #                                        corpus=plain_text)
-        worst_features = ENGLISH_STOP_WORDS
+        worst_features = self._feature_removal(plain_text, features_to_preserve)
         logger.debug('{0} features to be removed'.format(len(worst_features)))
         terms_to_remove = stopwords.union(worst_features)
 
@@ -116,24 +122,7 @@ class CorpusVectorizer(object):
         for article in self.corpus:
             yield article
 
-    def _load_mrmr(self, mrmr, corpus):
-        if mrmr is None:
-            return []
-
-        logger.debug('Loading mRMR features from "{}"'.format(mrmr))
-        # load good features from mrmr file
-        mrmr_good_features = set()
-        try:
-            with open(mrmr) as f:
-                for line in f:
-                    columns = line.split()
-                    mrmr_good_features.add(columns[2])
-            logger.debug('mRMR relevant features: {}'.format(mrmr_good_features))
-
-        except:
-            logger.exception('No mRMR file at {}. Please create it.'.format(mrmr))
-            raise
-
+    def _feature_removal(self, corpus, features_to_preserve):
         # do a quick pass over the corpus data to find all unique features
         # contained within
         unique_features = set()
@@ -148,7 +137,7 @@ class CorpusVectorizer(object):
 
         # remove the good features, resulting in the irrelevant features
         # being left over
-        irrelevant_features = unique_features - mrmr_good_features
+        irrelevant_features = unique_features - set(features_to_preserve)
         logger.debug('{0} irrelevant features found out of {1} total'.format(
             len(irrelevant_features),
             len(unique_features)
@@ -184,19 +173,19 @@ class CorpusVectorizer(object):
 
         return os.path.abspath(output_filepath)
 
-    def _feature_removal(self, keep, corpus):
-        logger.debug('{} features will be kept'.format(keep))
-        vectorizer = TfidfVectorizer(min_df=1)
-        matrix = vectorizer.fit_transform(corpus)
-        features = numpy.array(vectorizer.get_feature_names(),
-                               dtype=numpy.str_)
-        selector = SelectKBest(chi2, k=keep)
-        k_best_features = selector.fit(matrix, self.classes).get_support()
-
-        logger.debug('Best features:')
-        logger.debug(pprint.pformat(list(features[k_best_features])))
-
-        return features[k_best_features == False]
+    # def _feature_removal(self, keep, corpus):
+    #     logger.debug('{} features will be kept'.format(keep))
+    #     vectorizer = TfidfVectorizer(min_df=1)
+    #     matrix = vectorizer.fit_transform(corpus)
+    #     features = numpy.array(vectorizer.get_feature_names(),
+    #                            dtype=numpy.str_)
+    #     selector = SelectKBest(chi2, k=keep)
+    #     k_best_features = selector.fit(matrix, self.classes).get_support()
+    #
+    #     logger.debug('Best features:')
+    #     logger.debug(pprint.pformat(list(features[k_best_features])))
+    #
+    #     return features[k_best_features == False]
 
 
 if __name__ == '__main__':
