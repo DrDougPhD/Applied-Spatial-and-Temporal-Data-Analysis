@@ -1,7 +1,7 @@
 import pprint
 import numpy as np
 import csv
-
+import utils
 import sys
 from progressbar import ProgressBar
 
@@ -27,7 +27,14 @@ def node_impurity(targets, records):
     return summed_impurities
 
 
-def main(filename):
+@utils.pickled('filename', 'n')
+def select_by_dectree_gini_splitting(n, filename):
+    scores = decision_tree_selection(filename=filename)
+    return [feat for feat, _ in scores[:n]]
+
+
+@utils.pickled('filename')
+def decision_tree_selection(filename):
     matrix = []
     labels = []
     with open(filename) as f:
@@ -106,10 +113,6 @@ def main(filename):
     return feature_scores
 
 
-def cond_prob(x, y):
-    pass
-
-
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv[-1]
@@ -117,5 +120,10 @@ if __name__ == '__main__':
     else:
         filename = 'dectreesample.csv' #'corpus.tfidf.105.csv'
 
-    main(filename)
+    n = 100
+    best_feats = select_by_dectree_gini_splitting(n=n, filename=filename)
+    output = 'dectree.tfidf.100articles.{n}terms.txt'.format(n=n)
+    with open(output, 'w') as f:
+        f.write('\n'.join(best_feats))
+
 
