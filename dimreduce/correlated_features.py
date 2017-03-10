@@ -1,15 +1,46 @@
 import pprint
-
 import numpy as np
 import csv
+import collections
 
 from progressbar import ProgressBar
 from scipy.special import comb
+import utils
 
-filename = 'corpus.tfidf.105.csv'
+import logging
+logger = logging.getLogger('cnn.'+__name__)
 
 
-def main():
+@utils.pickled('n', 'filename')
+def select_correlated_features(n, filename):
+    print('Sorting correlations by the number of associated keys')
+
+    dict_of_feature_correlations = collections.defaultdict(dict)
+
+    correlations = correlated_features(filename=filename)
+    for attr1, attr2, corr in correlations:
+        corr_for_attr = dict_of_feature_correlations[attr1]
+        if 'attrs' not in corr_for_attr:
+            corr_for_attr['attrs'] = []
+            corr_for_attr['corrs'] = []
+        corr_for_attr['attrs'].append(attr2)
+        corr_for_attr['corrs'].append(corr)
+
+    ordered_list_of_corrs = []
+    for attr, associated_attrs in dict_of_feature_correlations.items():
+        corrs_to_others = associated_attrs['corrs']
+
+        ordered_list_of_corrs.append((attr, np.sum(corrs_to_others)))
+
+    ordered_list_of_corrs.sort(key=lambda x: x[-1], reverse=True)
+
+    print('Top {} best features:'.format(n))
+    pprint.pprint(ordered_list_of_corrs[:n])
+    return [x[0] for x in ordered_list_of_corrs[:n]]
+
+
+@utils.pickled('filename')
+def correlated_features(filename):
     matrix = []
     labels = []
     with open(filename) as f:
@@ -19,7 +50,6 @@ def main():
             labels.append(row[0])
             matrix.append(np.array(row[1:], dtype=np.float_))
     matrix = np.array(matrix).T
-    print(matrix)
 
     progress = ProgressBar(max_value=comb(len(header), 2, exact=True))
     correlations = []
@@ -35,10 +65,10 @@ def main():
             progress.update(index)
             index += 1
 
-    print('Sorting features by correlation')
+    logger.debug('Sorting features by correlation')
     correlations.sort(key=lambda x: x[-1], reverse=True)
-    print('First 100 highly redundant features:')
-    pprint.pprint(correlations[:100])
+    logger.debug('First 100 highly redundant features:')
+    logger.debug(pprint.pformat(correlations[:100]))
 
     with open('features.tfidf.sorted_correlations.txt', 'w') as f:
         progress = ProgressBar(max_value=len(correlations))
@@ -52,7 +82,12 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    highest_correlated = select_correlated_features(
+        n=100, filename='corpus.tfidf.21.csv')
+    pprint.pprint(highest_correlated)
+    with open('correlated_features.tfidf.100articles.100terms.txt', 'w') as f:
+        f.write('\n'.join(highest_correlated))
+
 
 # import csv
 # import pprint

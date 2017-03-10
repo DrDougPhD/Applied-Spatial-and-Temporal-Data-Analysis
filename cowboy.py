@@ -16,6 +16,7 @@ logger = utils.setup_logger('cnn')
 
 import config
 import preprocess
+import dimreduce
 
 
 try:
@@ -38,9 +39,11 @@ def main():
 
 
     logger.info(hr('Vectorizing Corpus'))
+
     corpus = preprocess.preprocess(corpus=articles,
                                    exclude_stopwords=True,
                                    method=config.VECTORIZER_METHOD)
+    corpus_csv = corpus.to_csv(directory='dimreduce')
 
 
     #

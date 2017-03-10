@@ -2,7 +2,6 @@ import pprint
 
 import numpy
 from progressbar import ProgressBar
-from sklearn import tree
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 import logging
 import os
@@ -36,7 +35,6 @@ def preprocess(corpus, exclude_stopwords, method):
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
                                   stopwords=stopwords)
-    vectorizer.to_csv()
     return vectorizer
 
 
@@ -158,10 +156,12 @@ class CorpusVectorizer(object):
 
         return irrelevant_features
 
-    def to_csv(self):
-        matrix = self.matrix
+    def to_csv(self, directory=None):
+        matrix = self.matrix.toarray()
+        if directory is None:
+            directory = config.RESULTS_DIR
 
-        output_filepath = os.path.join(config.RESULTS_DIR,
+        output_filepath = os.path.join(directory,
                                        'corpus.{0}.{1}.csv'.format(
                                            self.method,
                                            self.count,
@@ -181,6 +181,8 @@ class CorpusVectorizer(object):
                 row = [self.class_to_index[article.category],
                        *vector]
                 output_csv.writerow(row)
+
+        return os.path.abspath(output_filepath)
 
     def _feature_removal(self, keep, corpus):
         logger.debug('{} features will be kept'.format(keep))

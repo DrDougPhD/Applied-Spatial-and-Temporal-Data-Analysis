@@ -1,3 +1,4 @@
+import csv
 import os
 import logging
 import pprint
@@ -88,9 +89,9 @@ class pickled(object):
                     return result
 
                 except:
-                    logger.warning('No pickle for {0} at "{1}".'
-                                   ' It will be created after execution.'.format(
+                    logger.warning('No pickle for {0} at "{1}".'.format(
                         pickle_key, pickle_path))
+                    logger.debug('It will be created after execution.')
 
             result = func(*args, **kwargs)
 
