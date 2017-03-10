@@ -35,6 +35,31 @@ def main():
                                     from_=config.DATA_DIR,
                                     randomize=True)
 
+    distance_func = distance.cosine
+    feature_subset_selection_methods = {
+        'Feature Correlation': 'correlated_features.tfidf.100articles.100terms.txt',
+        'Feature Relevancy': 'maxrel.tfidf.100articles.100terms.txt',
+        'Average TF-IDF': 'avgtfidf.tfidf.100articles.100terms.txt',
+        'Random Forest': 'randforest.tfidf.100articles.100terms.txt',
+        'Gini Split Gain': 'dectree.tfidf.100articles.100terms.txt',
+    }
+    for k in feature_subset_selection_methods:
+        feature_subset_selection_methods[k] = os.path.join(
+            'dimreduce', feature_subset_selection_methods[k])
+
+    fig, axes = pyplot.subplots(nrows=3, ncols=2)
+    sse_axes = axes[0,0]
+    sse_axes.set_ylabel('SSE')
+    sil_axes = axes[1,0]
+    sil_axes.set_ylabel('Silhouette\nCoefficient')
+    ideal_correlation_axes = axes[2,0]
+    ideal_correlation_axes.set_ylabel('Ideal\nCorrelation')
+
+    ticks = []
+    index = 1
+    feature_subset_method = 'Feature Correlation'
+
+
     logger.info(hr('Vectorizing Corpus'))
     feature_selection_file = os.path.join(
         'dimreduce',
@@ -43,8 +68,6 @@ def main():
                                    exclude_stopwords=True,
                                    feature_subset=feature_selection_file,
                                    method=config.VECTORIZER_METHOD)
-
-    distance_func = distance.cosine
 
     logger.info(hr('K-Means Clustering'))
     articles_np = numpy.array(corpus.corpus)
@@ -80,9 +103,9 @@ def main():
                                              repeat=2)
 
     logger.info(hr('Similarity / Distance Matrix'))
-    sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-                            distance_metric=distance.cosine,
-                            cart_prod_indices=cart_product_indices)
+    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #                         distance_metric=distance.cosine,
+    #                         cart_prod_indices=cart_product_indices)
 
     ## Ideal Cluster to Ideal Class Similarity Matrix correlation
     logger.info(hr('Calculating Ideal Similarity Correlation'))
@@ -93,6 +116,7 @@ def main():
         class_indices=article_class_indices,
         n=corpus.count)
     logger.info('Ideal Correlation: {}'.format(correlation))
+    ideal_correlation_axes.bar(index, correlation)
 
     ## SSE
     logger.debug(hr('Calculating SSE'))
@@ -101,6 +125,7 @@ def main():
                                 corpus.matrix,
                                 distance_func)
     logger.debug('SSE: {}'.format(sse))
+    sse_axes.bar(index, sse)
 
     ## Silhouette coefficient
     logger.info(hr('Calculating Silhouette Coefficient'))
@@ -108,7 +133,16 @@ def main():
                                           corpus.matrix.toarray(),
                                           distance_func)
     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+    sil_axes.bar(index, silhouette)
 
+    ticks.append((index, feature_subset_method))
+
+
+    axes[2,0].set_xticks([t[0] for t in ticks])
+    axes[2, 0].set_xticklabels([t[1] for t in ticks])
+
+    pyplot.tight_layout(h_pad=2.0)
+    pyplot.show()
 
 if __name__ == '__main__':
     main()
