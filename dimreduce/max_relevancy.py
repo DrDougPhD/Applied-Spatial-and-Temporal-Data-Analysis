@@ -2,11 +2,17 @@ import pprint
 import numpy as np
 import csv
 from progressbar import ProgressBar
+import utils
 
-filename = 'corpus.tfidf.105.csv'
+
+@utils.pickled('filename', 'n')
+def select_most_relevant(n, filename):
+    most_relevant_feats = max_relevancy(filename=filename)
+    return [feat for cls, feat, score in most_relevant_feats[:n]]
 
 
-def main():
+@utils.pickled('filename')
+def max_relevancy(filename):
     matrix = []
     labels = []
     with open(filename) as f:
@@ -21,7 +27,6 @@ def main():
     label_binaries = {
         l: labels == l for l in unique_labels
     }
-    print(matrix)
 
     progress = ProgressBar(max_value=len(header)*len(unique_labels))
     correlations = []
@@ -55,5 +60,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
-
+    n = 100
+    feats = select_most_relevant(n=n, filename='corpus.tfidf.105.csv')
+    output = 'maxrel.tfidf.100articles.{n}terms.txt'.format(n=n)
+    with open(output, 'w') as f:
+        f.write('\n'.join(feats))
