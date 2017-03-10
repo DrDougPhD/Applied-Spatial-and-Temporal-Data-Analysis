@@ -10,7 +10,7 @@ import utils
 def kmeans(vectors, k, distance, initial_centroid_method, verbose=False):
     # 1. initialize centroids
     centroids = globals()[initial_centroid_method+'_centroids']\
-                         (vectors=vectors, k=k)
+                         (vectors=vectors, k=k, distance=distance)
 
     if verbose:
         print('Initial centroids:')
@@ -75,13 +75,13 @@ def kmeans(vectors, k, distance, initial_centroid_method, verbose=False):
         iteration += 1
 
 
-def random_centroids(vectors, k):
+def random_centroids(vectors, k, distance):
     return vectors[numpy.random.choice(numpy.arange(vectors.shape[0]),
                                        size=k,
                                        replace=False)]
 
 
-def kpp_centroids(vectors, k):
+def kpp_centroids(vectors, k, distance):
     vectors = list(vectors)
     cluster_centers = random.sample(vectors, k)
     d = list(numpy.zeros(len(vectors)))
@@ -89,7 +89,7 @@ def kpp_centroids(vectors, k):
     for i in range(1, len(cluster_centers)):
         sum = 0
         for j, p in enumerate(vectors):
-            d[j] = _nearest_cluster_center(p, cluster_centers[:i])
+            d[j] = _nearest_cluster_center(p, cluster_centers[:i], distance)
             sum += d[j]
 
         sum *= random.random()
@@ -104,12 +104,12 @@ def kpp_centroids(vectors, k):
     return cluster_centers
 
 
-def _nearest_cluster_center(point, cluster_centers):
+def _nearest_cluster_center(point, cluster_centers, distance):
     """Distance and index of the closest cluster center"""
     min_dist = float('inf')
 
     for i, cc in enumerate(cluster_centers):
-        d = distance.euclidean(cc, point)**2
+        d = distance(cc, point)**2
         if min_dist > d:
             min_dist = d
 

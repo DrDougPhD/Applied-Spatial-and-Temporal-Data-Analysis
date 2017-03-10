@@ -44,13 +44,13 @@ def main():
                                    feature_subset=feature_selection_file,
                                    method=config.VECTORIZER_METHOD)
 
+    distance_func = distance.cosine
 
     logger.info(hr('K-Means Clustering'))
     articles_np = numpy.array(corpus.corpus)
-
     clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
                                           k=7,
-                                          distance=distance.cosine,
+                                          distance=distance_func,
                                           initial_centroid_method='kpp')
 
     clusters = []
@@ -96,13 +96,17 @@ def main():
 
     ## SSE
     logger.debug(hr('Calculating SSE'))
-    distance_func = distance.cosine
-    sse = metrics.calculate_sse(centroids, clustering, corpus.matrix)
+    sse = metrics.calculate_sse(centroids,
+                                clustering,
+                                corpus.matrix,
+                                distance_func)
     logger.debug('SSE: {}'.format(sse))
 
     ## Silhouette coefficient
     logger.info(hr('Calculating Silhouette Coefficient'))
-    silhouette = metrics.silhouette_coeff(clustering, corpus.matrix.toarray())
+    silhouette = metrics.silhouette_coeff(clustering,
+                                          corpus.matrix.toarray(),
+                                          distance_func)
     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
 
 

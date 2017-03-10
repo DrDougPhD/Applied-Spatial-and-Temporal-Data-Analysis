@@ -2,7 +2,6 @@ import itertools
 import numpy
 import logging
 
-from scipy.spatial import distance
 from scipy.stats import pearsonr
 
 from lib.lineheaderpadded import hr
@@ -36,7 +35,8 @@ def ideal_correlation(cluster_indices, class_indices, n):
     return correlation
 
 
-def calculate_sse(centroids, clustering, matrix):
+def calculate_sse(centroids, clustering, matrix, distance):
+    logger.debug('Distances calculated through {}'.format(distance.__name__))
     squared_distances = []
     for cluster_centroid, cluster_indices in zip(centroids, clustering):
         try:
@@ -45,7 +45,7 @@ def calculate_sse(centroids, clustering, matrix):
             cluster = matrix[cluster_indices]
 
         sqrd_distances_to_centroid = numpy.apply_along_axis(
-            lambda v: distance.euclidean(v, cluster_centroid) ** 2,
+            lambda v: distance(v, cluster_centroid) ** 2,
             arr=cluster,
             axis=1,
         )
@@ -70,16 +70,18 @@ def calculate_sse(centroids, clustering, matrix):
     return sse
 
 
-def silhouette_coeff(clustering, matrix):
+def silhouette_coeff(clustering, matrix, distance):
     logger.debug('{} clusters to consider'.format(len(clustering)))
+    logger.debug('Distances calculated through {}'.format(distance.__name__))
 
     silhouette_coeffs = []
     for i, cluster_indices in enumerate(list(clustering)):
-        logger.debug(hr('Cluster {0}'.format(i), '~'))
-        logger.debug('\n{}'.format(matrix[cluster_indices]))
+        # logger.debug(hr('Cluster {0}'.format(i), '~'))
+        # logger.debug('\n{}'.format(matrix[cluster_indices]))
+        # logger.debug(hr('Intracluster distances:', '-'))
 
         cluster = matrix[cluster_indices]
-        logger.debug(hr('Intracluster distances:', '-'))
+
         # pairwise_indices = list(itertools.combinations(
         #     cluster_indices, 2))
         # pairwise_indices = numpy.transpose([
@@ -91,7 +93,8 @@ def silhouette_coeff(clustering, matrix):
             for k in list(cluster_indices):
                 if j != k:
                     pairwise_indices.append((j,k))
-        logger.debug('Pairwise indices: {}'.format(pairwise_indices))
+
+        # logger.debug('Pairwise indices: {}'.format(pairwise_indices))
 
         # distances = []
         # for i,j in pairwise_indices:
@@ -110,8 +113,8 @@ def silhouette_coeff(clustering, matrix):
 
         # logger.debug(hr('Better distance calculation', '.'))
         distances = numpy.apply_along_axis(
-            lambda indices: distance.euclidean(matrix[indices[0]],
-                                               matrix[indices[1]]),
+            lambda indices: distance(matrix[indices[0]],
+                                     matrix[indices[1]]),
             axis=1,
             arr=pairwise_indices
         )
@@ -119,25 +122,25 @@ def silhouette_coeff(clustering, matrix):
         #     logger.debug('{2:.5f} -- ({0}, {1})'.format(matrix[indices[0]],
         #                                                 matrix[indices[1]],
         #                                                 d))
-        logger.debug('Distances between vectors in cluster:')
-        logger.debug(distances)
+        # logger.debug('Distances between vectors in cluster:')
+        # logger.debug(distances)
         average_distance = numpy.mean(distances)
-        logger.debug('Average distance: {}'.format(average_distance))
+        # logger.debug('Average distance: {}'.format(average_distance))
 
         # calculate average distance between this cluster and its closest
         # neighboring cluster
         closest_neighbor_distance = float('inf')
         for j, neighbor_indices in enumerate(list(clustering)):
-            logger.debug(hr('Comparing against C{}'.format(j), '-'))
+            # logger.debug(hr('Comparing against C{}'.format(j), '-'))
             if i == j:
-                logger.debug('No self checks needed')
+                # logger.debug('No self checks needed')
                 continue
 
-            logger.debug(hr('Distance between C{0} and C{1}'.format(i, j), '.'))
+            # logger.debug(hr('Distance between C{0} and C{1}'.format(i, j), '.'))
             pairwise_indices = list(itertools.product(cluster_indices,
                                                       neighbor_indices))
             neighbor_distances = numpy.apply_along_axis(
-                lambda indices: distance.euclidean(
+                lambda indices: distance(
                     matrix[indices[0]],
                     matrix[indices[1]]),
                 axis=1,
@@ -146,14 +149,14 @@ def silhouette_coeff(clustering, matrix):
             # for (x,y), d in zip(pairwise_indices, neighbor_distances):
             #     logger.debug('{0:.5f} -- ({1}, {2})'.format(d, matrix[x], matrix[y]))
             avg_distance_to_neighbors = numpy.mean(neighbor_distances)
-            logger.debug(
-                'Average distance: {}'.format(avg_distance_to_neighbors))
+            # logger.debug(
+            #     'Average distance: {}'.format(avg_distance_to_neighbors))
             closest_neighbor_distance = min(closest_neighbor_distance,
                                             avg_distance_to_neighbors)
 
-        logger.debug('Closest neighboring cluster (avg distance): {}'.format(
-            closest_neighbor_distance
-        ))
+        # logger.debug('Closest neighboring cluster (avg distance): {}'.format(
+        #     closest_neighbor_distance
+        # ))
 
         silhouette = (closest_neighbor_distance - average_distance) \
                    / max(closest_neighbor_distance, average_distance)
