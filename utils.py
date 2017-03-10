@@ -81,7 +81,7 @@ class pickled(object):
                     for k in self.keywords]))
             pickle_path = os.path.join(config.PICKLE_STORAGE, pickle_filename)
 
-            if config.PICKLING_ENABLED and not config.UPDATE_PICKLES:
+            if config.PICKLING_ENABLED:
                 try:
                     with open(pickle_path, 'rb') as pkl:
                         result = pickle.load(pkl)
@@ -103,6 +103,16 @@ class pickled(object):
             return result
 
         return func_wrapper
+
+
+def euclidean_similarities(distances):
+    min_distance = numpy.amin(distances)
+    max_distance = numpy.amax(distances)
+    return -1* ((distances-min_distance)/(max_distance-min_distance)) + 1
+
+
+def cosine_similarities(distances):
+    return (-1*distances) + 1
 
 
 @pickled('distance_metric')

@@ -62,10 +62,10 @@ if __name__ == '__main__':
 
     print('Clustering...')
     distance_func = distance.euclidean
-    clustering, centroids = kmeans.it(vectors=random_vectors,
-                                      k=3,
-                                      distance=distance_func,
-                                      initial_centroid_method='random')
+    clustering, centroids = kmeans.kmeans(vectors=random_vectors,
+                                          k=3,
+                                          distance=distance_func,
+                                          initial_centroid_method='random')
 
     sorted_vectors = None
     for cluster_indices in clustering:

@@ -1,13 +1,13 @@
 import pprint
 import random
-
+random.seed(1)
 import numpy
 from matplotlib import pyplot
 from scipy.spatial import distance
 import utils
 
 @utils.pickled('k', 'distance', 'initial_centroid_method')
-def it(vectors, k, distance, initial_centroid_method, verbose=False):
+def kmeans(vectors, k, distance, initial_centroid_method, verbose=False):
     # 1. initialize centroids
     centroids = globals()[initial_centroid_method+'_centroids']\
                          (vectors=vectors, k=k)
@@ -122,8 +122,8 @@ if __name__ == '__main__':
     distance = distance.euclidean
     centroid_method = 'random'
 
-    clustering, centroids = it(vectors, k, distance, centroid_method,
-                               verbose=True)
+    clustering, centroids = kmeans(vectors, k, distance, centroid_method,
+                                   verbose=True)
 
     markers = '.ov^*+x'
     colors = 'rgbcmyk'
