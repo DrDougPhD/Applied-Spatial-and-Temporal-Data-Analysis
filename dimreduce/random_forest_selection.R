@@ -1,6 +1,6 @@
 library('randomForest')
 
-csv <- read.csv('corpus.tfidf.105.csv')
+csv <- read.csv('corpus.tfidf.104.csv')
 frame <- data.frame(csv)
 
 

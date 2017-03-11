@@ -61,7 +61,7 @@ def max_relevancy(filename):
 
 if __name__ == '__main__':
     n = 100
-    feats = select_most_relevant(n=n, filename='corpus.tfidf.105.csv')
+    feats = select_most_relevant(n=n, filename='corpus.tfidf.104.csv')
     output = 'maxrel.tfidf.100articles.{n}terms.txt'.format(n=n)
     with open(output, 'w') as f:
         f.write('\n'.join(feats))
