@@ -23,12 +23,7 @@ import utils
 
 
 @utils.pickled('method')
-def preprocess(corpus, exclude_stopwords, method, feature_subset):
-    with open(feature_subset) as f:
-        features_to_preserve = [feat.strip() for feat in f]
-        logger.debug('Preserving features:')
-        logger.debug(features_to_preserve)
-
+def preprocess(corpus, exclude_stopwords, method, feature_subset=None):
     if not exclude_stopwords:
         logger.info('No stopwords will be used')
         stopwords = frozenset([])
@@ -40,7 +35,7 @@ def preprocess(corpus, exclude_stopwords, method, feature_subset):
     vectorizer = CorpusVectorizer(corpus=corpus,
                                   method=method,
                                   stopwords=stopwords,
-                                  features_to_preserve=features_to_preserve)
+                                  features_to_preserve=feature_subset)
     return vectorizer
 
 
@@ -125,6 +120,15 @@ class CorpusVectorizer(object):
     def _feature_removal(self, corpus, features_to_preserve):
         # do a quick pass over the corpus data to find all unique features
         # contained within
+        if features_to_preserve:
+            with open(features_to_preserve) as f:
+                features_to_preserve = [feat.strip() for feat in f]
+                logger.debug('Preserving features {}:'.format(
+                    len(features_to_preserve)))
+                logger.debug(features_to_preserve)
+        else:
+            return []
+
         unique_features = set()
         for i, article in enumerate(corpus):
             unique_terms_in_article = set(article.split())

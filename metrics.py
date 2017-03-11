@@ -76,7 +76,7 @@ def silhouette_coeff(clustering, matrix, distance):
 
     silhouette_coeffs = []
     for i, cluster_indices in enumerate(list(clustering)):
-        # logger.debug(hr('Cluster {0}'.format(i), '~'))
+        logger.debug(hr('Cluster {0}'.format(i), '~'))
         # logger.debug('\n{}'.format(matrix[cluster_indices]))
         # logger.debug(hr('Intracluster distances:', '-'))
 
@@ -98,26 +98,28 @@ def silhouette_coeff(clustering, matrix, distance):
 
         # distances = []
         # for i,j in pairwise_indices:
-        #     u = corpus.matrix[i].toarray()
-        #     v = corpus.matrix[j].toarray()
+        #     u = matrix[i]
+        #     v = matrix[j]
         #
         #     logger.debug('u ({0.category}) := {0.title}'.format(
         #         corpus.corpus[i]))
         #     logger.debug('v ({0.category}) := {0.title}'.format(
         #         corpus.corpus[j]))
         #
-        #     d = distance_func(u, v)
+        #     d = distance(u, v)
         #     logger.debug('distance := {}'.format(d))
         #     logger.debug('.'*50)
         #     distances.append(d)
 
         # logger.debug(hr('Better distance calculation', '.'))
+        logger.debug('Pairwise indices: {}'.format(pairwise_indices))
         distances = numpy.apply_along_axis(
             lambda indices: distance(matrix[indices[0]],
                                      matrix[indices[1]]),
             axis=1,
             arr=pairwise_indices
         )
+
         # for indices, d in zip(pairwise_indices, distances):
         #     logger.debug('{2:.5f} -- ({0}, {1})'.format(matrix[indices[0]],
         #                                                 matrix[indices[1]],

@@ -13,6 +13,8 @@ import kmeans
 import metrics
 import sim_matrix_heatmap
 import utils
+from dataset.articles import QianArticle
+
 logger = utils.setup_logger('cnn')
 
 import config
@@ -31,17 +33,25 @@ import os
 
 def main():
     logger.info(hr('Loading Articles'))
-    articles = dataset.load_dataset(n=config.NUM_ARTICLES,
-                                    from_=config.DATA_DIR,
-                                    randomize=True)
+    path = 'results/hw3/articles/'
+    articles = []
+    for f in os.listdir(path):
+        a = QianArticle(path=os.path.join(path, f))
+        articles.append(a)
+
+    corpus = preprocess.preprocess(corpus=articles,
+                                   exclude_stopwords=True,
+                                   method=config.VECTORIZER_METHOD)
+    corpus.to_csv('dimreduce')
 
     distance_func = distance.cosine
     feature_subset_selection_methods = {
-        'Feature Correlation': 'correlated_features.tfidf.100articles.100terms.txt',
-        'Feature Relevancy': 'maxrel.tfidf.100articles.100terms.txt',
-        'Average TF-IDF': 'avgtfidf.tfidf.100articles.100terms.txt',
-        'Random Forest': 'randforest.tfidf.100articles.100terms.txt',
-        'Gini Split Gain': 'dectree.tfidf.100articles.100terms.txt',
+        'Feature\nCorrelation':
+            'correlated_features.tfidf.100articles.100terms.txt',
+        'Feature\nRelevancy': 'maxrel.tfidf.100articles.100terms.txt',
+        'Average\nTF-IDF': 'avgtfidf.tfidf.100articles.1000terms.txt',
+        #'Random Forest': 'randforest.tfidf.100articles.100terms.txt',
+        #'Gini Split Gain': 'dectree.tfidf.100articles.100terms.txt',
     }
     for k in feature_subset_selection_methods:
         feature_subset_selection_methods[k] = os.path.join(
@@ -56,87 +66,93 @@ def main():
     ideal_correlation_axes.set_ylabel('Ideal\nCorrelation')
 
     ticks = []
-    index = 1
-    feature_subset_method = 'Feature Correlation'
+    scores = {}
+    #index = 1
+    #feature_subset_method = 'Feature Correlation'
 
+    for index, feature_subset_method in enumerate(feature_subset_selection_methods):
+        logger.info(hr('Clustering on {}'.format(feature_subset_method), '#'))
+        scores[feature_subset_method] = {}
+        feature_selection_file = feature_subset_selection_methods[feature_subset_method]
 
-    logger.info(hr('Vectorizing Corpus'))
-    feature_selection_file = os.path.join(
-        'dimreduce',
-        'correlated_features.tfidf.100articles.100terms.txt')
-    corpus = preprocess.preprocess(corpus=articles,
-                                   exclude_stopwords=True,
-                                   feature_subset=feature_selection_file,
-                                   method=config.VECTORIZER_METHOD)
+        logger.info(hr('Vectorizing Corpus'))
+        corpus = preprocess.preprocess(corpus=articles,
+                                       exclude_stopwords=True,
+                                       feature_subset=feature_selection_file,
+                                       method=config.VECTORIZER_METHOD)
 
-    logger.info(hr('K-Means Clustering'))
-    articles_np = numpy.array(corpus.corpus)
-    clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
-                                          k=7,
-                                          distance=distance_func,
-                                          initial_centroid_method='kpp')
+        logger.info(hr('K-Means Clustering'))
+        articles_np = numpy.array(corpus.corpus)
+        clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
+                                              k=7,
+                                              distance=distance_func,
+                                              initial_centroid_method='kpp')
 
-    clusters = []
-    for cluster_index, article_indices in enumerate(clustering):
-        print('{0}: {1}'.format(cluster_index, article_indices))
-        clusters.append(list(articles_np[article_indices]))
+        clusters = []
+        for cluster_index, article_indices in enumerate(clustering):
+            print('{0}: {1}'.format(cluster_index, article_indices))
+            clusters.append(list(articles_np[article_indices]))
 
-    articles_sorted_by_cluster = []
-    article_cluster_indices = []
-    for cluster_index, cluster in enumerate(clusters):
-        # sort the cluster based on category labels
-        cluster.sort(key=lambda a: a.category)
+        articles_sorted_by_cluster = []
+        article_cluster_indices = []
+        for cluster_index, cluster in enumerate(clusters):
+            # sort the cluster based on category labels
+            cluster.sort(key=lambda a: a.category)
 
-        # flatten cluster
-        articles_sorted_by_cluster.extend([article.vector
-                                           for article in cluster])
-        article_cluster_indices.extend([cluster_index
-                                        for _ in range(len(cluster))])
+            # flatten cluster
+            articles_sorted_by_cluster.extend([article.vector
+                                               for article in cluster])
+            article_cluster_indices.extend([cluster_index
+                                            for _ in range(len(cluster))])
 
-        logger.debug('{0: >5}:'.format(cluster_index))
-        for article in cluster:
-            logger.debug('    {0: >15} -- {1}'.format(article.category,
-                                                      article.title))
+            logger.debug('{0: >5}:'.format(cluster_index))
+            for article in cluster:
+                logger.debug('    {0: >15} -- {1}'.format(article.category,
+                                                          article.title))
 
-    indices = numpy.arange(corpus.count)
-    cart_product_indices = itertools.product(indices,
-                                             repeat=2)
+        indices = numpy.arange(corpus.count)
+        cart_product_indices = itertools.product(indices,
+                                                 repeat=2)
 
-    logger.info(hr('Similarity / Distance Matrix'))
-    # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-    #                         distance_metric=distance.cosine,
-    #                         cart_prod_indices=cart_product_indices)
+        logger.info(hr('Similarity / Distance Matrix'))
+        # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+        #                         distance_metric=distance.cosine,
+        #                         cart_prod_indices=cart_product_indices)
 
-    ## Ideal Cluster to Ideal Class Similarity Matrix correlation
-    logger.info(hr('Calculating Ideal Similarity Correlation'))
-    article_class_indices = [corpus.class_to_index[article.category]
-                             for article in corpus]
-    correlation = metrics.ideal_correlation(
-        cluster_indices=article_cluster_indices,
-        class_indices=article_class_indices,
-        n=corpus.count)
-    logger.info('Ideal Correlation: {}'.format(correlation))
-    ideal_correlation_axes.bar(index, correlation)
+        ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+        logger.info(hr('Calculating Ideal Similarity Correlation'))
+        article_class_indices = [corpus.class_to_index[article.category]
+                                 for article in corpus]
+        correlation = metrics.ideal_correlation(
+            cluster_indices=article_cluster_indices,
+            class_indices=article_class_indices,
+            n=corpus.count)
+        logger.info('Ideal Correlation: {}'.format(correlation))
+        ideal_correlation_axes.bar(index, correlation)
+        scores[feature_subset_method]['ideal'] = correlation
 
-    ## SSE
-    logger.debug(hr('Calculating SSE'))
-    sse = metrics.calculate_sse(centroids,
-                                clustering,
-                                corpus.matrix,
-                                distance_func)
-    logger.debug('SSE: {}'.format(sse))
-    sse_axes.bar(index, sse)
+        ## SSE
+        logger.debug(hr('Calculating SSE'))
+        sse = metrics.calculate_sse(centroids,
+                                    clustering,
+                                    corpus.matrix,
+                                    distance_func)
+        logger.debug('SSE: {}'.format(sse))
+        scores[feature_subset_method]['sse'] = sse
+        sse_axes.bar(index, sse)
 
-    ## Silhouette coefficient
-    logger.info(hr('Calculating Silhouette Coefficient'))
-    silhouette = metrics.silhouette_coeff(clustering,
-                                          corpus.matrix.toarray(),
-                                          distance_func)
-    logger.debug('Silhouette Coefficient: {}'.format(silhouette))
-    sil_axes.bar(index, silhouette)
+        ## Silhouette coefficient
+        logger.info(hr('Calculating Silhouette Coefficient'))
+        silhouette = metrics.silhouette_coeff(clustering,
+                                              corpus.matrix.toarray(),
+                                              distance_func)
+        logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+        scores[feature_subset_method]['silhouette'] = silhouette
+        sil_axes.bar(index, silhouette)
 
-    ticks.append((index, feature_subset_method))
+        ticks.append((index, feature_subset_method))
 
+    logger.debug(pprint.pformat(scores))
 
     axes[2,0].set_xticks([t[0] for t in ticks])
     axes[2, 0].set_xticklabels([t[1] for t in ticks])

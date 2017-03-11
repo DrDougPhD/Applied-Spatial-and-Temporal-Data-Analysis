@@ -263,8 +263,8 @@ class QianArticle(NewspaperArticle):
     punctuation_remover = str.maketrans('', '', string.punctuation)
 
     def _setup_quick_vars(self):
-        category_dir = os.path.basename(os.path.dirname(self.path))
-        self.category = category_dir.split('_')[-1]
+        category_str = os.path.basename(self.path)
+        self.category = category_str.split('-')[0].split('_')[-1]
 
     def _setup_reader(self):
         soup = BeautifulSoup(open(self.path), 'html.parser')
