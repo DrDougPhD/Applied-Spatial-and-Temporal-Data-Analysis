@@ -66,8 +66,10 @@ def kmeans(vectors, k, distance, initial_centroid_method, verbose=False):
         #   2.b Recompute centroid
         centroids = numpy.array([
             numpy.mean(vectors[indices], axis=0)
-            for indices in clustering
+            for indices in clustering if indices
         ])
+        if len(centroids) < len(centroid_indices):
+            centroid_indices = numpy.arange(len(centroids))
 
         if verbose:
             print('Centroids:')
