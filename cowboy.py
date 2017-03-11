@@ -44,7 +44,7 @@ def main():
                                    method=config.VECTORIZER_METHOD)
     corpus.to_csv('dimreduce')
 
-    distance_func = distance.cosine
+    distance_func = distance.euclidean
     feature_subset_selection_methods = {
         'Feature\nCorrelation':
             'correlated_features.tfidf.100articles.100terms.txt',
@@ -52,17 +52,19 @@ def main():
         'Average\nTF-IDF': 'avgtfidf.tfidf.100articles.1000terms.txt',
         'Random\nForest': 'randforest.tfidf.100articles.100terms.txt',
         'Decision\nTree Scores': 'dectree.tfidf.100articles.100terms.txt',
+        'Stopwords': None,
     }
     for k in feature_subset_selection_methods:
-        feature_subset_selection_methods[k] = os.path.join(
-            'dimreduce', feature_subset_selection_methods[k])
+        v = feature_subset_selection_methods[k]
+        if v:
+            feature_subset_selection_methods[k] = os.path.join('dimreduce', v)
 
-    fig, axes = pyplot.subplots(nrows=3, ncols=2)
-    sse_axes = axes[0,0]
+    fig, axes = pyplot.subplots(nrows=3)
+    sse_axes = axes[0]
     sse_axes.set_ylabel('SSE')
-    sil_axes = axes[1,0]
+    sil_axes = axes[1]
     sil_axes.set_ylabel('Silhouette\nCoefficient')
-    ideal_correlation_axes = axes[2,0]
+    ideal_correlation_axes = axes[2]
     ideal_correlation_axes.set_ylabel('Ideal\nCorrelation')
 
     ticks = []
@@ -86,7 +88,7 @@ def main():
         clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
                                               k=7,
                                               distance=distance_func,
-                                              initial_centroid_method='kpp')
+                                              initial_centroid_method='random')
 
         clusters = []
         for cluster_index, article_indices in enumerate(clustering):
@@ -154,8 +156,105 @@ def main():
 
     logger.debug(pprint.pformat(scores))
 
-    axes[2,0].set_xticks([t[0] for t in ticks])
-    axes[2, 0].set_xticklabels([t[1] for t in ticks], rotation='vertical')
+    axes[2].set_xticks([t[0] for t in ticks])
+    axes[2].set_xticklabels([t[1] for t in ticks], rotation='vertical')
+
+
+    ### Difference in initial centroid selection
+    # sse_axes = axes[0, 1]
+    # sse_axes.set_ylabel('SSE')
+    # sil_axes = axes[1, 1]
+    # sil_axes.set_ylabel('Silhouette\nCoefficient')
+    # ideal_correlation_axes = axes[2, 1]
+    # ideal_correlation_axes.set_ylabel('Ideal\nCorrelation')
+    # scores = {}
+    # ticks = []
+    #
+    # feature_subset_method = 'Random\nForest'
+    # for index, initial_centroid_method in enumerate(['random', 'kpp']):
+    #     logger.info(hr('Clustering on {}'.format(feature_subset_method), '#'))
+    #     scores[initial_centroid_method] = {}
+    #     feature_selection_file = feature_subset_selection_methods[
+    #         feature_subset_method]
+    #
+    #     logger.info(hr('Vectorizing Corpus'))
+    #     corpus = preprocess.preprocess(corpus=articles,
+    #                                    exclude_stopwords=True,
+    #                                    feature_subset=feature_selection_file,
+    #                                    method=config.VECTORIZER_METHOD)
+    #
+    #     logger.info(hr('K-Means Clustering'))
+    #     articles_np = numpy.array(corpus.corpus)
+    #     clustering, centroids = kmeans.kmeans(
+    #         vectors=corpus.matrix.toarray(),
+    #         k=7,
+    #         distance=distance_func,
+    #         initial_centroid_method=initial_centroid_method)
+    #
+    #     clusters = []
+    #     for cluster_index, article_indices in enumerate(clustering):
+    #         print('{0}: {1}'.format(cluster_index, article_indices))
+    #         clusters.append(list(articles_np[article_indices]))
+    #
+    #     articles_sorted_by_cluster = []
+    #     article_cluster_indices = []
+    #     for cluster_index, cluster in enumerate(clusters):
+    #         # sort the cluster based on category labels
+    #         cluster.sort(key=lambda a: a.category)
+    #
+    #         # flatten cluster
+    #         articles_sorted_by_cluster.extend([article.vector
+    #                                            for article in cluster])
+    #         article_cluster_indices.extend([cluster_index
+    #                                         for _ in range(len(cluster))])
+    #
+    #         logger.debug('{0: >5}:'.format(cluster_index))
+    #         for article in cluster:
+    #             logger.debug('    {0: >15} -- {1}'.format(article.category,
+    #                                                       article.title))
+    #
+    #     logger.info(hr('Similarity / Distance Matrix'))
+    #     # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #     #                         distance_metric=distance.cosine,
+    #     #                         cart_prod_indices=cart_product_indices)
+    #
+    #     ## Ideal Cluster to Ideal Class Similarity Matrix correlation
+    #     logger.info(hr('Calculating Ideal Similarity Correlation'))
+    #     article_class_indices = [corpus.class_to_index[article.category]
+    #                              for article in corpus]
+    #     correlation = metrics.ideal_correlation(
+    #         cluster_indices=article_cluster_indices,
+    #         class_indices=article_class_indices,
+    #         n=corpus.count)
+    #     logger.info('Ideal Correlation: {}'.format(correlation))
+    #     ideal_correlation_axes.bar(index, correlation)
+    #     scores[initial_centroid_method]['ideal'] = correlation
+    #
+    #     ## SSE
+    #     logger.debug(hr('Calculating SSE'))
+    #     sse = metrics.calculate_sse(centroids,
+    #                                 clustering,
+    #                                 corpus.matrix,
+    #                                 distance_func)
+    #     logger.debug('SSE: {}'.format(sse))
+    #     scores[initial_centroid_method]['sse'] = sse
+    #     sse_axes.bar(index, sse)
+    #
+    #     ## Silhouette coefficient
+    #     logger.info(hr('Calculating Silhouette Coefficient'))
+    #     silhouette = metrics.silhouette_coeff(clustering,
+    #                                           corpus.matrix.toarray(),
+    #                                           distance_func)
+    #     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+    #     scores[initial_centroid_method]['silhouette'] = silhouette
+    #     sil_axes.bar(index, silhouette)
+    #
+    #     ticks.append((index, initial_centroid_method))
+    #
+    # logger.debug(pprint.pformat(scores))
+    # axes[2,1].set_xticks([t[0] for t in ticks])
+    # axes[2,1].set_xticklabels([t[1] for t in ticks], rotation='vertical')
+
 
     pyplot.tight_layout(h_pad=2.0)
     pyplot.show()
