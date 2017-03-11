@@ -115,6 +115,10 @@ def cosine_similarities(distances):
     return (-1*distances) + 1
 
 
+def jaccard_similarities(distances):
+    return (-1*distances) + 1
+
+
 @pickled('distance_metric')
 def similarity_matrix(matrix, distance_metric, cart_product_indices):
     distances = distance_matrix(matrix=matrix,

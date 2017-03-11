@@ -46,7 +46,7 @@ def main():
                                    method=config.VECTORIZER_METHOD)
     corpus.to_csv('dimreduce')
 
-    distance_func = distance.cosine
+    distance_func = distance.euclidean
     feature_subset_selection_methods = {
         'Feature\nCorrelation':
             'correlated_features.tfidf.100articles.100terms.txt',
