@@ -50,8 +50,8 @@ def main():
             'correlated_features.tfidf.100articles.100terms.txt',
         'Feature\nRelevancy': 'maxrel.tfidf.100articles.100terms.txt',
         'Average\nTF-IDF': 'avgtfidf.tfidf.100articles.1000terms.txt',
-        #'Random Forest': 'randforest.tfidf.100articles.100terms.txt',
-        #'Gini Split Gain': 'dectree.tfidf.100articles.100terms.txt',
+        'Random\nForest': 'randforest.tfidf.100articles.100terms.txt',
+        'Decision\nTree Scores': 'dectree.tfidf.100articles.100terms.txt',
     }
     for k in feature_subset_selection_methods:
         feature_subset_selection_methods[k] = os.path.join(
@@ -155,7 +155,7 @@ def main():
     logger.debug(pprint.pformat(scores))
 
     axes[2,0].set_xticks([t[0] for t in ticks])
-    axes[2, 0].set_xticklabels([t[1] for t in ticks])
+    axes[2, 0].set_xticklabels([t[1] for t in ticks], rotation='vertical')
 
     pyplot.tight_layout(h_pad=2.0)
     pyplot.show()
