@@ -113,6 +113,9 @@ def silhouette_coeff(clustering, matrix, distance):
 
         # logger.debug(hr('Better distance calculation', '.'))
         logger.debug('Pairwise indices: {}'.format(pairwise_indices))
+        if not pairwise_indices:
+            continue
+
         distances = numpy.apply_along_axis(
             lambda indices: distance(matrix[indices[0]],
                                      matrix[indices[1]]),

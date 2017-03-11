@@ -2,6 +2,7 @@ import pprint
 import random
 random.seed(1)
 import numpy
+numpy.random.seed(0)
 from matplotlib import pyplot
 from scipy.spatial import distance
 import utils

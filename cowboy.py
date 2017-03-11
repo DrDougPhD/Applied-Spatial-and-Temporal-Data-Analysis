@@ -8,6 +8,8 @@ from matplotlib import pyplot
 from scipy.spatial import distance
 from scipy.stats import pearsonr
 from sklearn.cluster import KMeans
+import random
+random.seed(0)
 
 import kmeans
 import metrics
@@ -59,13 +61,20 @@ def main():
         if v:
             feature_subset_selection_methods[k] = os.path.join('dimreduce', v)
 
-    fig, axes = pyplot.subplots(nrows=3)
+    fig, axes = pyplot.subplots(ncols=3)
+    fig.set_size_inches((10, 5))
     sse_axes = axes[0]
     sse_axes.set_ylabel('SSE')
     sil_axes = axes[1]
     sil_axes.set_ylabel('Silhouette\nCoefficient')
     ideal_correlation_axes = axes[2]
     ideal_correlation_axes.set_ylabel('Ideal\nCorrelation')
+
+    heatmap_fig, headmap_axes = pyplot.subplots(ncols=3, nrows=2)
+    headmap_axes.shape = (6,)
+    for a in headmap_axes:
+        a.set_aspect(aspect='equal', adjustable='box')
+    #heatmap_fig.set_size_inches((15, 3))
 
     ticks = []
     scores = {}
@@ -117,9 +126,11 @@ def main():
                                                  repeat=2)
 
         logger.info(hr('Similarity / Distance Matrix'))
-        # sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-        #                         distance_metric=distance.cosine,
-        #                         cart_prod_indices=cart_product_indices)
+        cm = sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+                                distance_metric=distance_func,
+                                cart_prod_indices=cart_product_indices,
+                                axes=headmap_axes[index])
+        headmap_axes[index].set_xlabel(feature_subset_method)
 
         ## Ideal Cluster to Ideal Class Similarity Matrix correlation
         logger.info(hr('Calculating Ideal Similarity Correlation'))
@@ -156,8 +167,11 @@ def main():
 
     logger.debug(pprint.pformat(scores))
 
-    axes[2].set_xticks([t[0] for t in ticks])
-    axes[2].set_xticklabels([t[1] for t in ticks], rotation='vertical')
+    for a in axes:
+        a.set_xticks([t[0] for t in ticks])
+        a.set_xticklabels([t[1] for t in ticks], rotation='vertical')
+
+    #heatmap_fig.colorbar(cm)
 
 
     ### Difference in initial centroid selection
@@ -256,7 +270,8 @@ def main():
     # axes[2,1].set_xticklabels([t[1] for t in ticks], rotation='vertical')
 
 
-    pyplot.tight_layout(h_pad=2.0)
+    fig.tight_layout(w_pad=2.0)
+    heatmap_fig.tight_layout(h_pad=1)
     pyplot.show()
 
 if __name__ == '__main__':

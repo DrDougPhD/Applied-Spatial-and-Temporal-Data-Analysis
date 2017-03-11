@@ -11,7 +11,7 @@ logger = logging.getLogger('cnn.' + __name__)
 
 import utils
 
-def plot(sorted_matrix, distance_metric, cart_prod_indices):
+def plot(sorted_matrix, distance_metric, cart_prod_indices, axes):
     # Create an array of distance values between each pair
     similarities = utils.similarity_matrix(
         matrix=sorted_matrix,
@@ -32,12 +32,11 @@ def plot(sorted_matrix, distance_metric, cart_prod_indices):
     logger.debug('Y: {0} -- {1}'.format(len(y_vals), y_vals))
     logger.debug('C: {0} -- {1}'.format(len(colors), colors))
 
-    pyplot.pcolor(similarities)
+    return axes.pcolor(similarities)
     #pyplot.xticks(numpy.arange(sorted_matrix.shape[0]),
     # article_cluster_indices)
-    pyplot.colorbar()
 
-    pyplot.show()
+    #pyplot.show()
 
 
 if __name__ == '__main__':
