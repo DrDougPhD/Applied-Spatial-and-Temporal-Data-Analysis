@@ -51,9 +51,9 @@ def ranked_tfidf(filename):
 
 
 if __name__ == '__main__':
-    n = 100
+    n = 1000
     ranked_scores = select_by_ranked_tfidf(n=n,
-                                           filename='corpus.tfidf.105.csv')
+                                           filename='corpus.tfidf.104.csv')
     print('Highest tf-idf features:')
     pprint.pprint(ranked_scores)
     output = 'avgtfidf.tfidf.100articles.{n}terms.txt'.format(n=n)

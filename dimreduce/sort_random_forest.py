@@ -8,7 +8,7 @@ if __name__ == '__main__':
     # subprocess.run(['Rscript', 'random_forest_selection.R'])
 
     scores = []
-    with open('randomforest.tfidf.105.csv') as f:
+    with open('randomforest.tfidf.104.csv') as f:
         csv_file = csv.reader(f)
         header = next(csv_file)
         for row in csv_file:
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     pprint.pprint(scores[:100])
 
     print('Writing to file')
-    with open('randforest.sorted.tfidf.105.txt', 'w') as f:
+    with open('randforest.sorted.tfidf.104.txt', 'w') as f:
         f.write('{0: >15} {1}\n'.format(*header))
         for score in scores:
             f.write('{0: >15} {1}\n'.format(*score))

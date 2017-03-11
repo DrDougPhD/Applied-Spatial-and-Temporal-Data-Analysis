@@ -83,7 +83,7 @@ def correlated_features(filename):
 
 if __name__ == '__main__':
     highest_correlated = select_correlated_features(
-        n=100, filename='corpus.tfidf.105.csv')
+        n=100, filename='corpus.tfidf.104.csv')
     pprint.pprint(highest_correlated)
     with open('correlated_features.tfidf.100articles.100terms.txt', 'w') as f:
         f.write('\n'.join(highest_correlated))
