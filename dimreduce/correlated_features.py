@@ -17,8 +17,12 @@ def select_correlated_features(n, filename):
 
     dict_of_feature_correlations = collections.defaultdict(dict)
 
-    correlations = correlated_features(filename=filename)
+    correlations, avg_tfidfs = correlated_features(filename=filename)
+    blacklist = []
     for attr1, attr2, corr in correlations:
+        lower_scoring_attr = min([attr1, attr2],
+                                 key=lambda attr: avg_tfidfs[attr])
+        blacklist.append(lower_scoring_attr)
         corr_for_attr = dict_of_feature_correlations[attr1]
         if 'attrs' not in corr_for_attr:
             corr_for_attr['attrs'] = []
@@ -30,9 +34,24 @@ def select_correlated_features(n, filename):
     for attr, associated_attrs in dict_of_feature_correlations.items():
         corrs_to_others = associated_attrs['corrs']
 
-        ordered_list_of_corrs.append((attr, np.sum(corrs_to_others)))
+        ordered_list_of_corrs.append((attr, np.sum(corrs_to_others),
+                                      avg_tfidfs[attr]))
 
-    ordered_list_of_corrs.sort(key=lambda x: x[-1], reverse=True)
+    ordered_list_of_corrs.sort(key=lambda x: x[2], reverse=True)
+
+    with open('features.tfidf.avgcorr_and_tfidf.txt', 'w') as f:
+        f.write('{0: >20}\t{1: <7}\t{2: <7}\n'.format('Attribute',
+                                                      'AvgCorr',
+                                                      'AvgTfidf'))
+        print('{0: >20}\t{1: <7}\t{2: <7}'.format('Attribute',
+                                                      'AvgCorr',
+                                                      'AvgTfidf'))
+        for attr, avg_corr, avg_tfidf in ordered_list_of_corrs:
+            line = '{0: >20}\t{1: <.5f}\t{2: <.5f}\n'.format(
+                attr, avg_corr, avg_tfidf
+            )
+            print(line[:-1])
+            f.write(line)
 
     print('Top {} best features:'.format(n))
     pprint.pprint(ordered_list_of_corrs[:n])
@@ -45,16 +64,18 @@ def correlated_features(filename):
     labels = []
     with open(filename) as f:
         csv_file = csv.reader(f)
-        header = next(csv_file)[1:]
+        header = next(csv_file)[900:950]
         for row in csv_file:
             labels.append(row[0])
-            matrix.append(np.array(row[1:], dtype=np.float_))
+            matrix.append(np.array(row[900:950], dtype=np.float_))
     matrix = np.array(matrix).T
 
     progress = ProgressBar(max_value=comb(len(header), 2, exact=True))
     correlations = []
+    average_tfidfs = {}
     index = 0
     for i, feature_vector in enumerate(matrix):
+        average_tfidfs[header[i]] = np.mean(feature_vector)
         for j, other_feat_vector in enumerate(matrix):
             if j <= i:
                 continue
@@ -78,7 +99,7 @@ def correlated_features(filename):
 
         progress.finish()
 
-    return correlations
+    return correlations, average_tfidfs
 
 
 if __name__ == '__main__':
