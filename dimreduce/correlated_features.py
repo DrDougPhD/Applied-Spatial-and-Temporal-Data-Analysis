@@ -19,15 +19,21 @@ def select_correlated_features(n, filename):
 
     correlations, avg_tfidfs = correlated_features(filename=filename)
     blacklist = []
+    correlations_to_consider = []
     for attr1, attr2, corr in correlations:
+        if attr1 in blacklist or attr2 in blacklist:
+            continue
+
         lower_scoring_attr = min([attr1, attr2],
                                  key=lambda attr: avg_tfidfs[attr])
+        higher_scoring_attr = max([attr1, attr2],
+                                 key=lambda attr: avg_tfidfs[attr])
+
         blacklist.append(lower_scoring_attr)
-        corr_for_attr = dict_of_feature_correlations[attr1]
+
+        corr_for_attr = dict_of_feature_correlations[higher_scoring_attr]
         if 'attrs' not in corr_for_attr:
-            corr_for_attr['attrs'] = []
             corr_for_attr['corrs'] = []
-        corr_for_attr['attrs'].append(attr2)
         corr_for_attr['corrs'].append(corr)
 
     ordered_list_of_corrs = []
@@ -37,7 +43,7 @@ def select_correlated_features(n, filename):
         ordered_list_of_corrs.append((attr, np.sum(corrs_to_others),
                                       avg_tfidfs[attr]))
 
-    ordered_list_of_corrs.sort(key=lambda x: x[2], reverse=True)
+    ordered_list_of_corrs.sort(key=lambda x: x[1])
 
     with open('features.tfidf.avgcorr_and_tfidf.txt', 'w') as f:
         f.write('{0: >20}\t{1: <7}\t{2: <7}\n'.format('Attribute',
@@ -53,7 +59,8 @@ def select_correlated_features(n, filename):
             print(line[:-1])
             f.write(line)
 
-    print('Top {} best features:'.format(n))
+    print('Top {0} best features out of {1}:'.format(
+        n, len(ordered_list_of_corrs)))
     pprint.pprint(ordered_list_of_corrs[:n])
     return [x[0] for x in ordered_list_of_corrs[:n]]
 
@@ -64,10 +71,10 @@ def correlated_features(filename):
     labels = []
     with open(filename) as f:
         csv_file = csv.reader(f)
-        header = next(csv_file)[900:950]
+        header = next(csv_file)[1:]
         for row in csv_file:
             labels.append(row[0])
-            matrix.append(np.array(row[900:950], dtype=np.float_))
+            matrix.append(np.array(row[1:], dtype=np.float_))
     matrix = np.array(matrix).T
 
     progress = ProgressBar(max_value=comb(len(header), 2, exact=True))
@@ -75,7 +82,8 @@ def correlated_features(filename):
     average_tfidfs = {}
     index = 0
     for i, feature_vector in enumerate(matrix):
-        average_tfidfs[header[i]] = np.mean(feature_vector)
+        non_zero_mask = feature_vector > 0
+        average_tfidfs[header[i]] = np.mean(feature_vector[non_zero_mask])
         for j, other_feat_vector in enumerate(matrix):
             if j <= i:
                 continue
