@@ -61,6 +61,12 @@ class CorpusVectorizer(object):
         progress.finish()
         self.plain_text = plain_text
 
+        # count number of unique terms
+        unique_terms = set()
+        for a in self.plain_text:
+            unique_terms.update(a.split())
+        logger.info('{} unique terms in raw dataset'.format(len(unique_terms)))
+
         # determine the unique categories represented in the dataset
         class_to_index = self.class_to_index = {
             k: i for i, k in enumerate(self.class_names)}
