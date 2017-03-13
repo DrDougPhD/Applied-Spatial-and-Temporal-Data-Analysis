@@ -5,6 +5,8 @@ import collections
 
 from progressbar import ProgressBar
 from scipy.special import comb
+from scipy.stats import pearsonr
+
 import utils
 
 import logging
@@ -13,13 +15,11 @@ logger = logging.getLogger('cnn.'+__name__)
 
 @utils.pickled('n', 'filename')
 def select_correlated_features(n, filename):
-    print('Sorting correlations by the number of associated keys')
-
-    dict_of_feature_correlations = collections.defaultdict(dict)
-
     correlations, avg_tfidfs = correlated_features(filename=filename)
-    blacklist = []
-    correlations_to_consider = []
+
+    print('Beginning feature removal')
+    blacklist = set()
+    dict_of_feature_correlations = collections.defaultdict(dict)
     for attr1, attr2, corr in correlations:
         if attr1 in blacklist or attr2 in blacklist:
             continue
@@ -29,12 +29,14 @@ def select_correlated_features(n, filename):
         higher_scoring_attr = max([attr1, attr2],
                                  key=lambda attr: avg_tfidfs[attr])
 
-        blacklist.append(lower_scoring_attr)
+        blacklist.add(lower_scoring_attr)
 
         corr_for_attr = dict_of_feature_correlations[higher_scoring_attr]
-        if 'attrs' not in corr_for_attr:
+        if 'corrs' not in corr_for_attr:
             corr_for_attr['corrs'] = []
         corr_for_attr['corrs'].append(corr)
+    print('Feature removal complete')
+
 
     ordered_list_of_corrs = []
     for attr, associated_attrs in dict_of_feature_correlations.items():
@@ -43,8 +45,10 @@ def select_correlated_features(n, filename):
         ordered_list_of_corrs.append((attr, np.sum(corrs_to_others),
                                       avg_tfidfs[attr]))
 
+    print('Sorting features by sum of correlations to others')
     ordered_list_of_corrs.sort(key=lambda x: x[1])
 
+    print('Writing feats/correlation sum/average tfidf to file')
     with open('features.tfidf.avgcorr_and_tfidf.txt', 'w') as f:
         f.write('{0: >20}\t{1: <7}\t{2: <7}\n'.format('Attribute',
                                                       'AvgCorr',
@@ -53,7 +57,7 @@ def select_correlated_features(n, filename):
                                                       'AvgCorr',
                                                       'AvgTfidf'))
         for attr, avg_corr, avg_tfidf in ordered_list_of_corrs:
-            line = '{0: >20}\t{1: <.5f}\t{2: <.5f}\n'.format(
+            line = '{0: >20}\t & {1: <.5f}\t & {2: <.5f} \\\\ \n'.format(
                 attr, avg_corr, avg_tfidf
             )
             print(line[:-1])
@@ -71,12 +75,13 @@ def correlated_features(filename):
     labels = []
     with open(filename) as f:
         csv_file = csv.reader(f)
-        header = next(csv_file)[1:]
+        header = next(csv_file)[1000:3000]
         for row in csv_file:
             labels.append(row[0])
-            matrix.append(np.array(row[1:], dtype=np.float_))
+            matrix.append(np.array(row[1000:3000], dtype=np.float_))
     matrix = np.array(matrix).T
 
+    print('Computing pairwise correlation (drink a beer in the meantime...)')
     progress = ProgressBar(max_value=comb(len(header), 2, exact=True))
     correlations = []
     average_tfidfs = {}
@@ -88,17 +93,20 @@ def correlated_features(filename):
             if j <= i:
                 continue
 
-            corr = np.correlate(feature_vector, other_feat_vector)
-            correlations.append((header[i], header[j], corr[0]))
+            corr, pval = pearsonr(feature_vector, other_feat_vector)
+            correlations.append((header[i], header[j], corr))
 
             progress.update(index)
             index += 1
+
+    progress.finish()
 
     logger.debug('Sorting features by correlation')
     correlations.sort(key=lambda x: x[-1], reverse=True)
     logger.debug('First 100 highly redundant features:')
     logger.debug(pprint.pformat(correlations[:100]))
 
+    print('Writing out correlations to file')
     with open('features.tfidf.sorted_correlations.txt', 'w') as f:
         progress = ProgressBar(max_value=len(correlations))
         for i, corr in enumerate(correlations):
