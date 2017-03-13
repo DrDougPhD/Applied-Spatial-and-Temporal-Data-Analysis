@@ -1,6 +1,6 @@
 \documentclass[11pt]{article}
 %Gummi|065|=)
-\title{Homework \#3: Discussion on kNN and Decision Trees\\ for Classifying CNN News Articles}
+\title{Homework \#3: Discussion on $k$-means Clustering\\ of CNN News Articles}
 \author{Doug McGeehan\\
 		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
 		Spring 2017}
@@ -22,13 +22,188 @@
 
 \section{Preliminaries}
 
-\subsection{Feature Subset Selection}
+Prior to discussing the experimental results, the preliminary concepts and methods used for the experiments are discussed.
 
-\subsection{Initial Centroid Selection for $k$-means}
+\subsection{Feature Subset Selection} \label{sec:feature_selection}
+
+Without performing any feature reduction to the dataset, there exists 11,372 unique terms within the selected 100 articles.
+With this high-dimensionality of the dataset, initial executions of $k$-means were found to produce very poor quality clusters.
+Thus, it is of interest to perform various methods of dimensionality reduction so as to investigate its effect on the clustering results.
+For this report, five feature selection methods were chosen to compare against a benchmark approach: average tf-idf scores, Gini index splitting scores, pairwise feature correlations, feature-to-category correlation, and random forest feature importances, with the benchmark being only the removal of stopwords from each article.
+Each of these methods produces a set of features that are preserved in the dataset for executing $k$-means while removing other features deemed ill-suited for representing the articles.
+Each of these methods is briefly discussed in the following subsections.
+
+\subsubsection{Feature Selection from Average Tf-idf Scores}
+
+Each article in the dataset may have a distinct tf-idf score for a particular feature.
+Some articles may have a score of 0, while others have a significantly larger score.
+To perform feature selection, first the tf-idf scores for each feature is averaged over all articles.
+Then, these features are ranked in descending order of their average tf-idf score.
+Table 1 shows the top 10 features with the highest average tf-idf scores.
+From this ordering, feature selection is accomplished by preserving the top $n$ features in the dataset as inputs to the $k$-means algorithm.
+All other features are removed.
+
+\begin{center}
+\begin{tabular}{ |r|l| } 
+ \hline
+ Term & Average Tf-idf \\
+ \hline
+ perez       &   0.7905 \\
+ planets     &   0.6817 \\
+ chemicals   &   0.6701 \\
+ flappy      &   0.6590 \\
+ barbie      &   0.6166 \\
+ zimmerman   &   0.6023 \\
+ cosby       &   0.5690 \\
+ colonel     &   0.5684 \\
+ meyers      &   0.5568 \\
+ sparks      &   0.5457 \\ 
+ \hline
+\end{tabular}
+\end{center}
+
+\subsubsection{Feature Selection from Gini Indexes}
+
+The Gini index approach exploits the process of building decision trees to select high-scoring features.
+As a decision tree is being constructed, each node is assigned an attribute that is used to route an object to be classified through the tree.
+The manner in which an attribute is selected for a node is determined based on the reduction of impurity that is achieved by from partitioning articles on the attribute's value in each article.
+Should the splitting on one attribute result in the lowest impurity of each of the partitions, then that attribute is selected for the node being constructed within the decision tree.
+There are multiple impurity metrics that could be selected, as was investigated in the previous report.
+For this report, the Gini index was chosen.
+
+To adapt this process for feature subset selection, each feature is assigned the impurity score obtained by partitioning the dataset on that attribute's observed values.
+For a given feature, the dataset is split into two partitions, with one consisting of the articles exhibiting a tf-idf score less than some threshold.
+All other articles are within the second partition, exhibiting tf-idf scores greater than or equal to the threshold.
+The threshold is chosen based on which tf-idf value offers the lowest Gini index by the two-way split of the two partitions.
+With each feature scored in this manner, they are then sorted in ascending order, from which the top $n$ features are deemed suitable for preservation in the input dataset.
+Table 2 shows the top 10 features with the lowest Gini indexes.
+
+\begin{center}
+\begin{tabular}{ |r|l| } 
+ \hline
+ Term & Gini Index \\
+ \hline
+president &     0.7543 \\
+patients &      0.7669 \\
+republican &    0.7669 \\
+users &         0.7669 \\
+obama &         0.7802 \\
+presidential &  0.7865 \\
+police &        0.7936 \\
+star &          0.7953 \\
+democrats &     0.7959 \\
+medical &       0.7959 \\
+ \hline
+\end{tabular}
+\end{center}
+
+
+\subsubsection{Feature Selection from Pairwise Feature Correlations}
+
+The pairwise correlation between features provides a means of measuring the redundancy of one feature to another.
+This is because feature pairs with a high correlation occur more often within the same articles than those pairs with a low correlation.
+To exploit this property for feature selection, the first task is to eliminate highly redundant features.
+Every pair of features is scored by the correlation of the two features' tf-idf scores across every article.
+Then, the feature with the lowest average tf-idf score in each pair is removed from the dataset.
+The remaining features are then ordered by the sum of their correlations to all other features, with those with lower sums being preserved in the dataset.
+Table 3 provides an example of the 10 feature pairs with the highest correlations, along with the 10 features selected based on their summed correlations to others.
+
+\begin{center}
+\begin{tabular}{ccc}
+\hline
+a&b&c\\
+\hline
+\end{tabular}
+\quad
+\begin{tabular}{ccc}
+\hline
+d&e&f\\
+\hline
+\end{tabular}
+\end{center}
+
+\subsubsection{Feature Selection from Feature-to-Category Correlations}
+
+When considering supervised learning approaches, the correlation between features and the categories of the articles containing them offers one approach to feature selection.
+In this method, each feature is scored based on the correlation of its appearances in articles classified under a given category.
+For instance, the term \emph{police} occurs more often in crime articles than in health articles, and thus there would be a high correlation between \emph{crime} and \emph{police} than between \emph{health} and \emph{police}.
+Those features with low correlations to every class are removed from the dataset, leaving only those features that offer discriminative power in terms of classifying articles.
+Table 4 provides an example of the 10 features with the highest cross-correlation of their (continuous) tf-idf score to a specific (nominal) class.
+
+
+\begin{center}
+\begin{tabular}{ |c|c|c| } 
+ \hline
+ Article Category & Term & Cross-Correlation \\
+ \hline
+              crime & police          & 	1.4472 \\
+              health & brain           & 	1.0680 \\
+              politics & christie        & 	0.9964 \\
+              politics & obama           & 	0.9867 \\
+              health & upwave          & 	0.8817 \\
+              politics & clinton         & 	0.8756 \\
+              living & coffee          & 	0.8333 \\
+              politics & gop             & 	0.8140 \\
+              politics & ukraine         & 	0.8002 \\
+              entertainment & perez     & 	0.7905 \\
+\hline
+\end{tabular}
+\end{center}
+
+
+\subsubsection{Feature Selection from Random Forests}
 
 \subsection{Measuring Cluster Quality}
 
+For this report, four metrics and one visualization approach are computed to measure and visualize the quality of the produced clusterings.
+The computed metrics include the overall sum of squared errors (SSE), the overall silhouette coefficient, the correlation between a clustering's ideal class and ideal cluster similarity matrices, and the overall purity of the produced clusters.
+For the computed visualization, the sorted similarity matrix is drawn to illustrate how well a given clustering was able to group together similar articles.
+
+The motivation for choosing these particular metrics is given as follows.
+First, the sum of the squared errors (SSE) for each cluster provides a measurement of the compactness of each cluster in a given clustering.
+This is calculated by aggregating together the SSEs of each cluster by their weighted average.
+Given two clusterings, one with a higher overall SSE than the other, the clusters within the higher-SSE clustering are not as compact as those in the lower-SSE clustering.
+
+With the silhouette coefficient, both the cohesion of each cluster and their separations to other cluster is calculated into a single metric.
+A higher-valued silhouette coefficient is desireable with this metric, as it indicates that the clusters are both better separated from one another and have lower intra-cluster distances than inter-cluster distances.
+Likewise, the silhouette coefficient offers a means to identify natural clusterings of a dataset by observing a peak of the coefficient's value as the number of sought clusters increases.
+If, for a given $k$, the silhouette coefficient $c_{k} > c_{k+1}$ and $c_{k} > c_{k-1}$, then the dataset produces a better clustering of $k$ clusters than if the dataset were split into $k-1$ or $k+1$ clusters.
+
+The correlation between a clustering's ideal-cluster similarity matrix and its ideal-class similarity matrix is a metric available only when object classes are known beforehand.
+For a clustering built on a set of $n$ articles, the ideal-cluster similarity matrix is an $n \times n$ matrix consisting of $0$s and $1$s for each element.
+If a $1$ is within the $i,j$-th element of the matrix, it means that the $i$-th and $j$-th articles were clustered together.
+A $0$ in the $i,j$-th element implies the articles reside within separate clusters.
+This definition also applies to the ideal-class similarity matrix, with the only difference being that the value of the $i,j$-th element indicates whether the corresponding articles are of the same category.
+Ideally, the result of a clustering should produce clusters consisting of only articles within the same category.
+Thus, if a clustering has a high correlation between the ideal class and ideal cluster similarity matrices, then it can be interpretted as a more effective clustering than that resulting in a low correlation.
+
+
 \section{Experimental Results}
+
+For this report, a number of experiments were executed to produce clusters of the 100 selected articles.
+The goals of these experiments was to observe the effects that certain preprocessing techniques and certain distance metrics had on the resulting clustering through the $k$-means algorithm.
+For the first round of experiments, 7 clusters were to be produced so as to observe if a given experimental configuration resulted in category-dominated clusters - i.e. clusters consisting mostly of one category of articles over others.
+For these experiments, the distance metric used by $k$-means was varied between the Euclidean distance, the cosine distance, and the Jaccard distance between tf-idf vector representations of the articles.
+Further, various feature subset selection methods were integrated into the preprocessing of the dataset so as to reduce its dimensionality.
+See Section \ref{sec:feature_selection} for more information on the adopted methods.
+
+The second round of experiments were designed to investigate whether there existed a natural clustering of the dataset.
+To permit this investigation, the value of $k$ was permitted to exceed the number of article categories when executing the $k$-means algorithm.
+For each value of $k$, the resulting overall SSE, silhouette coefficient, and cluster purity was recorded and plotted.
+
+The results of these experiments and a discussion on them are given in the following subsections.
+
+%figures/hw3/cosine/feature_subset_selection
+%figures/hw3/cosine/natural_clusters
+%figures/hw3/cosine/similarity_matrices
+
+%figures/hw3/euclidean/feature_subset_selection
+%figures/hw3/euclidean/natural_clusters
+%figures/hw3/euclidean/similarity_matrices
+
+%figures/hw3/jaccard/feature_subset_selection
+%figures/hw3/jaccard/natural_clusters
+%figures/hw3/jaccard/similarity_matrices
 
 
 %\begin{figure}[h!] \label{fig:something}
