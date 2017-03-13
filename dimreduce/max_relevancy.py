@@ -51,7 +51,7 @@ def max_relevancy(filename):
     with open('class_to_features.tfidf.sorted.txt', 'w') as f:
         progress = ProgressBar(max_value=len(correlations))
         for i, corr in enumerate(correlations):
-            f.write('{0: >15} {1: <15}\t{2}\n'.format(*corr))
+            f.write('{0: >15} & {1: <15} & \t{2} \\\\\n'.format(*corr))
             progress.update(i)
 
         progress.finish()
