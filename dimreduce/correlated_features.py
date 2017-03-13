@@ -75,10 +75,10 @@ def correlated_features(filename):
     labels = []
     with open(filename) as f:
         csv_file = csv.reader(f)
-        header = next(csv_file)[1000:3000]
+        header = next(csv_file)[1000:2000]
         for row in csv_file:
             labels.append(row[0])
-            matrix.append(np.array(row[1000:3000], dtype=np.float_))
+            matrix.append(np.array(row[1000:2000], dtype=np.float_))
     matrix = np.array(matrix).T
 
     print('Computing pairwise correlation (drink a beer in the meantime...)')
@@ -93,8 +93,16 @@ def correlated_features(filename):
             if j <= i:
                 continue
 
-            corr, pval = pearsonr(feature_vector, other_feat_vector)
-            correlations.append((header[i], header[j], corr))
+            # ignore instances where both are 0
+            mask = np.logical_or(non_zero_mask,
+                                 other_feat_vector > 0)
+            print(np.sum(mask))
+            if int(np.sum(mask)) == 0:
+                pass
+
+            else:
+                corr, pval = pearsonr(feature_vector[mask], other_feat_vector[mask])
+                correlations.append((header[i], header[j], corr))
 
             progress.update(index)
             index += 1
