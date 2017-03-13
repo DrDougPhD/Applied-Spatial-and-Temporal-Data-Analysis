@@ -5,7 +5,7 @@ import collections
 
 from progressbar import ProgressBar
 from scipy.special import comb
-from scipy.stats import pearsonr
+from scipy.stats import spearmanr
 
 import utils
 
@@ -15,56 +15,30 @@ logger = logging.getLogger('cnn.'+__name__)
 
 @utils.pickled('n', 'filename')
 def select_correlated_features(n, filename):
-    correlations, avg_tfidfs = correlated_features(filename=filename)
+    print('Sorting correlations by the number of associated keys')
 
-    print('Beginning feature removal')
-    blacklist = set()
     dict_of_feature_correlations = collections.defaultdict(dict)
+
+    correlations, avg_tfidfs = correlated_features(filename=filename)
     for attr1, attr2, corr in correlations:
-        if attr1 in blacklist or attr2 in blacklist:
-            continue
-
-        lower_scoring_attr = min([attr1, attr2],
-                                 key=lambda attr: avg_tfidfs[attr])
-        higher_scoring_attr = max([attr1, attr2],
-                                 key=lambda attr: avg_tfidfs[attr])
-
-        blacklist.add(lower_scoring_attr)
-
-        corr_for_attr = dict_of_feature_correlations[higher_scoring_attr]
+        higher_tfidf_attr = max([attr1, attr2],
+                                key=lambda attr: avg_tfidfs[attr])
+        corr_for_attr = dict_of_feature_correlations[higher_tfidf_attr]
         if 'corrs' not in corr_for_attr:
             corr_for_attr['corrs'] = []
         corr_for_attr['corrs'].append(corr)
-    print('Feature removal complete')
-
 
     ordered_list_of_corrs = []
     for attr, associated_attrs in dict_of_feature_correlations.items():
         corrs_to_others = associated_attrs['corrs']
 
-        ordered_list_of_corrs.append((attr, np.sum(corrs_to_others),
+        ordered_list_of_corrs.append((attr,
+                                      np.sum(corrs_to_others),
                                       avg_tfidfs[attr]))
 
-    print('Sorting features by sum of correlations to others')
-    ordered_list_of_corrs.sort(key=lambda x: x[1])
+    ordered_list_of_corrs.sort(key=lambda x: x[-1], reverse=True)
 
-    print('Writing feats/correlation sum/average tfidf to file')
-    with open('features.tfidf.avgcorr_and_tfidf.txt', 'w') as f:
-        f.write('{0: >20}\t{1: <7}\t{2: <7}\n'.format('Attribute',
-                                                      'AvgCorr',
-                                                      'AvgTfidf'))
-        print('{0: >20}\t{1: <7}\t{2: <7}'.format('Attribute',
-                                                      'AvgCorr',
-                                                      'AvgTfidf'))
-        for attr, avg_corr, avg_tfidf in ordered_list_of_corrs:
-            line = '{0: >20}\t & {1: <.5f}\t & {2: <.5f} \\\\ \n'.format(
-                attr, avg_corr, avg_tfidf
-            )
-            print(line[:-1])
-            f.write(line)
-
-    print('Top {0} best features out of {1}:'.format(
-        n, len(ordered_list_of_corrs)))
+    print('Top {} best features:'.format(n))
     pprint.pprint(ordered_list_of_corrs[:n])
     return [x[0] for x in ordered_list_of_corrs[:n]]
 
@@ -75,55 +49,43 @@ def correlated_features(filename):
     labels = []
     with open(filename) as f:
         csv_file = csv.reader(f)
-        header = next(csv_file)[1000:2000]
+        header = next(csv_file)[1:]
         for row in csv_file:
             labels.append(row[0])
-            matrix.append(np.array(row[1000:2000], dtype=np.float_))
+            matrix.append(np.array(row[1:], dtype=np.float_))
     matrix = np.array(matrix).T
 
-    print('Computing pairwise correlation (drink a beer in the meantime...)')
     progress = ProgressBar(max_value=comb(len(header), 2, exact=True))
     correlations = []
-    average_tfidfs = {}
+    avg_tfidfs = {}
     index = 0
     for i, feature_vector in enumerate(matrix):
         non_zero_mask = feature_vector > 0
-        average_tfidfs[header[i]] = np.mean(feature_vector[non_zero_mask])
+        avg_tfidfs[header[i]] = np.mean(feature_vector[non_zero_mask])
         for j, other_feat_vector in enumerate(matrix):
             if j <= i:
                 continue
 
-            # ignore instances where both are 0
-            mask = np.logical_or(non_zero_mask,
-                                 other_feat_vector > 0)
-            print(np.sum(mask))
-            if int(np.sum(mask)) == 0:
-                pass
-
-            else:
-                corr, pval = pearsonr(feature_vector[mask], other_feat_vector[mask])
-                correlations.append((header[i], header[j], corr))
+            corr = spearmanr(feature_vector, other_feat_vector)
+            correlations.append((header[i], header[j], corr[0]))
 
             progress.update(index)
             index += 1
-
-    progress.finish()
 
     logger.debug('Sorting features by correlation')
     correlations.sort(key=lambda x: x[-1], reverse=True)
     logger.debug('First 100 highly redundant features:')
     logger.debug(pprint.pformat(correlations[:100]))
 
-    print('Writing out correlations to file')
     with open('features.tfidf.sorted_correlations.txt', 'w') as f:
         progress = ProgressBar(max_value=len(correlations))
         for i, corr in enumerate(correlations):
-            f.write('{0: >15} {1: <15}\t{2}\n'.format(*corr))
+            f.write('{0: >15} & {1: <15}\t & {2} \\\\ \n'.format(*corr))
             progress.update(i)
 
         progress.finish()
 
-    return correlations, average_tfidfs
+    return correlations, avg_tfidfs
 
 
 if __name__ == '__main__':
