@@ -1,5 +1,8 @@
 import pprint
 import random
+
+import config
+
 random.seed(1)
 import numpy
 numpy.random.seed(0)
@@ -76,6 +79,25 @@ def kmeans(vectors, k, distance, initial_centroid_method, verbose=False):
             print(pprint.pformat(list(enumerate(centroids))))
 
         iteration += 1
+
+
+import os
+def archive(preprocessing_method, distance_func, articles, clustering):
+    archive_filename = 'clustering.prep_{0}.dist_{1}.txt'.format(
+        ''.join(preprocessing_method.split('\n')),
+        distance_func
+    )
+    print('Writing out clustering file for {}'.format(archive_filename))
+    with open(os.path.join(config.RESULTS_DIR, archive_filename), 'w') as f:
+        for i, cluster_article_indices in enumerate(clustering):
+            f.write('Cluster #{}\n'
+                    '-------------\n'.format(i+1))
+            articles_in_cluster = articles[cluster_article_indices]
+            for article in articles_in_cluster:
+                f.write('{0: >15} -- {1}\n'.format(article.category,
+                                                   article.title))
+
+            f.write('\n')
 
 
 def random_centroids(vectors, k, distance):

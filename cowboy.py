@@ -46,7 +46,7 @@ def main():
                                    method=config.VECTORIZER_METHOD)
     corpus.to_csv('dimreduce')
 
-    distance_func = distance.euclidean
+    distance_func = distance.jaccard
     feature_subset_selection_methods = {
         'Feature\nCorrelation':
             'correlated_features.tfidf.100articles.100terms.txt',
@@ -97,6 +97,10 @@ def main():
                                               k=7,
                                               distance=distance_func,
                                               initial_centroid_method='random')
+        kmeans.archive(preprocessing_method=feature_subset_method,
+                       distance_func=distance_func.__name__,
+                       articles=articles_np,
+                       clustering=clustering)
 
         clusters = []
         for cluster_index, article_indices in enumerate(clustering):
@@ -166,122 +170,125 @@ def main():
 
     logger.debug(pprint.pformat(scores))
 
-    for a in axes:
-        a.set_xticks([t[0] for t in ticks])
-        a.set_xticklabels([t[1] for t in ticks], rotation='vertical')
+    # for a in axes:
+    #     a.set_xticks([t[0] for t in ticks])
+    #     a.set_xticklabels([t[1] for t in ticks], rotation='vertical')
+    #
+    # logger.info(hr('VARIABLE K-MEANS', '#'))
+    #
+    # sse_scores = []
+    # sil_scores = []
+    # average_purity = []
+    # variable_k_fig, (sse_axes, sil_axes, avg_purity_axes) = pyplot.subplots(
+    #     nrows=3, sharex=True)
+    # variable_k_fig.set_size_inches((6,9))
+    # sse_axes.set_xticks(range(3, 22))
+    # sse_axes.set_ylabel('SSE')
+    # sse_axes.set_xlabel('K (for K-means)')
+    # sil_axes.set_ylabel('Silhouette\nCoefficient')
+    # sil_axes.set_xticks(range(3, 22))
+    # sil_axes.set_xlabel('K (for K-means)')
+    # avg_purity_axes.set_ylabel('Average\nCluster\nPurity')
+    # avg_purity_axes.set_xlabel('K (for K-means)')
+    # avg_purity_axes.set_xticks(range(3, 22))
+    #
+    # feature_subset_method = 'Random\nForest'
+    #
+    # range_of_k = list(range(3, 22))
+    # for index, num_clusters in enumerate(range_of_k):
+    #     logger.info(hr('{0} clusters'.format(num_clusters)))
+    #     feature_selection_file = feature_subset_selection_methods[
+    #         feature_subset_method]
+    #
+    #     logger.info(hr('Vectorizing Corpus'))
+    #     corpus = preprocess.preprocess(corpus=articles,
+    #                                    exclude_stopwords=True,
+    #                                    feature_subset=feature_selection_file,
+    #                                    method=config.VECTORIZER_METHOD)
+    #
+    #     logger.info(hr('K-Means Clustering'))
+    #     articles_np = numpy.array(corpus.corpus)
+    #     clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
+    #                                           k=num_clusters,
+    #                                           distance=distance_func,
+    #                                           initial_centroid_method='random')
+    #
+    #     clusters = []
+    #     dominating_category_size = []
+    #     for cluster_index, article_indices in enumerate(clustering):
+    #         print('{0}: {1}'.format(cluster_index, article_indices))
+    #         articles_in_cluster = list(articles_np[article_indices])
+    #         clusters.append(articles_in_cluster)
+    #
+    #         cluster_category_histogram = collections.defaultdict(int)
+    #         for art in articles_in_cluster:
+    #             cluster_category_histogram[art.category] += 1
+    #
+    #         max_num_articles = float('-inf')
+    #         for cat, num in cluster_category_histogram.items():
+    #             if num > max_num_articles:
+    #                 max_num_articles = num
+    #
+    #         dominating_category_size.append(max_num_articles)
+    #
+    #     avg_purity = numpy.sum(dominating_category_size) / corpus.count
+    #     average_purity.append(avg_purity)
+    #
+    #
+    #     articles_sorted_by_cluster = []
+    #     article_cluster_indices = []
+    #     for cluster_index, cluster in enumerate(clusters):
+    #         # sort the cluster based on category labels
+    #         cluster.sort(key=lambda a: a.category)
+    #
+    #         # flatten cluster
+    #         articles_sorted_by_cluster.extend([article.vector
+    #                                            for article in cluster])
+    #         article_cluster_indices.extend([cluster_index
+    #                                         for _ in range(len(cluster))])
+    #
+    #         logger.debug('{0: >5}:'.format(cluster_index))
+    #         for article in cluster:
+    #             logger.debug('    {0: >15} -- {1}'.format(article.category,
+    #                                                       article.title))
+    #
+    #     # logger.info(hr('Similarity / Distance Matrix'))
+    #     # cm = sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
+    #     #                              distance_metric=distance_func,
+    #     #                              cart_prod_indices=cart_product_indices,
+    #     #                              axes=headmap_axes[index])
+    #     # headmap_axes[index].set_xlabel(feature_subset_method)
+    #
+    #     ## SSE
+    #     logger.debug(hr('Calculating SSE'))
+    #     sse = metrics.calculate_sse(centroids,
+    #                                 clustering,
+    #                                 corpus.matrix,
+    #                                 distance_func)
+    #     logger.debug('SSE: {}'.format(sse))
+    #     #sse_axes.bar(index, sse)
+    #     sse_scores.append(sse)
+    #
+    #     ## Silhouette coefficient
+    #     logger.info(hr('Calculating Silhouette Coefficient'))
+    #     silhouette = metrics.silhouette_coeff(clustering,
+    #                                           corpus.matrix.toarray(),
+    #                                           distance_func)
+    #     logger.debug('Silhouette Coefficient: {}'.format(silhouette))
+    #     #sil_axes.bar(index, silhouette)
+    #     sil_scores.append(silhouette)
+    #
+    # sse_axes.plot(range_of_k, sse_scores)
+    # sil_axes.plot(range_of_k, sil_scores)
+    # avg_purity_axes.plot(range_of_k, average_purity)
+    # logger.debug('Silhouette scores:')
+    # logger.debug(pprint.pformat(list(zip(range_of_k, sil_scores))))
+    # logger.debug('SSE scores:')
+    # logger.debug(pprint.pformat(list(zip(range_of_k, sse_scores))))
+    # logger.debug('Cluster purity: {}'.format(average_purity))
 
-    logger.info(hr('VARIABLE K-MEANS', '#'))
-
-    sse_scores = []
-    sil_scores = []
-    average_purity = []
-    variable_k_fig, (sse_axes, sil_axes, avg_purity_axes) = pyplot.subplots(
-        nrows=3, sharex=True)
-    variable_k_fig.set_size_inches((6,9))
-    sse_axes.set_xticks(range(3, 22))
-    sse_axes.set_ylabel('SSE')
-    sse_axes.set_xlabel('K (for K-means)')
-    sil_axes.set_ylabel('Silhouette\nCoefficient')
-    sil_axes.set_xticks(range(3, 22))
-    sil_axes.set_xlabel('K (for K-means)')
-    avg_purity_axes.set_ylabel('Average\nCluster\nPurity')
-    avg_purity_axes.set_xlabel('K (for K-means)')
-    avg_purity_axes.set_xticks(range(3, 22))
-
-    feature_subset_method = 'Random\nForest'
-
-    range_of_k = list(range(3, 22))
-    for index, num_clusters in enumerate(range_of_k):
-        logger.info(hr('{0} clusters'.format(num_clusters)))
-        feature_selection_file = feature_subset_selection_methods[
-            feature_subset_method]
-
-        logger.info(hr('Vectorizing Corpus'))
-        corpus = preprocess.preprocess(corpus=articles,
-                                       exclude_stopwords=True,
-                                       feature_subset=feature_selection_file,
-                                       method=config.VECTORIZER_METHOD)
-
-        logger.info(hr('K-Means Clustering'))
-        articles_np = numpy.array(corpus.corpus)
-        clustering, centroids = kmeans.kmeans(vectors=corpus.matrix.toarray(),
-                                              k=num_clusters,
-                                              distance=distance_func,
-                                              initial_centroid_method='random')
-
-        clusters = []
-        dominating_category_size = []
-        for cluster_index, article_indices in enumerate(clustering):
-            print('{0}: {1}'.format(cluster_index, article_indices))
-            articles_in_cluster = list(articles_np[article_indices])
-            clusters.append(articles_in_cluster)
-
-            cluster_category_histogram = collections.defaultdict(int)
-            for art in articles_in_cluster:
-                cluster_category_histogram[art.category] += 1
-
-            max_num_articles = float('-inf')
-            for cat, num in cluster_category_histogram.items():
-                if num > max_num_articles:
-                    max_num_articles = num
-
-            dominating_category_size.append(max_num_articles)
-
-        avg_purity = numpy.sum(dominating_category_size) / corpus.count
-        average_purity.append(avg_purity)
 
 
-        articles_sorted_by_cluster = []
-        article_cluster_indices = []
-        for cluster_index, cluster in enumerate(clusters):
-            # sort the cluster based on category labels
-            cluster.sort(key=lambda a: a.category)
-
-            # flatten cluster
-            articles_sorted_by_cluster.extend([article.vector
-                                               for article in cluster])
-            article_cluster_indices.extend([cluster_index
-                                            for _ in range(len(cluster))])
-
-            logger.debug('{0: >5}:'.format(cluster_index))
-            for article in cluster:
-                logger.debug('    {0: >15} -- {1}'.format(article.category,
-                                                          article.title))
-
-        # logger.info(hr('Similarity / Distance Matrix'))
-        # cm = sim_matrix_heatmap.plot(sorted_matrix=articles_sorted_by_cluster,
-        #                              distance_metric=distance_func,
-        #                              cart_prod_indices=cart_product_indices,
-        #                              axes=headmap_axes[index])
-        # headmap_axes[index].set_xlabel(feature_subset_method)
-
-        ## SSE
-        logger.debug(hr('Calculating SSE'))
-        sse = metrics.calculate_sse(centroids,
-                                    clustering,
-                                    corpus.matrix,
-                                    distance_func)
-        logger.debug('SSE: {}'.format(sse))
-        #sse_axes.bar(index, sse)
-        sse_scores.append(sse)
-
-        ## Silhouette coefficient
-        logger.info(hr('Calculating Silhouette Coefficient'))
-        silhouette = metrics.silhouette_coeff(clustering,
-                                              corpus.matrix.toarray(),
-                                              distance_func)
-        logger.debug('Silhouette Coefficient: {}'.format(silhouette))
-        #sil_axes.bar(index, silhouette)
-        sil_scores.append(silhouette)
-
-    sse_axes.plot(range_of_k, sse_scores)
-    sil_axes.plot(range_of_k, sil_scores)
-    avg_purity_axes.plot(range_of_k, average_purity)
-    logger.debug('Silhouette scores:')
-    logger.debug(pprint.pformat(list(zip(range_of_k, sil_scores))))
-    logger.debug('SSE scores:')
-    logger.debug(pprint.pformat(list(zip(range_of_k, sse_scores))))
-    logger.debug('Cluster purity: {}'.format(average_purity))
 
     # fig.suptitle('Feature Selection Methods', y=1.08)
     # heatmap_fig.suptitle('Similarity Matrices', y=1.08)
@@ -387,10 +394,10 @@ def main():
     # axes[2,1].set_xticklabels([t[1] for t in ticks], rotation='vertical')
 
 
-    fig.tight_layout(w_pad=2.0)
-    heatmap_fig.tight_layout(h_pad=1)
-    variable_k_fig.tight_layout(h_pad=2)
-    pyplot.show()
+    #fig.tight_layout(w_pad=2.0)
+    #heatmap_fig.tight_layout(h_pad=1)
+    #variable_k_fig.tight_layout(h_pad=2)
+    #pyplot.show()
 
 if __name__ == '__main__':
     main()
