@@ -12,6 +12,7 @@ from surprise import KNNBasic # collaborative filtering
 import threading
 import time
 import statistics
+import json
 
 exitFlag = 0
 
@@ -47,27 +48,8 @@ def main():
     pprint.pprint(performances)
     
     print('Writing to file')
-    with open('results.csv', 'w') as f:
-    
-        # write header
-        sample_method = list(performances.keys())[0]
-        sample_results = performances[sample_method]
-        header = ['method']
-        for measure in sample_results:
-            header.extend(['{0}-fold{1}'.format(measure, i+1)
-                           for i in range(len(sample_results[measure]))])
-            header.append(measure + '-avg')
-        
-        f.write(';'.join(header) + '\n')
-        
-        # write results
-        for method, results in performances.items():
-            line = [method]
-            for measure, measurements in results.items():
-                line.extend([str(m) for m in measurements])
-                line.append(str(statistics.mean(measurements)))
-            f.write(';'.join(line) + '\n')
-
+    with open('results.json', 'w') as f:
+        json.dump(performances, f)
 
 
 class ParallelRecommenders(threading.Thread):

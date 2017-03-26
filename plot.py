@@ -1,4 +1,4 @@
-import csv
+import json
 import pprint
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,27 +6,24 @@ import numpy as np
 
 # load data
 lines = []
-with open('results.csv') as f:
-    reader = csv.DictReader(f, delimiter=';')
-    lines = [line for line in reader]
+with open('results.json') as f:
+    results = json.load(f)
+
 
 # transform to be friendly for plotting
-methods = [r['method'] for r in lines]
-mae_fold1 = [r['mae-fold1'] for r in lines]
-mae_fold2 = [r['mae-fold2'] for r in lines]
-mae_fold3 = [r['mae-fold3'] for r in lines]
-mae_avg   = [r['mae-avg'] for r in lines]
-mae_vals = [mae_fold1, mae_fold2, mae_fold3, mae_avg]
-
-rmse_fold1 = [r['rmse-fold1'] for r in lines]
-rmse_fold2 = [r['rmse-fold2'] for r in lines]
-rmse_fold3 = [r['rmse-fold3'] for r in lines]
-rmse_avg = [r['rmse-avg'] for r in lines]
-rmse_vals = [rmse_fold1, rmse_fold2, rmse_fold3, rmse_avg]
-
+mae_results = {
+    method: results[method]['mae']
+    for method in results
+}
+rmse_results = {
+    method: results[method]['rmse']
+    for method in results
+}
+access_order = list(results.keys())
 labels = ['Fold 1', 'Fold 2', 'Fold 3', 'Mean']
-mae_access_order = ['rmse-fold1', 'rmse-fold2', 'rmse-fold3', 'rmse-avg']
-num_bars = len(mae_fold1)
+
+num_bars_per_method = len(labels)
+num_bars_per_group = 5
 
 
 # create two subplot figure
@@ -36,20 +33,14 @@ rmse_axes.set_ylabel('RMSE')
 
 
 # draw subplot for mae
-bar_slots_to_occupy = num_bars + 1
+bar_slots_to_occupy = num_bars_per_group + 1
 base_indices = np.arange(start=1,
                          stop=bar_slots_to_occupy*len(labels)+1,
                          step=bar_slots_to_occupy)
-print(base_indices)
-for bar_offset, result_group in enumerate(mae_vals):
+for i, method in enumerate(access_order):
     # draw bars for fold k / average results
-    indices = np.arange(num_bars)+1+(bar_offset*bar_slots_to_occupy)
-
-
-# draw subplot for rmse
-for result_group in rmse_vals:
-    pass
-    # draw bars for fold k / average results
+    indices = base_indices + i
+    print(indices)
 
 
 # apply legend
