@@ -22,25 +22,34 @@ def main():
                                   reader=FILE_READER)
     data.split(n_folds=3)
 
-    perf = svd(data)
-    print_perf(perf)
+    methods = [svd, pmf, nmf, ucf, icf]
+    performances = {}
+    for method in methods:
+        print('='*80)
+        print(method.__doc__)
+        print('~'*len(method.__doc__))
 
+        perf = method(data)
+        performances[method.__doc__] = perf
 
     print('='*80)
-    pprint.pprint(perf)
+    pprint.pprint(performances)
 
 
 def svd(data):
+    """Singular Value Decomposition"""
     return evaluate(SVD(), data,
                     measures=PERF_MEASURES)
 
 
 def pmf(data):
+    """Probabilistic Matrix Factorization"""
     return evaluate(SVD(biased=False), data,
                     measures=PERF_MEASURES)
 
 
 def nmf(data):
+    """Non-negative Matrix Factorization"""
     return evaluate(NMF(), data,
                     measures=PERF_MEASURES)
 
@@ -53,12 +62,12 @@ def _collaborative_filtering(data, is_user_based):
 
 
 def ucf(data):
-    # user-based collaborative filtering
+    """User-based Collaborative Filtering"""
     return _collaborative_filtering(data, True)
 
 
 def icf(data):
-    # item-based collaborative filtering
+    """Item-based Collaborative Filtering"""
     return _collaborative_filtering(data, False)
 
 
