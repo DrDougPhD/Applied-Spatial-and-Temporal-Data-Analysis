@@ -9,6 +9,10 @@ from surprise import SVD # singular value decomposition
 from surprise import NMF # non-negative matrix factorization
 from surprise import KNNBasic # collaborative filtering
 
+import threading
+import time
+
+exitFlag = 0
 
 PERF_MEASURES = ['RMSE', 'MAE']
 
@@ -23,17 +27,38 @@ def main():
     data.split(n_folds=3)
 
     methods = [svd, pmf, nmf, ucf, icf]
+    jobs = []
+    for i, method in enumerate(methods):
+        job = ParallelRecommenders(threadID=i,
+                                   counter=1,
+                                   fn=method,
+                                   data=data)
+        job.start()
+        jobs.append(job)
+        
+    
     performances = {}
-    for method in methods:
-        print('='*80)
-        print(method.__doc__)
-        print('~'*len(method.__doc__))
-
-        perf = method(data)
-        performances[method.__doc__] = perf
-
+    for j in jobs:
+        j.join()
+        performances[j.name] = j.perf
+    
     print('='*80)
     pprint.pprint(performances)
+
+
+class ParallelRecommenders(threading.Thread):
+   def __init__(self, threadID, counter, fn, data):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.name = fn.__doc__
+      self.counter = counter
+      self.method = fn
+      self.params = data
+      
+   def run(self):
+      print("Starting " + self.name)
+      self.perf = self.method(self.params)
+      print("Exiting " + self.name)
 
 
 def svd(data):
