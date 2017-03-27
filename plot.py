@@ -61,17 +61,6 @@ for i, method in enumerate(access_order):
 
 
 # apply legend
-"""
-handles, labels = mae_axes.get_legend_handles_labels()
-mae_axes.legend(handles, labels,
-                bbox_to_anchor=(1.05, 1),
-                loc=2,
-                borderaxespad=0)
-"""
-
-#rmse_axes.set_xticks(base_indices+2)
-#rmse_axes.set_xticklabels(labels)
-
 plt.sca(rmse_axes)
 plt.legend(bbox_to_anchor=(0., -1.4, 1., .102), loc=8,
            borderaxespad=1.)
