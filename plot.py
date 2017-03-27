@@ -27,7 +27,7 @@ num_bars_per_group = 5
 
 
 # create two subplot figure
-fig, (dummy_axes, mae_axes, rmse_axes) = plt.subplots(3, sharex=True)
+fig, (mae_axes, rmse_axes) = plt.subplots(3, sharex=True)
 mae_axes.set_ylabel('MAE')
 rmse_axes.set_ylabel('RMSE')
 
@@ -58,7 +58,10 @@ mae_axes.legend(handles, labels,
                 loc=2,
                 borderaxespad=0)
 """
-plt.sca(mae_axes)
-plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+plt.sca(dummy_axes)
+plt.axis('off')
+
+plt.sca(rmse_axes)
+plt.legend(bbox_to_anchor=(0., -1.5, 1., .102), loc=3,
            mode='expand', borderaxespad=1.)
 plt.show()
