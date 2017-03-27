@@ -27,7 +27,7 @@ num_bars_per_group = 5
 
 
 # create two subplot figure
-fig, (mae_axes, rmse_axes) = plt.subplots(2, sharex=True)
+fig, (dummy_axes, mae_axes, rmse_axes) = plt.subplots(3, sharex=True)
 mae_axes.set_ylabel('MAE')
 rmse_axes.set_ylabel('RMSE')
 
@@ -40,10 +40,25 @@ base_indices = np.arange(start=1,
 for i, method in enumerate(access_order):
     # draw bars for fold k / average results
     indices = base_indices + i
-    print(indices)
+
+    rmse_values = list(rmse_results[method])
+    rmse_values.append(np.mean(rmse_values))
+    rmse_axes.bar(indices, rmse_values, label=method)
+
+    mae_values = list(mae_results[method])
+    mae_values.append(np.mean(mae_values))
+    mae_axes.bar(indices, mae_values, label=method)
 
 
 # apply legend
-
-
+"""
+handles, labels = mae_axes.get_legend_handles_labels()
+mae_axes.legend(handles, labels,
+                bbox_to_anchor=(1.05, 1),
+                loc=2,
+                borderaxespad=0)
+"""
+plt.sca(mae_axes)
+plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+           mode='expand', borderaxespad=1.)
 plt.show()
