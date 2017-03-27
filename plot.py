@@ -19,15 +19,23 @@ rmse_results = {
     method: results[method]['rmse']
     for method in results
 }
-access_order = list(results.keys())
-labels = ['Fold 1', 'Fold 2', 'Fold 3', 'Mean']
 
+# define the order for plotting based on descending average
+methods = list(results.keys())
+avg_scores = [np.mean(mae_results[m]) for m in methods]
+itemized_scores = sorted(zip(methods, avg_scores),
+                         key=lambda x: x[1],
+                         reverse=True)
+access_order = [x[0] for x in itemized_scores]
+
+
+labels = ['Fold 1', 'Fold 2', 'Fold 3', 'Mean']
 num_bars_per_method = len(labels)
 num_bars_per_group = 5
 
 
 # create two subplot figure
-fig, (mae_axes, rmse_axes) = plt.subplots(3, sharex=True)
+fig, (mae_axes, rmse_axes) = plt.subplots(2, sharex=True)
 mae_axes.set_ylabel('MAE')
 rmse_axes.set_ylabel('RMSE')
 
@@ -58,10 +66,13 @@ mae_axes.legend(handles, labels,
                 loc=2,
                 borderaxespad=0)
 """
-plt.sca(dummy_axes)
-plt.axis('off')
+
+#rmse_axes.set_xticks(base_indices+2)
+#rmse_axes.set_xticklabels(labels)
 
 plt.sca(rmse_axes)
-plt.legend(bbox_to_anchor=(0., -1.5, 1., .102), loc=3,
-           mode='expand', borderaxespad=1.)
+plt.legend(bbox_to_anchor=(0., -1.4, 1., .102), loc=8,
+           borderaxespad=1.)
+plt.xticks(base_indices+2, labels)
+plt.subplots_adjust(bottom=0.35)
 plt.show()
