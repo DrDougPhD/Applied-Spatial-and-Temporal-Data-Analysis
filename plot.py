@@ -66,4 +66,4 @@ plt.legend(bbox_to_anchor=(0., -1.4, 1., .102), loc=8,
            borderaxespad=1.)
 plt.xticks(base_indices+2, labels)
 plt.subplots_adjust(bottom=0.35)
-plt.show()
+plt.savefig('rmse_mae_comp.svg')
