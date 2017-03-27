@@ -3,6 +3,8 @@ import pprint
 import matplotlib.pyplot as plt
 import numpy as np
 
+HATCHES = ('/', '', '*', 'o', 'O', '.')
+
 
 # load data
 lines = []
@@ -51,11 +53,11 @@ for i, method in enumerate(access_order):
 
     rmse_values = list(rmse_results[method])
     rmse_values.append(np.mean(rmse_values))
-    rmse_axes.bar(indices, rmse_values, label=method)
+    rmse_axes.bar(indices, rmse_values, label=method, hatch=2*HATCHES[i])
 
     mae_values = list(mae_results[method])
     mae_values.append(np.mean(mae_values))
-    mae_axes.bar(indices, mae_values, label=method)
+    mae_axes.bar(indices, mae_values, label=method, hatch=2*HATCHES[i])
 
 
 # apply legend
