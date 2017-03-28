@@ -63,15 +63,15 @@ plt.subplots_adjust(bottom=0.35)
 plt.savefig('sim_comp.svg')
 
 # create a table of averages
-"""
-with open('rmse_mae_averages.txt', 'w') as f:
-    f.write('{0: >35} & {1} & {2} \\\\ \n'
+with open('sim_averages.txt', 'w') as f:
+    f.write('{0: >35} & {1: >10} & {2} & {3} \\\\ \n'
             '\hline \\\\ \n'.format(
-        'Method', 'MAE (Mean)', 'RMSE (Mean)'))
+        'Method', 'Measurement', 'RMSE (Mean)', 'MAE (Mean)'))
 
-    for method in access_order:
-        avg_mae = np.mean(mae_results[method])
-        avg_rmse = np.mean(rmse_results[method])
-        f.write('{0: >35} &   {1:.4f}   &   {2:.4f}    \\\\ \n'.format(
-                method, avg_mae, avg_rmse))
-"""
+    for method, values_by_metric in results.items():
+        for metric, values in values_by_metric.items():
+            f.write('{0: >35} &  {1: >11} & {2:.4f}   &   {3:.4f}    \\\\ \n'.format(
+                    method, metric,
+                    np.mean(values['rmse']),
+                    np.mean(values['mae'])))
+
