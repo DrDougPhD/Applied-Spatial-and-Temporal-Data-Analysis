@@ -29,58 +29,38 @@ for method, values in results.items():
 pprint.pprint(mae_averages)
 pprint.pprint(rmse_averages)
 
-"""
-mae_results = [
-    [np.mean(results[method]['mae'])
-     for sim in results[method]]
-    for method in results
-]
-rmse_results = [
-    [np.mean(results[method]['rmse'])
-     for  in results[method]]
-    for method in results
-]
-access_order = list(results.keys())
-
-sample_method = list(results.keys())[0]
-sim_order = list(results[sample_method].keys())
-
-
-# define the order for plotting based on descending average
-num_bars_per_method = 3
-num_bars_per_group = 2
-
-
 # create two subplot figure
 fig, (mae_axes, rmse_axes) = plt.subplots(2, sharex=True)
 mae_axes.set_ylabel('MAE (avg)')
 rmse_axes.set_ylabel('RMSE (avg)')
 
 
-# draw subplot for mae
-bar_slots_to_occupy = num_bars_per_group + 1
-base_indices = np.arange(start=1,
-                         stop=bar_slots_to_occupy*num_bars_per_method+1,
-                         step=bar_slots_to_occupy)
-for i, method in enumerate(access_order):
-    # draw bars for fold k / average results
-    indices = base_indices + i
-
-    rmse_axes.bar(indices, rmse_results[i], label=method, hatch=2*HATCHES[i])
-
-    mae_axes.bar(indices, mae_results[i], label=method, hatch=2*HATCHES[i])
+# draw subplot
+for method in mae_averages:
+    print("Optimal k for {0} (RMSE): {1}".format(
+	method,
+        min(zip(indices, rmse_averages[method]), key=lambda x: x[1])
+    ))
+    print("Optimal k for {0} (MAE): {1}".format(
+        method,
+        min(zip(indices, mae_averages[method]), key=lambda x: x[1])
+    ))
+    print('-'*80)
+    rmse_axes.plot(indices, rmse_averages[method], label=method)
+    mae_axes.plot(indices, mae_averages[method], label=method)
 
 
 # apply legend
 plt.sca(rmse_axes)
 plt.legend(bbox_to_anchor=(0., -1.05, 1., .102), loc=8,
            borderaxespad=1.)
-plt.xticks(base_indices+0.5, sim_order)
+#plt.xticks(indices)
 plt.subplots_adjust(bottom=0.35)
-plt.savefig('sim_comp.svg')
+plt.savefig('sim_vark.svg')
 
 # create a table of averages
-with open('sim_averages.txt', 'w') as f:
+"""
+with open('sim_vark.txt', 'w') as f:
     f.write('{0: >35} & {1: >10} & {2} & {3} \\\\ \n'
             '\hline \\\\ \n'.format(
         'Method', 'Measurement', 'RMSE (Mean)', 'MAE (Mean)'))
