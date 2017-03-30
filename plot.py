@@ -62,9 +62,12 @@ for i, method in enumerate(access_order):
 
 # apply legend
 plt.sca(rmse_axes)
+rmse_axes.set_ylim(bottom=0.9)
+mae_axes.set_ylim(bottom=0.7)
 plt.legend(bbox_to_anchor=(0., -1.4, 1., .102), loc=8,
            borderaxespad=1.)
 plt.xticks(base_indices+2, labels)
+plt.suptitle('Problems 9-12: Performance Comparisons between\nBase Models for Recommender Systems')
 plt.subplots_adjust(bottom=0.35)
 plt.savefig('rmse_mae_comp.svg')
 
