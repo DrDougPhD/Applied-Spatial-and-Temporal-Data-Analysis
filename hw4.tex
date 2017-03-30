@@ -1,0 +1,193 @@
+\documentclass[11pt]{article}
+%Gummi|065|=)
+\title{Homework \#4: Discussion on Recommender Systems}
+\author{Doug McGeehan\\
+		CS 6001: Applied Spatial and \\ Temporal Data Analysis\\
+		Spring 2017}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{verbatim}
+\usepackage{framed}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+Recommender systems estimate the rating that a user would assign to an entity based on their past ratings and on those of other users.
+The goal of these systems is to recommend to a user an entity that he or she has not previously rated.
+In this report, five approaches to recommender systems are evaluated on their effectiveness to correctly compute a user's rating.
+These approaches can be split into two classes.
+Approaches within the first class utilize dimensioniality reduction through \emph{matrix factorization}.
+This general approach clusters together entities based on similarities in their known ratings.
+From these clusters, a representative rating is computed from which unknown ratings can be estimated.
+The second class is based on the $k$-nearest neighbors classification method through a process called \emph{Collaborative Filtering}.
+Here, a user's rating on an entity is based on the weighted sum of ratings from the top-$k$-most similar users or items.
+
+\begin{figure}[h!] \label{fig:somethingelse}
+	\centering
+	\begin{subfigure}{.5\textwidth}
+	  \centering
+	  \includegraphics[width=\linewidth]{ratings_per_user}
+	  \caption{}
+	\end{subfigure}%
+	\begin{subfigure}{.5\textwidth}
+	  \centering
+	  \includegraphics[width=\linewidth]{heatmap}
+	  \caption{}
+	\end{subfigure}
+	\caption{Visualizing the restaurant rating dataset using in this report.}
+\end{figure}
+
+
+These systems are evaluated using a restaurant rating dataset consisting of the ratings that a set of 943 users assigned to a set of 1,682 restaurants.
+These ratings range from 1 to 5.
+Figure 1a illustrates the number of restaurants that each user has already rated, exhibiting a power-law distribution.
+In Figure 1b, each user's rating of each restaurant is represented as a colormap, with the darkest regions representing absent ratings.
+From these two figures, it is evident that this dataset is significantly sparse and imbalanced, and many ratings will need to be estimated by the discussed systems.
+To evaluate the effectiveness of these systems, 3-fold cross validation is performed on the dataset, and existing ratings in the testing dataset of a particular fold are compared against their estimated ratings from the training dataset.
+Mean absolute error (MAE) and the root mean squared error (RMSE) are used for for these comparisons.
+
+
+
+
+\begin{table}[!htb]
+    \begin{subtable}{.5\linewidth}
+      \centering
+        \caption{The top 10 features with the highest average\\ of non-zero tf-idf scores.}
+        \begin{tabular}{ |c|c| } 
+			 \hline
+			 Feature & Average Tf-idf \\
+			 \hline
+			 perez       &   0.7905 \\
+			 planets     &   0.6817 \\
+			 chemicals   &   0.6701 \\
+			 flappy      &   0.6590 \\
+			 barbie      &   0.6166 \\
+			 zimmerman   &   0.6023 \\
+			 cosby       &   0.5690 \\
+			 colonel     &   0.5684 \\
+			 meyers      &   0.5568 \\
+			 sparks      &   0.5457 \\ 
+			 \hline
+		\end{tabular}
+    \end{subtable}%
+    \begin{subtable}{.5\linewidth}
+      \centering
+        \caption{The top 10 features with the lowest Gini indexes. }
+		\begin{tabular}{ |c|c| } 
+		 	\hline
+		 	Feature & Gini Index \\
+		 	\hline
+			president &     0.7543 \\
+			patients &      0.7669 \\
+			republican &    0.7669 \\
+			users &         0.7669 \\
+			obama &         0.7802 \\
+			presidential &  0.7865 \\
+			police &        0.7936 \\
+			star &          0.7953 \\
+			democrats &     0.7959 \\
+			medical &       0.7959 \\
+			 \hline
+		\end{tabular}
+    \end{subtable}
+    \caption{Two examples of the top 10 features selected by the described methods for feature selection. (a) lists the features that are selected by an unsupervised feature selection method, and (b) lists those selected by a supervised method.}
+\end{table}
+
+
+\section{Comparing the Five Methods} \label{sec:experiments}
+
+In this section, the performance of five recommender system approaches is evaluated.
+Three of these systems approach the problem by using matrix factorization: Singular Value Decomposition (SVD), Probabilistic Matrix Factorization (PMF), and Non-negative Matrix Factorization (NMF).
+The remaining three approaches use $k$-nearest neighbors through User-based Collaborative Filtering or Item-based Collaborative Filtering.
+The effectiveness of each system is measured using the mean absolute error (MAE) and the root mean squared error (RMSE) between estimated ratings and pre-existing ratings in a 3-fold cross validation on the dataset.
+
+
+\begin{figure}[h!] \label{fig:threefoldcross}
+  \centering
+  \includegraphics[width=0.8\textwidth]{rmse_mae_comp}
+  \caption{}
+\end{figure}
+
+From Figure 2, the matrix factorization-based approaches outperformed the $k$NN-based approaches.
+This is likely due to the sparsity of the dataset, which remains unhandled in the $k$NN approach but is mitigated in through matrix factorization.
+The approach with the least error is the Singular Value Decomposition method, with the Probabilistic Matrix Factorization method coming in second, followed by Non-negative Matrix Factorization.
+Both of the Collaborative Filtering approaches performed the worst, suggesting that the sparsity of the dataset impacted the overall effectiveness of using $k$NN to calculate recommendations.
+The Item-based Collaborative Filtering performed only slightly better on average than the User-based approach.
+It should be noted, however, that the differences between the measured errors is quite low.
+The error of the best-performing method was approximately 5\% below that of the worst performing method.
+
+
+%\begin{figure}[h!] \label{fig:something}
+%  \centering
+%  \includegraphics[width=\textwidth]{figures/decision_tree/mrmr/path_depths}
+%  \caption{}
+%\end{figure}
+
+%\begin{figure}[h!] \label{fig:somethingelse}
+%	\centering
+%	\begin{subfigure}{.5\textwidth}
+%	  \centering
+%	  \includegraphics[width=\linewidth]{figures/decision_tree/tf_prec_n_rec}
+%	  \caption{}
+%	\end{subfigure}%
+%	\begin{subfigure}{.5\textwidth}
+%	  \centering
+%	  \includegraphics[width=\linewidth]{figures/decision_tree/tfidf_prec_n_rec}
+%	  \caption{}
+%	\end{subfigure}
+%	\caption{}
+%\end{figure}
+
+\section{Comparing Similarity Measures for Collaborative Filtering}
+
+Since Collaborative Filtering is based on $k$NN, its use of a particular similarity measure impacts its effectiveness in estimating unknown ratings.
+By default, the \texttt{surprise} Python library uses the Mean Squared Differences (MSD) to compute the similarity between a pair of users or a pair of restaurants.
+However, it can be configured to use the cosine similarity or the Pearson correlation coefficient.
+Figure 3 illustrates the impacts of these measures on the performance of User-based and Item-based Collaborative Filtering.
+
+\begin{figure}[h!] \label{fig:something}
+  \centering
+  \includegraphics[width=0.8\textwidth]{sim_comp}
+  \caption{}
+\end{figure}
+
+From Figure 3, it is apparent that the impact of these three similarity measures is consistent for both User-based and Item-based Collaborative Filtering.
+MSD results in both approaches achieving approximately the same error, with Item-based Collaborative Filtering achieving slightly lower RMSE.
+With cosine similarity and the Pearson correlation coefficient, the User-based Collaborative Filtering performs a little under 5\% better than Item-based Collaborative Filtering.
+The use of the Pearson correlation coefficient results in the worst performance.
+
+
+\section{Effect of Neighbor Count on Collaborative Filtering}
+
+Similarly for Collaborative Filtering, the number of neighbors used to estimate a missing rating will also have an impact on the method's effectiveness.
+By default, the \texttt{surprise} Python library uses the 40 nearest neighbors of an item or user to make its estimation.
+Figure 4 illustrates the impact on performance when $k$ is varied between 2 and 100.
+
+\begin{figure}[h!] \label{fig:something}
+  \centering
+  \includegraphics[width=0.8\textwidth]{sim_vark}
+  \caption{}
+\end{figure}
+
+By averaging the MAE and the RMSE across each execution in a 3-fold cross validation, the best $k$ value for minimizing a method's error is different for each method: User-based Collaborative Filtering requires 26 neighbors to minimize its error, whereas Item-based Collaborative Filtering requires 38 neighbors.
+In more detail, Item-based Collaborative Filtering has a slower decline in error as $k$ approaches 38, whereas User-based Collaborative Filtering reaches its minima quite rapidly.
+Should execution time be important and a suboptimal $k$ value be sufficient, this suggests that User-based Collaborative Filtering would be a better option for a recommender system.
+However, its performance is still worse than the matrix factorization-based methods.
+
+\section{Conclusion} \label{sec:conclusion}
+
+From the above experiments, it is suggested that matrix factorization is a better basis for recommender systems than Collaborative Filtering when dealing with sparse and imbalanced datasets.
+However, matrix factorization doesn't scale as well as Collaborative Filtering.
+Should execution time be more important than accuracy, the choice of Item-based Collaborative Filtering using the mean absolute error as its $k$NN similarity measure is able to achieve the best performance over User-based Collaborative Filtering on any of the tested similarity measures.
+
+%\bibliography{bibliography}{}
+%\bibliographystyle{plain}
+\end{document}
