@@ -58,6 +58,8 @@ for i, method in enumerate(access_order):
 plt.sca(rmse_axes)
 plt.legend(bbox_to_anchor=(0., -.65, 1., .102), loc=8,
            borderaxespad=1.)
+mae_axes.set_ylim(bottom=0.75)
+rmse_axes.set_ylim(bottom=0.95)
 plt.xticks(base_indices+0.5, sim_order)
 plt.suptitle('Problem 13: Impact of Similarity Measure for Collaborative Filtering')
 plt.subplots_adjust(bottom=0.2)
