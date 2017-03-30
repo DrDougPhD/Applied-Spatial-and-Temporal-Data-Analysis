@@ -56,10 +56,11 @@ for i, method in enumerate(access_order):
 
 # apply legend
 plt.sca(rmse_axes)
-plt.legend(bbox_to_anchor=(0., -1.05, 1., .102), loc=8,
+plt.legend(bbox_to_anchor=(0., -.65, 1., .102), loc=8,
            borderaxespad=1.)
 plt.xticks(base_indices+0.5, sim_order)
-plt.subplots_adjust(bottom=0.35)
+plt.suptitle('Problem 13: Impact of Similarity Measure for Collaborative Filtering')
+plt.subplots_adjust(bottom=0.2)
 plt.savefig('sim_comp.svg')
 
 # create a table of averages
