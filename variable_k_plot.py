@@ -36,21 +36,42 @@ rmse_axes.set_ylabel('RMSE (avg)')
 
 
 # draw subplot
+from matplotlib.ticker import MultipleLocator
+from matplotlib.ticker import FormatStrFormatter
+majorLocator = MultipleLocator(20)
+majorFormatter = FormatStrFormatter('%d')
+minorLocator = MultipleLocator(5)
+
+optimal_points = set()
 for method in mae_averages:
+    print('-'*80)
+    line, = rmse_axes.plot(indices, rmse_averages[method], label=method)
+    optimal_rmse = min(zip(indices, rmse_averages[method]),
+                       key=lambda x: x[1])
+    rmse_axes.axvline(x=optimal_rmse[0], color=line.get_color())
     print("Optimal k for {0} (RMSE): {1}".format(
-	method,
-        min(zip(indices, rmse_averages[method]), key=lambda x: x[1])
+        method,
+        optimal_rmse
     ))
+    optimal_points.add(optimal_rmse[0])
+
+    line, = mae_axes.plot(indices, mae_averages[method], label=method)
+    optimal_mae = min(zip(indices, mae_averages[method]),
+                      key=lambda x: x[1])
+    optimal_points.add(optimal_mae[0])
+    mae_axes.axvline(x=optimal_mae[0], color=line.get_color())
     print("Optimal k for {0} (MAE): {1}".format(
         method,
-        min(zip(indices, mae_averages[method]), key=lambda x: x[1])
+        optimal_mae
     ))
-    print('-'*80)
-    rmse_axes.plot(indices, rmse_averages[method], label=method)
-    mae_axes.plot(indices, mae_averages[method], label=method)
-
 
 # apply legend
+indices = sorted([*list(range(0, max(indices)+1, 20)),
+                  *list(optimal_points)])
+indices.remove(40)
+print('Indices for RMSE:', indices)
+rmse_axes.set_xticks(indices)
+
 plt.sca(rmse_axes)
 plt.legend(bbox_to_anchor=(0., -1.05, 1., .102), loc=8,
            borderaxespad=1.)
