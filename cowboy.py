@@ -29,20 +29,10 @@ def main():
     data.split(n_folds=3)
 
     methods = [svd, pmf, nmf, ucf, icf]
-    jobs = []
-    for i, method in enumerate(methods):
-        job = ParallelRecommenders(threadID=i,
-                                   counter=1,
-                                   fn=method,
-                                   data=data)
-        job.start()
-        jobs.append(job)
-        
-    
     performances = {}
-    for j in jobs:
-        j.join()
-        performances[j.name] = j.perf
+    for method in methods:
+        print('Method:', method.__doc__)
+        performances[method.__doc__] = method(data)
     
     print('='*80)
     pprint.pprint(performances)
@@ -52,37 +42,31 @@ def main():
         json.dump(performances, f)
 
 
-class ParallelRecommenders(threading.Thread):
-   def __init__(self, threadID, counter, fn, data):
-      threading.Thread.__init__(self)
-      self.threadID = threadID
-      self.name = fn.__doc__
-      self.counter = counter
-      self.method = fn
-      self.params = data
-      
-   def run(self):
-      print("Starting " + self.name)
-      self.perf = self.method(self.params)
-      print("Exiting " + self.name)
-
-
 def svd(data):
     """Singular Value Decomposition"""
-    return evaluate(SVD(), data,
-                    measures=PERF_MEASURES)
+    recommender = SVD()
+    results =  evaluate(recommender, data,
+                        measures=PERF_MEASURES)
+    print('SVD internals')
+    print(dir(recommender))
+    print(recommender)
+    return results
 
 
 def pmf(data):
     """Probabilistic Matrix Factorization"""
-    return evaluate(SVD(biased=False), data,
-                    measures=PERF_MEASURES)
+    recommender = SVD(biased=False)
+    results = evaluate(recommender, data,
+                       measures=PERF_MEASURES)
+    return results
 
 
 def nmf(data):
     """Non-negative Matrix Factorization"""
-    return evaluate(NMF(), data,
-                    measures=PERF_MEASURES)
+    recommender = NMF()
+    results = evaluate(recommender, data,
+                       measures=PERF_MEASURES)
+    return results
 
 def _collaborative_filtering(data, is_user_based):
     algo = KNNBasic(sim_options = {
