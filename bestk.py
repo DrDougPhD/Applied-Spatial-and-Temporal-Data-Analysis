@@ -28,22 +28,16 @@ def main():
     data.split(n_folds=3)
 
     methods = [ucf, icf]
-    jobs = []
-    for i, method in enumerate(methods):
-        for k in range(2, 101):
-            job = ParallelRecommenders(threadID=i,
-                                       counter=1,
-                                       fn=method,
-                                       data=data,
-                                       k=k)
-            job.start()
-            jobs.append(job)
-        
-    
     performances = collections.defaultdict(list)
-    for j in jobs:
-        j.join()
-        performances[j.name].append(j.perf)
+    for i, method in enumerate(methods):
+        print('Running experiments for', method.__doc__)
+        print('-'*40)
+        for k in range(2, 101):
+            print('k =', k)
+            results = method(data, k)
+            performances[method.__doc__].append(results)
+            print('-'*20)
+        
     
     print('='*80)
     pprint.pprint(performances)
